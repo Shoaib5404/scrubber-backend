@@ -1,0 +1,125 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: scrubber-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: scrubber
+      POSTGRES_USER: scrubber
+      POSTGRES_PASSWORD: scrubber
+    ports:
+      - '5433:5432'  # LOCAL
+      #- '5432:5432'  # PRODUCTION
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U scrubber']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: scrubber-redis
+    restart: unless-stopped
+    ports:
+      - '6381:6379' # LOCAL
+      # - '6379:6379' # PRODUCTION
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: scrubber-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      # Browser origins allowed for presigned PUT/GET (set per env in .env).
+      MINIO_API_CORS_ALLOW_ORIGIN: ${MINIO_API_CORS_ALLOW_ORIGIN:-http://localhost:3010,http://127.0.0.1:3010}
+    ports:
+      # LOCAL
+      - '9020:9000'
+      - '9021:9001'
+      # PRODUCTION
+      #- '9000:9000'
+      #- '9001:9001'
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      # Internal container port is always 9000 (host maps 9020→9000).
+      # Prefer `mc ready` — curl is often missing from minio/minio images.
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Uncomment after first successful local build:
+  # api:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: scrubber-api
+  #   restart: unless-stopped
+  #   ports:
+  #     - '3011:3011'
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #     minio:
+  #       condition: service_healthy
+  #   healthcheck:
+  #     # Uses Node fetch — curl/wget are not in node:20-alpine by default.
+  #     test:
+  #       [
+  #         'CMD',
+  #         'node',
+  #         '-e',
+  #         "fetch('http://127.0.0.1:3011/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+  #       ]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #     start_period: 20s
+  # worker:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: scrubber-worker
+  #   restart: unless-stopped
+  #   command: ['node', 'dist/worker.js']
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     redis:
+  #       condition: service_healthy
+  #     postgres:
+  #       condition: service_healthy
+  # scheduler:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: scrubber-scheduler
+  #   restart: unless-stopped
+  #   command: ['node', 'dist/scheduler.js']
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     redis:
+  #       condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:

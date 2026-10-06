@@ -1,0 +1,10 @@
+node_modules
+dist
+coverage
+.env
+.env.local
+*.log
+storage/edi/**
+!storage/edi/.gitkeep
+prisma/*.db
+.DS_Store
