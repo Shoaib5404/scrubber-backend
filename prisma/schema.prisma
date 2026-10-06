@@ -323,3 +323,1345 @@ model EdiUploadErrorLog {
   @@index([userId, status])
   @@map("edi_upload_error_logs")
 }
+
+// ---------------------------------------------------------------------------
+// SP-2 Task 7 â€” Wave A: coding / core validation references
+// ---------------------------------------------------------------------------
+
+model Icd10TabularCode {
+  id                 Int       @id @default(autoincrement())
+  parentId           Int?      @map("parent_id")
+  code               String    @db.VarChar(32)
+  isChapter          Boolean   @default(false) @map("is_chapter")
+  isSection          Boolean   @default(false) @map("is_section")
+  isBillable         Boolean   @default(false) @map("is_billable")
+  effectiveStartDate DateTime? @map("effective_start_date") @db.Date
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  parent       Icd10TabularCode?             @relation("Icd10TabularHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children     Icd10TabularCode[]            @relation("Icd10TabularHierarchy")
+  descriptions Icd10TabularCodeDescription[]
+
+  @@index([code])
+  @@index([parentId, isSection], map: "icd10_tabular_codes_parent_section_idx")
+  @@index([code, isChapter], map: "icd10_tabular_codes_code_chapter_idx")
+  @@map("icd10_tabular_codes")
+}
+
+model Icd10TabularCodeDescription {
+  id                 Int      @id @default(autoincrement())
+  icd10TabularCodeId Int      @map("icd10_tabular_code_id")
+  description        String   @db.Text
+  descriptionType    Int      @map("description_type")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  code Icd10TabularCode @relation(fields: [icd10TabularCodeId], references: [id], onDelete: Cascade)
+
+  @@index([descriptionType])
+  @@index([icd10TabularCodeId, descriptionType, id], map: "icd10_tabular_descriptions_code_type_id_idx")
+  @@map("icd10_tabular_code_descriptions")
+}
+
+model AgeSpecificCptRule {
+  id          Int      @id @default(autoincrement())
+  cptCode     String   @unique @map("cpt_code") @db.VarChar(10)
+  description String?
+  lowLimit    Int?     @map("low_limit")
+  highLimit   Int?     @map("high_limit")
+  unit        String   @default("years")
+  gender      String   @default("B")
+  notes       String?  @db.Text
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([cptCode])
+  @@map("age_specific_cpt_rules")
+}
+
+model AgeSpecificIcdRule {
+  id          Int      @id @default(autoincrement())
+  icdCode     String   @unique @map("icd_code") @db.VarChar(20)
+  description String?
+  lowLimit    Int?     @map("low_limit")
+  upperLimit  Int?     @map("upper_limit")
+  unit        String   @default("years")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("age_specific_icd_rules")
+}
+
+model GenderSpecificCptRule {
+  id          Int      @id @default(autoincrement())
+  cptCode     String   @unique @map("cpt_code") @db.VarChar(10)
+  description String?  @db.VarChar(500)
+  gender      String
+  notes       String?  @db.Text
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([cptCode])
+  @@map("gender_specific_cpt_rules")
+}
+
+model IcdGenderSpecificRule {
+  id          Int      @id @default(autoincrement())
+  icdCode     String   @map("icd_code") @db.VarChar(20)
+  description String?  @db.VarChar(500)
+  gender      String
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([icdCode, gender], map: "icd_gender_specific_rules_unique_code_gender")
+  @@index([icdCode])
+  @@index([gender])
+  @@index([isActive])
+  @@map("icd_gender_specific_rules")
+}
+
+model CptCode {
+  id            Int       @id @default(autoincrement())
+  name          String    @unique @db.VarChar(20)
+  description   String?   @db.VarChar(500)
+  effectiveDate DateTime? @map("effective_date") @db.Date
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([name])
+  @@map("cpt_codes")
+}
+
+model Modifier {
+  id               Int       @id @default(autoincrement())
+  modifier         String    @unique @db.VarChar(10)
+  shortDescription String?   @map("short_description") @db.VarChar(500)
+  addDt            DateTime? @map("add_dt") @db.Date
+  actEffDt         DateTime? @map("act_eff_dt") @db.Date
+  termDt           DateTime? @map("term_dt") @db.Date
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  @@index([addDt])
+  @@index([actEffDt])
+  @@index([termDt])
+  @@map("modifiers")
+}
+
+model ModifierSequence {
+  id            Int      @id @default(autoincrement())
+  modifier      String   @unique @db.VarChar(10)
+  modifierGroup String   @map("modifier_group") @db.VarChar(100)
+  sequenceOrder Int      @unique @map("sequence_order")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("modifier_sequences")
+}
+
+model CptModifierRule {
+  id           Int      @id @default(autoincrement())
+  cptCode      String   @map("cpt_code") @db.VarChar(10)
+  modifierCode String   @map("modifier_code") @db.VarChar(5)
+  isAllowed    Boolean  @default(true) @map("is_allowed")
+  payerId      String?  @map("payer_id") @db.VarChar(50)
+  description  String?  @db.VarChar(500)
+  notes        String?  @db.Text
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@unique([cptCode, modifierCode, payerId], map: "cpt_mod_payer_unique")
+  @@index([cptCode])
+  @@index([modifierCode])
+  @@map("cpt_modifier_rules")
+}
+
+model CptPosRule {
+  id        Int      @id @default(autoincrement())
+  cptCode   String   @map("cpt_code") @db.VarChar(10)
+  posCode   String   @map("pos_code") @db.VarChar(2)
+  payerId   String?  @map("payer_id") @db.VarChar(10)
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([cptCode, posCode, payerId], map: "cpt_pos_payer_unique")
+  @@index([cptCode])
+  @@index([posCode])
+  @@map("cpt_pos_rules")
+}
+
+model Icd10BodySidewise {
+  id              Int      @id @default(autoincrement())
+  code            String   @db.VarChar(20)
+  longDescription String?  @map("long_description") @db.Text
+  side            String?  @db.VarChar(20)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([code])
+  @@index([side])
+  @@index([code, side], map: "icd10_body_sidewise_code_side_index")
+  @@map("icd10_body_sidewise")
+}
+
+model Icd10UnacceptablePrincipalDiagnoseCode {
+  id          Int      @id @default(autoincrement())
+  code        String   @db.VarChar(20)
+  description String?  @db.Text
+  claimType   Int      @map("claim_type")
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([code, claimType], map: "icd10_unacceptable_principal_dx_code_claim_unique")
+  @@index([code], map: "icd10_unacceptable_principal_dx_code_index")
+  @@index([claimType])
+  @@index([active])
+  @@map("icd10_unacceptable_principal_diagnose_codes")
+}
+
+model Ncci {
+  id                     Int       @id @default(autoincrement())
+  column1                String    @map("column_1") @db.VarChar(20)
+  column2                String    @map("column_2") @db.VarChar(20)
+  inExistencePriorTo1996 Boolean   @default(false) @map("in_existence_prior_to_1996")
+  effectiveDate          DateTime? @map("effective_date") @db.Date
+  deletionDate           DateTime? @map("deletion_date") @db.Date
+  modifier               Int       @default(0)
+  ptpEditRationale       String?   @map("ptp_edit_rationale") @db.VarChar(500)
+  sourceFile             String?   @map("source_file") @db.VarChar(50)
+  isActive               Boolean   @default(true) @map("is_active")
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+
+  @@unique([column1, column2, effectiveDate], map: "nccis_pair_date_unique")
+  @@index([column1])
+  @@index([column2])
+  @@index([column1, column2])
+  @@index([modifier], map: "nccis_modifier_index")
+  @@index([sourceFile], map: "nccis_source_file_index")
+  @@index([isActive], map: "nccis_is_active_index")
+  @@map("nccis")
+}
+
+model MuePractitioner {
+  id            Int       @id @default(autoincrement())
+  cptCode       String    @unique @map("cpt_code") @db.VarChar(20)
+  lowerLimit    String?   @map("lower_limit") @db.VarChar(32)
+  upperLimit    String?   @map("upper_limit") @db.VarChar(32)
+  indicator     String?   @db.Text
+  effectiveDate DateTime? @map("effective_date") @db.Date
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([cptCode])
+  @@map("mue_practitioners")
+}
+
+model AddOnCode {
+  id                      Int       @id @default(autoincrement())
+  primaryCode             String    @map("primary_code") @db.VarChar(20)
+  aocEditType             Int?      @map("aoc_edit_type")
+  addOnCode               String?   @map("add_on_code") @db.VarChar(20)
+  aocDeldt                DateTime? @map("aoc_deldt") @db.Date
+  primaryCodeDeldt        DateTime? @map("primary_code_deldt") @db.Date
+  aocEditEffdt            DateTime? @map("aoc_edit_effdt") @db.Date
+  aocEditDeldt            DateTime? @map("aoc_edit_deldt") @db.Date
+  specialInstructionNotes String?   @map("special_instruction_notes") @db.Text
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+
+  @@index([primaryCode])
+  @@index([addOnCode])
+  @@index([primaryCode, addOnCode], map: "add_on_codes_primary_addon_index")
+  @@map("add_on_codes")
+}
+
+model ZeroAmountProcedure {
+  id            Int      @id @default(autoincrement())
+  procedureCode String   @unique @map("procedure_code") @db.VarChar(20)
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([isActive])
+  @@map("zero_amount_procedures")
+}
+
+model NoOfUnitsCpt {
+  id        Int      @id @default(autoincrement())
+  cpt       String   @unique @db.VarChar(20)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([isActive])
+  @@map("no_of_units_cpts")
+}
+
+model GlobalDaysSurgery {
+  id          Int      @id @default(autoincrement())
+  cptCode     String   @unique @map("cpt_code") @db.VarChar(20)
+  description String?
+  days        Int
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([isActive])
+  @@map("global_days_surgeries")
+}
+
+model InitialTreatmentCode {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique @db.VarChar(20)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([active])
+  @@map("initial_treatment_codes")
+}
+
+model RadiologyCptCode {
+  id        Int      @id @default(autoincrement())
+  cpt       String   @unique @db.VarChar(20)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([isActive])
+  @@map("radiology_cpt_codes")
+}
+
+model MajorSurgeryCode {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique @db.VarChar(20)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([active])
+  @@map("major_surgery_codes")
+}
+
+model AnesthesiaCode {
+  id        Int      @id @default(autoincrement())
+  cptCode   String   @unique @map("cpt_code") @db.VarChar(20)
+  unit      Int
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([active])
+  @@map("anesthesia_codes")
+}
+
+model AnesthesiaModifier {
+  id          Int      @id @default(autoincrement())
+  modifier    String   @unique @db.VarChar(10)
+  description String?  @db.VarChar(500)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([active])
+  @@map("anesthesia_modifiers")
+}
+
+model AnesthesiaCodeWithBillableModifier {
+  id        Int      @id @default(autoincrement())
+  code      String   @db.VarChar(20)
+  modifier  String   @db.VarChar(10)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([code, modifier], map: "anesthesia_codes_billable_modifier_unique")
+  @@index([code])
+  @@index([modifier])
+  @@index([active])
+  @@map("anesthesia_codes_with_billable_modifiers")
+}
+
+model TobaccoCounselingIcdRule {
+  id          Int      @id @default(autoincrement())
+  icdCode     String   @unique @map("icd_code") @db.VarChar(20)
+  description String?
+  indicator   Boolean  @default(true)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("tobacco_counseling_icd_rules")
+}
+
+model ConsultationProcedure {
+  id            Int      @id @default(autoincrement())
+  cptCode       String   @unique @map("cpt_code") @db.VarChar(20)
+  description   String?
+  typeOfService String?  @map("type_of_service") @db.VarChar(50)
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("consultation_procedures")
+}
+
+model EnmProcedure {
+  id          Int      @id @default(autoincrement())
+  cptCode     String   @unique @map("cpt_code") @db.VarChar(20)
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("enm_procedures")
+}
+
+model EnmSurgeryCode {
+  id        Int      @id @default(autoincrement())
+  cptCode   String   @unique @map("cpt_code") @db.VarChar(20)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("enm_surgery_codes")
+}
+
+model LabCode {
+  id               Int       @id @default(autoincrement())
+  hcpcs            String    @db.VarChar(20)
+  modifier         String    @default("") @db.VarChar(10)
+  effectiveDate    DateTime? @map("effective_date") @db.Date
+  indicator        String?   @db.VarChar(5)
+  rate             Decimal?  @db.Decimal(12, 2)
+  shortDescription String?   @map("short_description") @db.VarChar(500)
+  isActive         Boolean   @default(true) @map("is_active")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  @@unique([hcpcs, modifier])
+  @@index([hcpcs])
+  @@index([effectiveDate])
+  @@index([indicator])
+  @@index([isActive])
+  @@map("lab_codes")
+}
+
+model McrVaccineCode {
+  id                 Int      @id @default(autoincrement())
+  type               String   @db.VarChar(50)
+  vaccineCode        String   @map("vaccine_code") @db.VarChar(20)
+  icd10Code          String?  @map("icd10_code") @db.VarChar(20)
+  administrationCode String?  @map("administration_code") @db.VarChar(20)
+  isActive           Boolean  @default(true) @map("is_active")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@unique([type, vaccineCode])
+  @@index([type])
+  @@index([vaccineCode])
+  @@index([icd10Code])
+  @@index([administrationCode])
+  @@index([isActive])
+  @@map("mcr_vaccine_codes")
+}
+
+model VaccineCode {
+  id             Int      @id @default(autoincrement())
+  vaccineCode    String   @unique @map("vaccine_code") @db.VarChar(20)
+  description    String?  @db.VarChar(1000)
+  componentCount Int?     @map("component_count")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@index([componentCount])
+  @@index([isActive])
+  @@map("vaccine_codes")
+}
+
+model ICode {
+  id          Int      @id @default(autoincrement())
+  hcpcs       String   @unique @db.VarChar(20)
+  description String?  @db.Text
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([active])
+  @@map("i_codes")
+}
+
+
+// ---------------------------------------------------------------------------
+// SP-2 Task 7 â€” Wave B: crosswalks / payer rules
+// ---------------------------------------------------------------------------
+
+model NdcCode {
+  id                 Int      @id @default(autoincrement())
+  ndc                String   @unique @db.VarChar(15)
+  ndcDigits          String   @unique @map("ndc_digits") @db.VarChar(11)
+  packageDescription String?  @map("package_description") @db.Text
+  isActive           Boolean  @default(true) @map("is_active")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@index([isActive])
+  @@map("ndc_codes")
+}
+
+model NdcHcpcsCrosswalk {
+  id               Int      @id @default(autoincrement())
+  ndc              String   @db.VarChar(20)
+  hcpcs            String   @db.VarChar(10)
+  ndcLabel         String?  @map("ndc_label")
+  hcpcsAmount      Decimal? @map("hcpcs_amount") @db.Decimal(12, 4)
+  hcpcsMeasure     String?  @map("hcpcs_measure") @db.VarChar(20)
+  packageItemCount Int?     @map("package_item_count")
+  isActive         Boolean  @default(true) @map("is_active")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@unique([ndc, hcpcs])
+  @@map("ndc_hcpcs_crosswalk")
+}
+
+model CignaCptIcdCrosswalk {
+  id        Int      @id @default(autoincrement())
+  cptCode   String   @map("cpt_code") @db.VarChar(20)
+  icdCode   String   @map("icd_code") @db.VarChar(20)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([cptCode, icdCode])
+  @@index([cptCode])
+  @@index([icdCode])
+  @@map("cigna_cpt_icd_crosswalk")
+}
+
+model UhcPosCrosswalk {
+  id        Int      @id @default(autoincrement())
+  cptCode   String   @map("cpt_code") @db.VarChar(20)
+  posCode   String   @map("pos_code") @db.VarChar(10)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([cptCode, posCode])
+  @@map("uhc_pos_crosswalk")
+}
+
+model UhcAuthorization {
+  id              Int      @id @default(autoincrement())
+  cptCode         String   @map("cpt_code") @db.VarChar(20)
+  condition       String   @db.VarChar(64)
+  conditionValues String?  @map("condition_values") @db.Text
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([cptCode])
+  @@index([condition])
+  @@index([isActive])
+  @@map("uhc_authorizations")
+}
+
+model AetnaFetalLcd {
+  id          Int      @id @default(autoincrement())
+  icd         String   @db.VarChar(20)
+  cpt         String   @db.VarChar(20)
+  description String?  @db.Text
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([cpt, icd])
+  @@index([icd])
+  @@index([cpt])
+  @@map("aetna_fetal_lcd")
+}
+
+model AetnaB12Lcd {
+  id          Int      @id @default(autoincrement())
+  icd         String   @db.VarChar(20)
+  cpt         String   @db.VarChar(20)
+  description String?  @db.Text
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([cpt, icd])
+  @@index([icd])
+  @@index([cpt])
+  @@map("aetna_b12_lcd")
+}
+
+model BcbsClaimRouting {
+  id          Int      @id @default(autoincrement())
+  prefix      String   @db.VarChar(10)
+  payerId     String   @map("payer_id") @db.VarChar(20)
+  description String   @db.VarChar(255)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([prefix, payerId])
+  @@map("bcbs_claim_routings")
+}
+
+model Mue87726Uhc06111Oxford {
+  id        Int      @id @default(autoincrement())
+  cptCode   String   @unique @map("cpt_code") @db.VarChar(20)
+  min       Int
+  max       Int
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([isActive])
+  @@map("mue_87726_uhc_06111_oxford")
+}
+
+
+// ---------------------------------------------------------------------------
+// SP-2 Task 7 â€” Wave C: geographic / taxonomy / misc
+// Claim filing indicators: ABSENT as lookup table (claims.claim_filing_indicator + config)
+// ---------------------------------------------------------------------------
+
+model TaxonomyCode {
+  id            Int      @id @default(autoincrement())
+  taxonomyCode  String   @unique @map("taxonomy_code") @db.VarChar(10)
+  specialtyName String   @map("specialty_name")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([isActive])
+  @@index([specialtyName])
+  @@map("taxonomy_codes")
+}
+
+model ZipCode {
+  id          Int      @id @default(autoincrement())
+  zipCode     String   @map("zip_code") @db.VarChar(10)
+  zipCodeType String?  @map("zip_code_type") @db.VarChar(5)
+  city        String   @db.VarChar(100)
+  stateName   String?  @map("state_name") @db.VarChar(100)
+  state       String   @db.VarChar(2)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([zipCode, city, state], map: "zip_codes_zip_city_state_unique")
+  @@index([zipCode])
+  @@index([zipCodeType])
+  @@index([state])
+  @@index([isActive])
+  @@map("zip_codes")
+}
+
+model RegionLookup {
+  regionId    Int      @id @map("region_id")
+  description String?  @db.VarChar(255)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("region_lookup")
+}
+
+model StateLookup {
+  stateId     Int      @id @map("state_id")
+  stateAbbrev String   @map("state_abbrev") @db.VarChar(10)
+  description String?  @db.VarChar(255)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("state_lookup")
+}
+
+model DmercRegionLookup {
+  regionId            Int      @id @map("region_id")
+  description         String?  @db.VarChar(255)
+  pscDescription      String?  @map("psc_description") @db.VarChar(255)
+  macDescription      String?  @map("mac_description") @db.VarChar(255)
+  superMacDescription String?  @map("super_mac_description") @db.VarChar(255)
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@map("dmerc_region_lookup")
+}
+
+model StateXRegion {
+  id        Int      @id @default(autoincrement())
+  stateId   Int      @map("state_id")
+  regionId  Int      @map("region_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([stateId, regionId])
+  @@index([stateId])
+  @@index([regionId])
+  @@map("state_x_region")
+}
+
+
+// ---------------------------------------------------------------------------
+// SP-2 Task 7 â€” Wave D: CMS articles / contractors / NCD
+// ---------------------------------------------------------------------------
+
+model ArticleTypeLookup {
+  articleTypeId Int       @id @map("article_type_id")
+  description   String?   @db.VarChar(255)
+  lastUpdated   DateTime? @map("last_updated")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@map("article_type_lookup")
+}
+
+model ArticleUrlTypeLookup {
+  urlTypeId   Int       @id @map("url_type_id")
+  description String?   @db.VarChar(255)
+  sortOrder   Int?      @map("sort_order")
+  lastUpdated DateTime? @map("last_updated")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("article_url_type_lookup")
+}
+
+model ContractorTypeLookup {
+  contractorTypeId Int      @id @map("contractor_type_id")
+  description      String?  @db.VarChar(255)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@map("contractor_type_lookup")
+}
+
+model ContractorSubtypeLookup {
+  contractorSubtypeId Int      @id @map("contractor_subtype_id")
+  description         String?  @db.VarChar(255)
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@map("contractor_subtype_lookup")
+}
+
+model UpdatePeriod {
+  periodId   Int       @id @map("period_id")
+  beginDate  DateTime? @map("begin_date")
+  disEndDate DateTime? @map("dis_end_date")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  @@map("update_period")
+}
+
+model Contractor {
+  id                  Int       @id @default(autoincrement())
+  contractorId        Int       @map("contractor_id")
+  contractorTypeId    Int       @map("contractor_type_id")
+  contractorVersion   Int       @map("contractor_version")
+  contractorBusName   String?   @map("contractor_bus_name") @db.VarChar(255)
+  contractorNumber    String?   @map("contractor_number") @db.VarChar(50)
+  dmercRgn            Int?      @map("dmerc_rgn")
+  address1            String?   @db.VarChar(255)
+  address2            String?   @db.VarChar(255)
+  address3            String?   @db.VarChar(255)
+  city                String?   @db.VarChar(255)
+  stateId             Int?      @map("state_id")
+  zipcode             String?   @db.VarChar(20)
+  phone               String?   @db.VarChar(50)
+  fax                 String?   @db.VarChar(50)
+  status              String?   @db.VarChar(10)
+  lastUpdated         DateTime? @map("last_updated")
+  url                 String?   @db.VarChar(500)
+  email               String?   @db.VarChar(255)
+  ignoreFlag          String?   @map("ignore") @db.VarChar(10)
+  statusFlag          String?   @map("status_flag") @db.VarChar(10)
+  cmdName             String?   @map("cmd_name") @db.VarChar(255)
+  cmdTitle            String?   @map("cmd_title") @db.VarChar(255)
+  contractorSubtypeId Int?      @map("contractor_subtype_id")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  @@unique([contractorId, contractorTypeId, contractorVersion], map: "contractor_id_type_ver_unique")
+  @@index([contractorId])
+  @@index([contractorTypeId])
+  @@map("contractor")
+}
+
+model Article {
+  id                 Int       @id @default(autoincrement())
+  articleId          Int       @map("article_id")
+  articleVersion     Int       @map("article_version")
+  articleType        Int?      @map("article_type")
+  title              String?   @db.Text
+  articlePubDate     DateTime? @map("article_pub_date")
+  articleEffDate     DateTime? @map("article_eff_date")
+  articleEndDate     DateTime? @map("article_end_date")
+  description        String?   @db.Text
+  otherComments      String?   @map("other_comments") @db.Text
+  sadUrl             String?   @map("sad_url") @db.Text
+  status             String?   @db.VarChar(50)
+  lastUpdated        DateTime? @map("last_updated")
+  historyExp         String?   @map("history_exp") @db.Text
+  keyArticle         String?   @map("key_article") @db.VarChar(10)
+  icd9CoveredPara    String?   @map("icd9_covered_para") @db.Text
+  icd9NoncoveredPara String?   @map("icd9_noncovered_para") @db.Text
+  revenuePara        String?   @map("revenue_para") @db.Text
+  thirtyPercent      String?   @map("thirty_percent") @db.VarChar(10)
+  articleRevEndDate  DateTime? @map("article_rev_end_date")
+  sourceArticleId    Int?      @map("source_article_id")
+  dateRetired        DateTime? @map("date_retired")
+  keywords           String?   @db.Text
+  icd10Doc           String?   @map("icd10_doc") @db.Text
+  addIcd10Info       String?   @map("add_icd10_info") @db.Text
+  cmsCovPolicy       String?   @map("cms_cov_policy") @db.Text
+  displayId          String?   @map("display_id") @db.VarChar(50)
+  referenceArticle   String?   @map("reference_article") @db.VarChar(50)
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  @@unique([articleId, articleVersion])
+  @@index([articleId])
+  @@index([articleType], map: "article_article_type_index")
+  @@index([status], map: "article_status_index")
+  @@index([articleEffDate], map: "article_eff_date_index")
+  @@map("article")
+}
+
+model ContractorJurisdiction {
+  id                Int       @id @default(autoincrement())
+  contractorId      Int       @map("contractor_id")
+  contractorTypeId  Int       @map("contractor_type_id")
+  contractorVersion Int       @map("contractor_version")
+  stateId           Int       @map("state_id")
+  lastUpdated       DateTime? @map("last_updated")
+  activeDate        DateTime? @map("active_date")
+  termDate          DateTime? @map("term_date")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  @@index([contractorId])
+  @@index([stateId])
+  @@index([contractorId, contractorTypeId, contractorVersion], map: "contractor_jurisdiction_triplet_index")
+  @@map("contractor_jurisdiction")
+}
+
+model ContractorOversight {
+  id                Int       @id @default(autoincrement())
+  contractorId      Int       @map("contractor_id")
+  contractorTypeId  Int       @map("contractor_type_id")
+  contractorVersion Int       @map("contractor_version")
+  regionId          Int       @map("region_id")
+  lastUpdated       DateTime? @map("last_updated")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  @@index([contractorId])
+  @@index([regionId])
+  @@map("contractor_oversight")
+}
+
+model ArticleFutureRetire {
+  id        Int       @id @default(autoincrement())
+  articleId Int       @map("article_id")
+  retireDt  DateTime? @map("retire_dt")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@index([articleId])
+  @@map("article_future_retire")
+}
+
+model ArticleRelatedDocument {
+  id              Int       @id @default(autoincrement())
+  articleId       Int       @map("article_id")
+  articleVersion  Int       @map("article_version")
+  relatedNum      Int       @map("related_num")
+  rArticleId      Int?      @map("r_article_id")
+  rArticleVersion Int?      @map("r_article_version")
+  rLcdId          Int?      @map("r_lcd_id")
+  rLcdVersion     Int?      @map("r_lcd_version")
+  rContractorId   Int?      @map("r_contractor_id")
+  lastUpdated     DateTime? @map("last_updated")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@index([articleId])
+  @@index([articleId, articleVersion, relatedNum], map: "article_related_documents_show_index")
+  @@map("article_related_documents")
+}
+
+model ArticleRelatedNcdDocument {
+  id             Int       @id @default(autoincrement())
+  articleId      Int       @map("article_id")
+  articleVersion Int       @map("article_version")
+  relatedNum     Int       @map("related_num")
+  rNcdId         Int?      @map("r_ncd_id")
+  rNcdVersion    Int?      @map("r_ncd_version")
+  lastUpdated    DateTime? @map("last_updated")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@index([articleId])
+  @@index([articleId, articleVersion, relatedNum], map: "article_related_ncd_documents_show_index")
+  @@map("article_related_ncd_documents")
+}
+
+model ArticleRelatedSourceIcd9 {
+  id              Int       @id @default(autoincrement())
+  articleId       Int       @map("article_id")
+  articleVersion  Int       @map("article_version")
+  relatedNum      Int       @map("related_num")
+  sourceArticleId Int?      @map("source_article_id")
+  lastUpdated     DateTime? @map("last_updated")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@index([articleId])
+  @@map("article_related_source_icd9")
+}
+
+model ArticleXBillCode {
+  id              Int       @id @default(autoincrement())
+  articleId       Int       @map("article_id")
+  articleVersion  Int       @map("article_version")
+  billCodeId      String    @map("bill_code_id") @db.VarChar(10)
+  billCodeVersion Int?      @map("bill_code_version")
+  lastUpdated     DateTime? @map("last_updated")
+  description     String?   @db.VarChar(500)
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@index([articleId])
+  @@index([articleId, articleVersion], map: "article_x_bill_code_article_pair_index")
+  @@map("article_x_bill_code")
+}
+
+model ArticleXCodeTable {
+  id               Int       @id @default(autoincrement())
+  articleId        Int       @map("article_id")
+  articleVersion   Int       @map("article_version")
+  articleType      Int?      @map("article_type")
+  codeTableRow     Int?      @map("code_table_row")
+  brandName        String?   @map("brand_name") @db.VarChar(500)
+  effDate          DateTime? @map("eff_date")
+  endDate          DateTime? @map("end_date")
+  comments         String?   @db.Text
+  hcpcCodeId       String?   @map("hcpc_code_id") @db.VarChar(10)
+  hcpcCodeVersion  Int?      @map("hcpc_code_version")
+  lastUpdated      DateTime? @map("last_updated")
+  shortDescription String?   @map("short_description") @db.VarChar(500)
+  longDescription  String?   @map("long_description") @db.Text
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  @@index([articleId])
+  @@index([articleId, articleVersion], map: "article_x_code_table_article_pair_index")
+  @@index([codeTableRow], map: "article_x_code_table_row_index")
+  @@map("article_x_code_table")
+}
+
+model ArticleXContractor {
+  id                Int       @id @default(autoincrement())
+  articleId         Int       @map("article_id")
+  articleVersion    Int       @map("article_version")
+  articleType       Int?      @map("article_type")
+  contractorId      Int       @map("contractor_id")
+  contractorTypeId  Int?      @map("contractor_type_id")
+  contractorVersion Int?      @map("contractor_version")
+  lastUpdated       DateTime? @map("last_updated")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  @@index([articleId])
+  @@index([contractorId])
+  @@index([articleId, articleVersion], map: "article_x_contractor_article_pair_index")
+  @@index([contractorId, contractorTypeId, contractorVersion], map: "article_x_contractor_contractor_triplet_index")
+  @@map("article_x_contractor")
+}
+
+model ArticleXHcpcCode {
+  id               Int       @id @default(autoincrement())
+  articleId        Int       @map("article_id")
+  articleVersion   Int       @map("article_version")
+  hcpcCodeId       String    @map("hcpc_code_id") @db.VarChar(10)
+  hcpcCodeVersion  Int?      @map("hcpc_code_version")
+  hcpcCodeGroup    Int?      @map("hcpc_code_group")
+  range            String?   @db.VarChar(1)
+  lastUpdated      DateTime? @map("last_updated")
+  longDescription  String?   @map("long_description") @db.Text
+  shortDescription String?   @map("short_description") @db.VarChar(500)
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  @@index([articleId])
+  @@index([hcpcCodeId])
+  @@index([articleId, articleVersion], map: "article_x_hcpc_code_article_pair_index")
+  @@map("article_x_hcpc_code")
+}
+
+model ArticleXHcpcCodeGroup {
+  id             Int       @id @default(autoincrement())
+  articleId      Int       @map("article_id")
+  articleVersion Int       @map("article_version")
+  hcpcCodeGroup  Int       @map("hcpc_code_group")
+  paragraph      String?   @db.Text
+  lastUpdated    DateTime? @map("last_updated")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@index([articleId])
+  @@index([articleId, articleVersion], map: "article_x_hcpc_code_group_article_pair_index")
+  @@map("article_x_hcpc_code_group")
+}
+
+model ArticleXHcpcModifier {
+  id                      Int       @id @default(autoincrement())
+  articleId               Int       @map("article_id")
+  articleVersion          Int       @map("article_version")
+  hcpcModifierCodeId      String    @map("hcpc_modifier_code_id") @db.VarChar(10)
+  hcpcModifierCodeVersion Int?      @map("hcpc_modifier_code_version")
+  hcpcModifierGroup       Int?      @map("hcpc_modifier_group")
+  lastUpdated             DateTime? @map("last_updated")
+  description             String?   @db.Text
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+
+  @@index([articleId])
+  @@index([hcpcModifierCodeId])
+  @@index([articleId, articleVersion], map: "article_x_hcpc_modifier_article_pair_index")
+  @@map("article_x_hcpc_modifier")
+}
+
+model ArticleXHcpcModifierGroup {
+  id                Int       @id @default(autoincrement())
+  articleId         Int       @map("article_id")
+  articleVersion    Int       @map("article_version")
+  hcpcModifierGroup Int       @map("hcpc_modifier_group")
+  paragraph         String?   @db.Text
+  lastUpdated       DateTime? @map("last_updated")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  @@index([articleId])
+  @@index([articleId, articleVersion], map: "article_x_hcpc_modifier_group_article_pair_index")
+  @@map("article_x_hcpc_modifier_group")
+}
+
+model ArticleXIcd10Covered {
+  id                Int       @id @default(autoincrement())
+  articleId         Int       @map("article_id")
+  articleVersion    Int       @map("article_version")
+  icd10CodeId       String    @map("icd10_code_id") @db.VarChar(10)
+  icd10CodeVersion  Int?      @map("icd10_code_version")
+  icd10CoveredGroup Int?      @map("icd10_covered_group")
+  range             String?   @db.VarChar(1)
+  lastUpdated       DateTime? @map("last_updated")
+  sortOrder         Int?      @map("sort_order")
+  description       String?   @db.Text
+  asterisk          String?   @db.VarChar(1)
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  @@index([articleId])
+  @@index([icd10CodeId])
+  @@index([articleId, articleVersion], map: "article_x_icd10_covered_article_pair_index")
+  @@index([icd10CoveredGroup], map: "article_x_icd10_covered_group_index")
+  @@map("article_x_icd10_covered")
+}
+
+model ArticleXIcd10CoveredGroup {
+  id                Int       @id @default(autoincrement())
+  articleId         Int       @map("article_id")
+  articleVersion    Int       @map("article_version")
+  icd10CoveredGroup Int       @map("icd10_covered_group")
+  paragraph         String?   @db.Text
+  lastUpdated       DateTime? @map("last_updated")
+  icd10CoveredAst   String?   @map("icd10_covered_ast") @db.Text
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  @@index([articleId])
+  @@index([articleId, articleVersion], map: "article_x_icd10_covered_group_article_pair_index")
+  @@index([icd10CoveredGroup], map: "article_x_icd10_covered_group_id_index")
+  @@map("article_x_icd10_covered_group")
+}
+
+model ArticleXIcd10Noncovered {
+  id                   Int       @id @default(autoincrement())
+  articleId            Int       @map("article_id")
+  articleVersion       Int       @map("article_version")
+  icd10CodeId          String    @map("icd10_code_id") @db.VarChar(10)
+  icd10CodeVersion     Int?      @map("icd10_code_version")
+  icd10NoncoveredGroup Int?      @map("icd10_noncovered_group")
+  range                String?   @db.VarChar(1)
+  lastUpdated          DateTime? @map("last_updated")
+  sortOrder            Int?      @map("sort_order")
+  description          String?   @db.Text
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  @@index([articleId])
+  @@index([icd10CodeId])
+  @@index([articleId, articleVersion], map: "article_x_icd10_noncovered_article_pair_index")
+  @@index([icd10NoncoveredGroup], map: "article_x_icd10_noncovered_group_index")
+  @@map("article_x_icd10_noncovered")
+}
+
+model ArticleXIcd10NoncoveredGroup {
+  id                   Int       @id @default(autoincrement())
+  articleId            Int       @map("article_id")
+  articleVersion       Int       @map("article_version")
+  icd10NoncoveredGroup Int       @map("icd10_noncovered_group")
+  paragraph            String?   @db.Text
+  lastUpdated          DateTime? @map("last_updated")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  @@index([articleId])
+  @@index([articleId, articleVersion], map: "article_x_icd10_noncovered_group_article_pair_index")
+  @@index([icd10NoncoveredGroup], map: "article_x_icd10_noncovered_group_id_index")
+  @@map("article_x_icd10_noncovered_group")
+}
+
+model ArticleXIcd10PcsCode {
+  id                  Int       @id @default(autoincrement())
+  articleId           Int       @map("article_id")
+  articleVersion      Int       @map("article_version")
+  range               String?   @db.VarChar(1)
+  lastUpdated         DateTime? @map("last_updated")
+  sortOrder           Int?      @map("sort_order")
+  icd10PcsCodeId      String    @map("icd10_pcs_code_id") @db.VarChar(10)
+  icd10PcsCodeVersion Int?      @map("icd10_pcs_code_version")
+  icd10PcsCodeGroup   Int?      @map("icd10_pcs_code_group")
+  description         String?   @db.Text
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  @@index([articleId])
+  @@index([icd10PcsCodeId])
+  @@index([articleId, articleVersion], map: "article_x_icd10_pcs_code_article_pair_index")
+  @@map("article_x_icd10_pcs_code")
+}
+
+model ArticleXIcd10PcsCodeGroup {
+  id                Int       @id @default(autoincrement())
+  articleId         Int       @map("article_id")
+  articleVersion    Int       @map("article_version")
+  lastUpdated       DateTime? @map("last_updated")
+  icd10PcsCodeGroup Int       @map("icd10_pcs_code_group")
+  paragraph         String?   @db.Text
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  @@index([articleId])
+  @@index([articleId, articleVersion], map: "article_x_icd10_pcs_code_group_article_pair_index")
+  @@index([icd10PcsCodeGroup], map: "article_x_icd10_pcs_code_group_id_index")
+  @@map("article_x_icd10_pcs_code_group")
+}
+
+model ArticleXOtherCodingGroup {
+  id               Int       @id @default(autoincrement())
+  articleId        Int       @map("article_id")
+  articleVersion   Int       @map("article_version")
+  otherCodingGroup Int       @map("other_coding_group")
+  paragraph        String?   @db.Text
+  codes            String?   @db.Text
+  lastUpdated      DateTime? @map("last_updated")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  @@index([articleId])
+  @@index([articleId, articleVersion], map: "article_x_other_coding_group_article_pair_index")
+  @@map("article_x_other_coding_group")
+}
+
+model ArticleXPrimaryJurisdiction {
+  id             Int       @id @default(autoincrement())
+  articleId      Int       @map("article_id")
+  articleVersion Int       @map("article_version")
+  stateId        Int       @map("state_id")
+  lastUpdated    DateTime? @map("last_updated")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@index([articleId])
+  @@index([stateId])
+  @@map("article_x_primary_jurisdiction")
+}
+
+model ArticleXResponseToComment {
+  id             Int       @id @default(autoincrement())
+  articleId      Int       @map("article_id")
+  articleVersion Int       @map("article_version")
+  rtcNum         Int       @map("rtc_num")
+  comment        String?   @db.Text
+  response       String?   @db.Text
+  lastUpdated    DateTime? @map("last_updated")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@index([articleId])
+  @@index([articleId, articleVersion], map: "article_x_response_to_comment_article_pair_index")
+  @@map("article_x_response_to_comment")
+}
+
+model ArticleXRevenueCode {
+  id                 Int       @id @default(autoincrement())
+  articleId          Int       @map("article_id")
+  articleVersion     Int       @map("article_version")
+  revenueCodeId      String    @map("revenue_code_id") @db.VarChar(10)
+  revenueCodeVersion Int?      @map("revenue_code_version")
+  range              String?   @db.VarChar(1)
+  lastUpdated        DateTime? @map("last_updated")
+  description        String?   @db.VarChar(500)
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  @@index([articleId])
+  @@index([revenueCodeId])
+  @@index([articleId, articleVersion], map: "article_x_revenue_code_article_pair_index")
+  @@map("article_x_revenue_code")
+}
+
+model ArticleXRevisionHistory {
+  id             Int       @id @default(autoincrement())
+  articleId      Int       @map("article_id")
+  articleVersion Int       @map("article_version")
+  revHistNum     Int       @map("rev_hist_num")
+  revHistDate    DateTime? @map("rev_hist_date")
+  revHistExp     String?   @map("rev_hist_exp") @db.Text
+  lastUpdated    DateTime? @map("last_updated")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@index([articleId])
+  @@index([articleId, articleVersion], map: "article_x_revision_history_article_pair_index")
+  @@index([revHistNum], map: "article_x_revision_history_rev_hist_num_index")
+  @@map("article_x_revision_history")
+}
+
+model ArticleXStickyNote {
+  id                  Int       @id @default(autoincrement())
+  articleId           Int       @map("article_id")
+  articleVersion      Int       @map("article_version")
+  stickyNoteVersion   Int?      @map("sticky_note_version")
+  stickyNote          String?   @map("sticky_note") @db.Text
+  stickyNoteDt        DateTime? @map("sticky_note_dt")
+  stickyNotePostingDt DateTime? @map("sticky_note_posting_dt")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  @@index([articleId])
+  @@index([articleId, articleVersion], map: "article_x_sticky_note_article_pair_index")
+  @@map("article_x_sticky_note")
+}
+
+model ArticleXUrl {
+  id             Int       @id @default(autoincrement())
+  articleId      Int       @map("article_id")
+  articleVersion Int       @map("article_version")
+  urlTypeId      Int       @map("url_type_id")
+  urlId          Int       @map("url_id")
+  url            String?   @db.Text
+  urlName        String?   @map("url_name") @db.VarChar(500)
+  sortOrder      Int?      @map("sort_order")
+  lastUpdated    DateTime? @map("last_updated")
+  urlDescription String?   @map("url_description") @db.Text
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@index([articleId])
+  @@index([urlTypeId])
+  @@index([articleId, articleVersion, urlTypeId, sortOrder], map: "article_x_urls_show_order_index")
+  @@map("article_x_urls")
+}
+
+model NcdCpt {
+  id             Int       @id @default(autoincrement())
+  ncdNumber      String    @map("ncd_number") @db.VarChar(32)
+  ncdDescription String    @map("ncd_description")
+  cptCode        String    @map("cpt_code") @db.VarChar(20)
+  effectiveDate  DateTime? @map("effective_date") @db.Date
+  terminateDate  DateTime? @map("terminate_date") @db.Date
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  ncdIcds NcdIcd[]
+
+  @@index([ncdNumber])
+  @@index([cptCode])
+  @@map("ncd_cpt")
+}
+
+model NcdIcd {
+  id             Int       @id @default(autoincrement())
+  icdCode        String    @map("icd_code") @db.VarChar(20)
+  ncdCptId       Int       @map("ncd_cpt_id")
+  effectiveDate  DateTime? @map("effective_date") @db.Date
+  terminateDate  DateTime? @map("terminate_date") @db.Date
+  resolutionCode Int       @map("resolution_code")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  ncdCpt NcdCpt @relation(fields: [ncdCptId], references: [id], onDelete: Cascade)
+
+  @@index([icdCode])
+  @@map("ncd_icd")
+}
+
+model NcdOtherLabCode {
+  id        Int      @id @default(autoincrement())
+  cpt       String   @db.VarChar(20)
+  icd       String   @db.VarChar(20)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([cpt, icd])
+  @@index([cpt])
+  @@index([icd])
+  @@index([isActive])
+  @@map("ncd_other_lab_codes")
+}
+
+model NcdOtherLabCpt {
+  id        Int      @id @default(autoincrement())
+  cptCode   String   @unique @map("cpt_code") @db.VarChar(20)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([cptCode])
+  @@index([isActive])
+  @@map("ncd_other_lab_cpt")
+}
+
+model NcdOtherLabIcd {
+  id        Int      @id @default(autoincrement())
+  icdCode   String   @unique @map("icd_code") @db.VarChar(20)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([icdCode])
+  @@index([isActive])
+  @@map("ncd_other_lab_icd")
+}
+
