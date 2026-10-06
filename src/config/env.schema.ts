@@ -30,6 +30,7 @@ export const envSchema = z.object({
   JWT_REFRESH_TTL: z.coerce.number().int().positive().default(30),
   JWT_ISSUER: z.string().default('neo-scrubber'),
   JWT_AUDIENCE: z.string().default('neo-scrubber-api'),
+  API_TOKEN_EXPIRATION_MINUTES: z.coerce.number().int().positive().default(60),
 
   MINIO_ROOT_USER: z.string().optional(),
   MINIO_ROOT_PASSWORD: z.string().optional(),
