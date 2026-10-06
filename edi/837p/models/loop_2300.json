@@ -1,0 +1,3110 @@
+{
+    "loop_2300": {
+        "name": "Claim Information",
+        "required": true,
+        "repeatable": true,
+        "max_occurs": 100,
+        "parent": "loop_2000B or loop_2000C",
+        "segments": {
+            "CLM": {
+                "name": "Claim Information",
+                "required": true,
+                "repeatable": false,
+                "position": 1,
+                "elements": {
+                    "clm01": {
+                        "x12_id": "1028",
+                        "name": "patient_control_number",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 38,
+                        "description": "Unique claim identifier from provider (Patient Account Number)"
+                    },
+                    "clm02": {
+                        "x12_id": "782",
+                        "name": "total_claim_charge_amount",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 18,
+                        "format": "decimal",
+                        "description": "Total charges (sum of all SV1 segment charges)"
+                    },
+                    "clm03": {
+                        "x12_id": "1032",
+                        "name": "claim_filing_indicator_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "clm04": {
+                        "x12_id": "1343",
+                        "name": "non_institutional_claim_type_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "clm05": {
+                        "x12_id": "C023",
+                        "name": "health_care_service_location_info",
+                        "required": true,
+                        "composite": true,
+                        "elements": {
+                            "clm05_1": {
+                                "x12_id": "1331",
+                                "name": "facility_type_code",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 2,
+                                "description": "CMS Place of Service code (CODE SOURCE 237: Place of Service Codes for Professional Claims)"
+                            },
+                            "clm05_2": {
+                                "x12_id": "1332",
+                                "name": "facility_code_qualifier",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 2,
+                                "valid_values": [
+                                    "B"
+                                ],
+                                "description": "B=Place of Service Codes for Professional Claims"
+                            },
+                            "clm05_3": {
+                                "x12_id": "1325",
+                                "name": "claim_frequency_code",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 1,
+                                "valid_values": [
+                                    "1",
+                                    "6",
+                                    "7",
+                                    "8"
+                                ],
+                                "description": "Claim Frequency Type Code (code source 235). Common 837P: 1=Original, 7=Replacement, 8=Void"
+                            }
+                        }
+                    },
+                    "clm06": {
+                        "x12_id": "1073",
+                        "name": "provider_signature_indicator",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 1,
+                        "valid_values": [
+                            "N",
+                            "Y"
+                        ],
+                        "description": "Y=Yes signature on file, N=No"
+                    },
+                    "clm07": {
+                        "x12_id": "1359",
+                        "name": "assignment_or_plan_participation_code",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 1,
+                        "valid_values": [
+                            "A",
+                            "B",
+                            "C"
+                        ],
+                        "description": "A=Assigned, B=Assignment Accepted on Lab Services Only, C=Not Assigned"
+                    },
+                    "clm08": {
+                        "x12_id": "1073",
+                        "name": "benefits_assignment_certification_indicator",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 1,
+                        "valid_values": [
+                            "N",
+                            "W",
+                            "Y"
+                        ],
+                        "description": "Y=Yes, N=No, W=Not Applicable"
+                    },
+                    "clm09": {
+                        "x12_id": "1363",
+                        "name": "release_of_information_code",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 1,
+                        "valid_values": [
+                            "I",
+                            "Y"
+                        ],
+                        "description": "I=Informed Consent, Y=Provider has signed statement"
+                    },
+                    "clm10": {
+                        "x12_id": "1351",
+                        "name": "patient_signature_source_code",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 1,
+                        "valid_values": [
+                            "P"
+                        ],
+                        "description": "P=Signature generated by provider (signature on file)",
+                        "conditional": "Required when a signature was executed on the patient\u2019s behalf under state or federal law. If not required by this implementation guide, do not send."
+                    },
+                    "clm11": {
+                        "x12_id": "C024",
+                        "name": "related_causes_information",
+                        "required": false,
+                        "composite": true,
+                        "elements": {
+                            "clm11_1": {
+                                "x12_id": "1362",
+                                "name": "related_causes_code_1",
+                                "required": true,
+                                "min_length": 2,
+                                "max_length": 3,
+                                "valid_values": [
+                                    "AA",
+                                    "EM",
+                                    "OA"
+                                ],
+                                "description": "AA=Auto Accident, EM=Employment, OA=Other Accident"
+                            },
+                            "clm11_2": {
+                                "x12_id": "1362",
+                                "name": "related_causes_code_2",
+                                "required": false,
+                                "min_length": 2,
+                                "max_length": 3,
+                                "valid_values": [
+                                    "AA",
+                                    "EM",
+                                    "OA"
+                                ],
+                                "conditional": "Required when more than one related cause code applies. If not required by this implementation guide, do not send."
+                            },
+                            "clm11_3": {
+                                "x12_id": "1362",
+                                "name": "related_causes_code_3",
+                                "required": false,
+                                "not_used": true
+                            },
+                            "clm11_4": {
+                                "x12_id": "156",
+                                "name": "auto_accident_state_code",
+                                "required": false,
+                                "conditional": "Required when CLM11-1 or CLM11-2 is AA to identify the auto-accident state/province. If not required by this implementation guide, do not send.",
+                                "min_length": 2,
+                                "max_length": 2,
+                                "description": "State where auto accident occurred"
+                            },
+                            "clm11_5": {
+                                "x12_id": "26",
+                                "name": "auto_accident_country_code",
+                                "required": false,
+                                "min_length": 2,
+                                "max_length": 3,
+                                "description": "Country code if non-US",
+                                "conditional": "Required when CLM11-1 or CLM11-2 is AA and the accident occurred in a country other than US or Canada. If not required by this implementation guide, do not send."
+                            }
+                        },
+                        "conditional": "Required when the services provided are employment related or the result of an accident. If DTP*439 is used, then CLM11 is required. If not required by this implementation guide, do not send."
+                    },
+                    "clm12": {
+                        "x12_id": "1366",
+                        "name": "special_program_indicator",
+                        "required": false,
+                        "min_length": 2,
+                        "max_length": 3,
+                        "valid_values": [
+                            "02",
+                            "03",
+                            "05",
+                            "09"
+                        ],
+                        "description": "02=Physically Handicapped Children's Program, 03=Special Federal Funding, 05=Disability, 09=Second Opinion/Surgery",
+                        "conditional": "Required when the services were rendered under one of the following Medicaid special programs. If not required by this implementation guide, do not send."
+                    },
+                    "clm13": {
+                        "x12_id": "1073",
+                        "name": "yes_no_condition_or_response_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "clm14": {
+                        "x12_id": "1338",
+                        "name": "level_of_service_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "clm15": {
+                        "x12_id": "1073",
+                        "name": "yes_no_condition_or_response_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "clm16": {
+                        "x12_id": "1360",
+                        "name": "provider_agreement_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "clm17": {
+                        "x12_id": "1029",
+                        "name": "claim_status_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "clm18": {
+                        "x12_id": "1073",
+                        "name": "yes_no_condition_or_response_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "clm19": {
+                        "x12_id": "1383",
+                        "name": "claim_submission_reason_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "clm20": {
+                        "x12_id": "1514",
+                        "name": "delay_reason_code",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 2,
+                        "valid_values": [
+                            "1",
+                            "2",
+                            "3",
+                            "4",
+                            "5",
+                            "6",
+                            "7",
+                            "8",
+                            "9",
+                            "10",
+                            "11",
+                            "15"
+                        ],
+                        "description": "1=Proof of Eligibility Unknown, 2=Litigation, 3=Auth Delays, 4=Delay in Certifying, 5=Delay in Supplying Billing Forms, 6=Delay in Delivery of Custom Appliances, 7=Third Party Processing Delay, 8=Delay in Eligibility Determination, 9=Original Claim Rejected, 10=Administration Delay, 11=Other, 15=Natural Disaster",
+                        "conditional": "Required when the claim is submitted late (past contracted date of filing limitations). If not required by this implementation guide, do not send."
+                    }
+                }
+            },
+            "DTP_431": {
+                "name": "Date - Onset of Current Illness/Symptom",
+                "required": false,
+                "repeatable": false,
+                "position": 2,
+                "elements": {
+                    "dtp01": {
+                        "x12_id": "374",
+                        "name": "date_time_qualifier",
+                        "required": true,
+                        "min_length": 3,
+                        "max_length": 3,
+                        "valid_values": [
+                            "431"
+                        ],
+                        "description": "431=Onset of Current Illness or Symptom"
+                    },
+                    "dtp02": {
+                        "x12_id": "1250",
+                        "name": "date_time_period_format_qualifier",
+                        "required": true,
+                        "min_length": 2,
+                        "max_length": 3,
+                        "valid_values": [
+                            "D8"
+                        ],
+                        "description": "D8=Date (CCYYMMDD)"
+                    },
+                    "dtp03": {
+                        "x12_id": "1251",
+                        "name": "onset_date",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 35,
+                        "format": "CCYYMMDD",
+                        "description": "Date of onset"
+                    }
+                }
+            },
+            "DTP_454": {
+                "name": "Date - Initial Treatment Date",
+                "required": false,
+                "repeatable": false,
+                "position": 3,
+                "elements": {
+                    "dtp01": {
+                        "x12_id": "374",
+                        "name": "date_time_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "454"
+                        ],
+                        "description": "454=Initial Treatment"
+                    },
+                    "dtp02": {
+                        "x12_id": "1250",
+                        "name": "date_time_period_format_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "D8"
+                        ]
+                    },
+                    "dtp03": {
+                        "x12_id": "1251",
+                        "name": "initial_treatment_date",
+                        "required": true,
+                        "format": "CCYYMMDD"
+                    }
+                }
+            },
+            "DTP_304": {
+                "name": "Date - Last Seen Date",
+                "required": false,
+                "repeatable": false,
+                "position": 4,
+                "elements": {
+                    "dtp01": {
+                        "x12_id": "374",
+                        "name": "date_time_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "304"
+                        ],
+                        "description": "304=Latest Visit or Consultation"
+                    },
+                    "dtp02": {
+                        "x12_id": "1250",
+                        "name": "date_time_period_format_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "D8"
+                        ]
+                    },
+                    "dtp03": {
+                        "x12_id": "1251",
+                        "name": "last_seen_date",
+                        "required": true,
+                        "format": "CCYYMMDD"
+                    }
+                }
+            },
+            "DTP_453": {
+                "name": "Date - Acute Manifestation",
+                "required": false,
+                "repeatable": false,
+                "position": 5,
+                "elements": {
+                    "dtp01": {
+                        "x12_id": "374",
+                        "name": "date_time_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "453"
+                        ],
+                        "description": "453=Acute Manifestation of a Chronic Condition"
+                    },
+                    "dtp02": {
+                        "x12_id": "1250",
+                        "name": "date_time_period_format_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "D8"
+                        ]
+                    },
+                    "dtp03": {
+                        "x12_id": "1251",
+                        "name": "acute_manifestation_date",
+                        "required": true,
+                        "format": "CCYYMMDD"
+                    }
+                }
+            },
+            "DTP_439": {
+                "name": "Date - Accident",
+                "required": false,
+                "conditional": "Required when CLM11-1 or CLM11-2 is AA or OA. OR required when CLM11-1 or CLM11-2 is EM and this claim is the result of an accident. If not required by this implementation guide, do not send.",
+                "repeatable": false,
+                "position": 6,
+                "elements": {
+                    "dtp01": {
+                        "x12_id": "374",
+                        "name": "date_time_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "439"
+                        ],
+                        "description": "439=Accident"
+                    },
+                    "dtp02": {
+                        "x12_id": "1250",
+                        "name": "date_time_period_format_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "D8"
+                        ],
+                        "description": "D8=Date Expressed in Format CCYYMMDD"
+                    },
+                    "dtp03": {
+                        "x12_id": "1251",
+                        "name": "accident_date",
+                        "required": true,
+                        "format": "CCYYMMDD"
+                    }
+                }
+            },
+            "DTP_484": {
+                "name": "Date - Last Menstrual Period",
+                "required": false,
+                "repeatable": false,
+                "position": 7,
+                "elements": {
+                    "dtp01": {
+                        "x12_id": "374",
+                        "name": "date_time_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "484"
+                        ],
+                        "description": "484=Last Menstrual Period"
+                    },
+                    "dtp02": {
+                        "x12_id": "1250",
+                        "name": "date_time_period_format_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "D8"
+                        ]
+                    },
+                    "dtp03": {
+                        "x12_id": "1251",
+                        "name": "lmp_date",
+                        "required": true,
+                        "format": "CCYYMMDD"
+                    }
+                }
+            },
+            "DTP_455": {
+                "name": "Date - Last X-Ray",
+                "required": false,
+                "repeatable": false,
+                "position": 8,
+                "elements": {
+                    "dtp01": {
+                        "x12_id": "374",
+                        "name": "date_time_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "455"
+                        ],
+                        "description": "455=Last X-Ray"
+                    },
+                    "dtp02": {
+                        "x12_id": "1250",
+                        "name": "date_time_period_format_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "D8"
+                        ]
+                    },
+                    "dtp03": {
+                        "x12_id": "1251",
+                        "name": "last_xray_date",
+                        "required": true,
+                        "format": "CCYYMMDD"
+                    }
+                }
+            },
+            "DTP_471": {
+                "name": "Date - Hearing and Vision Prescription Date",
+                "required": false,
+                "repeatable": false,
+                "position": 9,
+                "elements": {
+                    "dtp01": {
+                        "x12_id": "374",
+                        "name": "date_time_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "471"
+                        ],
+                        "description": "471=Prescription"
+                    },
+                    "dtp02": {
+                        "x12_id": "1250",
+                        "name": "date_time_period_format_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "D8"
+                        ]
+                    },
+                    "dtp03": {
+                        "x12_id": "1251",
+                        "name": "prescription_date",
+                        "required": true,
+                        "format": "CCYYMMDD"
+                    }
+                }
+            },
+            "DTP_314": {
+                "name": "Date - Disability Dates",
+                "required": false,
+                "repeatable": false,
+                "max_occurs": 1,
+                "position": 10,
+                "elements": {
+                    "dtp01": {
+                        "x12_id": "374",
+                        "name": "date_time_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "314",
+                            "360",
+                            "361"
+                        ],
+                        "description": "314=Disability (use DTP02=RD8 for start-end range), 360=Initial Disability Period Start (DTP02=D8), 361=Initial Disability Period End (DTP02=D8)"
+                    },
+                    "dtp02": {
+                        "x12_id": "1250",
+                        "name": "date_time_period_format_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "D8",
+                            "RD8"
+                        ]
+                    },
+                    "dtp03": {
+                        "x12_id": "1251",
+                        "name": "disability_date",
+                        "required": true
+                    }
+                }
+            },
+            "DTP_297": {
+                "name": "Date - Last Worked",
+                "required": false,
+                "repeatable": false,
+                "position": 11,
+                "elements": {
+                    "dtp01": {
+                        "x12_id": "374",
+                        "name": "date_time_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "297"
+                        ],
+                        "description": "297=Last Worked"
+                    },
+                    "dtp02": {
+                        "x12_id": "1250",
+                        "name": "date_time_period_format_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "D8"
+                        ]
+                    },
+                    "dtp03": {
+                        "x12_id": "1251",
+                        "name": "last_worked_date",
+                        "required": true,
+                        "format": "CCYYMMDD"
+                    }
+                }
+            },
+            "DTP_296": {
+                "name": "Date - Authorized Return to Work",
+                "required": false,
+                "repeatable": false,
+                "position": 12,
+                "elements": {
+                    "dtp01": {
+                        "x12_id": "374",
+                        "name": "date_time_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "296"
+                        ],
+                        "description": "296=Authorized Return to Work"
+                    },
+                    "dtp02": {
+                        "x12_id": "1250",
+                        "name": "date_time_period_format_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "D8"
+                        ]
+                    },
+                    "dtp03": {
+                        "x12_id": "1251",
+                        "name": "return_to_work_date",
+                        "required": true,
+                        "format": "CCYYMMDD"
+                    }
+                }
+            },
+            "DTP_435": {
+                "name": "Date - Admission",
+                "required": false,
+                "repeatable": false,
+                "position": 13,
+                "elements": {
+                    "dtp01": {
+                        "x12_id": "374",
+                        "name": "date_time_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "435"
+                        ],
+                        "description": "435=Admission"
+                    },
+                    "dtp02": {
+                        "x12_id": "1250",
+                        "name": "date_time_period_format_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "D8"
+                        ]
+                    },
+                    "dtp03": {
+                        "x12_id": "1251",
+                        "name": "admission_date",
+                        "required": true,
+                        "format": "CCYYMMDD"
+                    }
+                }
+            },
+            "DTP_096": {
+                "name": "Date - Discharge",
+                "required": false,
+                "repeatable": false,
+                "position": 14,
+                "elements": {
+                    "dtp01": {
+                        "x12_id": "374",
+                        "name": "date_time_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "096"
+                        ],
+                        "description": "096=Discharge"
+                    },
+                    "dtp02": {
+                        "x12_id": "1250",
+                        "name": "date_time_period_format_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "D8"
+                        ]
+                    },
+                    "dtp03": {
+                        "x12_id": "1251",
+                        "name": "discharge_date",
+                        "required": true,
+                        "format": "CCYYMMDD"
+                    }
+                }
+            },
+            "DTP_090": {
+                "name": "Date - Assumed and Relinquished Care Dates",
+                "required": false,
+                "repeatable": true,
+                "max_occurs": 2,
+                "position": 15,
+                "elements": {
+                    "dtp01": {
+                        "x12_id": "374",
+                        "name": "date_time_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "090",
+                            "091"
+                        ],
+                        "description": "090=Report Start, 091=Report End (Assumed/Relinquished Care)"
+                    },
+                    "dtp02": {
+                        "x12_id": "1250",
+                        "name": "date_time_period_format_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "D8"
+                        ]
+                    },
+                    "dtp03": {
+                        "x12_id": "1251",
+                        "name": "care_date",
+                        "required": true,
+                        "format": "CCYYMMDD"
+                    }
+                }
+            },
+            "DTP_444": {
+                "name": "Date - Property and Casualty Date of First Contact",
+                "required": false,
+                "repeatable": false,
+                "position": 16,
+                "elements": {
+                    "dtp01": {
+                        "x12_id": "374",
+                        "name": "date_time_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "444"
+                        ],
+                        "description": "444=First Contact"
+                    },
+                    "dtp02": {
+                        "x12_id": "1250",
+                        "name": "date_time_period_format_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "D8"
+                        ]
+                    },
+                    "dtp03": {
+                        "x12_id": "1251",
+                        "name": "first_contact_date",
+                        "required": true,
+                        "format": "CCYYMMDD"
+                    }
+                }
+            },
+            "DTP_050": {
+                "name": "Date - Repricer Received Date",
+                "required": false,
+                "repeatable": false,
+                "position": 17,
+                "elements": {
+                    "dtp01": {
+                        "x12_id": "374",
+                        "name": "date_time_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "050"
+                        ],
+                        "description": "050=Received"
+                    },
+                    "dtp02": {
+                        "x12_id": "1250",
+                        "name": "date_time_period_format_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "D8"
+                        ]
+                    },
+                    "dtp03": {
+                        "x12_id": "1251",
+                        "name": "repricer_received_date",
+                        "required": true,
+                        "format": "CCYYMMDD"
+                    }
+                }
+            },
+            "PWK": {
+                "name": "Claim Supplemental Information",
+                "required": false,
+                "repeatable": true,
+                "max_occurs": 10,
+                "position": 18,
+                "elements": {
+                    "pwk01": {
+                        "x12_id": "755",
+                        "name": "attachment_report_type_code",
+                        "required": true,
+                        "min_length": 2,
+                        "max_length": 2,
+                        "valid_values": [
+                            "03",
+                            "04",
+                            "05",
+                            "06",
+                            "07",
+                            "08",
+                            "09",
+                            "10",
+                            "11",
+                            "13",
+                            "15",
+                            "21",
+                            "A3",
+                            "A4",
+                            "AM",
+                            "AS",
+                            "B2",
+                            "B3",
+                            "B4",
+                            "BR",
+                            "BS",
+                            "BT",
+                            "CB",
+                            "CK",
+                            "CT",
+                            "D2",
+                            "DA",
+                            "DB",
+                            "DG",
+                            "DJ",
+                            "DS",
+                            "EB",
+                            "HC",
+                            "HR",
+                            "I5",
+                            "IR",
+                            "LA",
+                            "M1",
+                            "MT",
+                            "NN",
+                            "OB",
+                            "OC",
+                            "OD",
+                            "OE",
+                            "OX",
+                            "OZ",
+                            "P4",
+                            "P5",
+                            "PE",
+                            "PN",
+                            "PO",
+                            "PQ",
+                            "PY",
+                            "PZ",
+                            "RB",
+                            "RR",
+                            "RT",
+                            "RX",
+                            "SG",
+                            "V5",
+                            "XP"
+                        ],
+                        "description": "Type of attachment/report (e.g., 03=Report of Tests, OB=Operative Note, DA=Dental Models)"
+                    },
+                    "pwk02": {
+                        "x12_id": "756",
+                        "name": "attachment_transmission_code",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 2,
+                        "valid_values": [
+                            "AA",
+                            "BM",
+                            "EL",
+                            "EM",
+                            "FT",
+                            "FX"
+                        ],
+                        "description": "AA=Available on Request, BM=By Mail, EL=Electronically, EM=Email, FT=File Transfer, FX=By Fax"
+                    },
+                    "pwk03": {
+                        "x12_id": "757",
+                        "name": "report_copies_needed",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "pwk04": {
+                        "x12_id": "98",
+                        "name": "entity_identifier_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "pwk05": {
+                        "x12_id": "66",
+                        "name": "identification_code_qualifier",
+                        "required": false,
+                        "conditional": "Required when PWK02 is BM, EL, EM, FX, or FT. If not required by this implementation guide, do not send.",
+                        "min_length": 1,
+                        "max_length": 2,
+                        "valid_values": [
+                            "AC"
+                        ],
+                        "description": "AC=Attachment Control Number"
+                    },
+                    "pwk06": {
+                        "x12_id": "67",
+                        "name": "attachment_control_number",
+                        "required": false,
+                        "min_length": 2,
+                        "max_length": 50,
+                        "description": "Control number linking to attachment",
+                        "conditional": "Required when PWK02 is BM, EL, EM, FX, or FT. Max length 50 in this implementation. If not required by this implementation guide, do not send."
+                    },
+                    "pwk07": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "pwk08": {
+                        "x12_id": "C002",
+                        "name": "actions_indicated",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "pwk09": {
+                        "x12_id": "1525",
+                        "name": "request_category_code",
+                        "required": false,
+                        "not_used": true
+                    }
+                },
+                "syntax_rules": [
+                    {
+                        "code": "P0506",
+                        "if": "pwk05",
+                        "then_required": [
+                            "pwk06"
+                        ]
+                    },
+                    {
+                        "code": "P0506",
+                        "if": "pwk06",
+                        "then_required": [
+                            "pwk05"
+                        ]
+                    }
+                ],
+                "conditional": "Required when there is a paper/electronic attachment or when identifying information available on request (PWK02=AA). If not required by this implementation guide, do not send."
+            },
+            "CN1": {
+                "name": "Contract Information",
+                "required": false,
+                "repeatable": false,
+                "position": 19,
+                "elements": {
+                    "cn101": {
+                        "x12_id": "1166",
+                        "name": "contract_type_code",
+                        "required": true,
+                        "min_length": 2,
+                        "max_length": 2,
+                        "valid_values": [
+                            "01",
+                            "02",
+                            "03",
+                            "04",
+                            "05",
+                            "06",
+                            "09"
+                        ],
+                        "description": "01=Diagnosis Related Group, 02=Per Diem, 03=Variable Per Diem, 04=Flat, 05=Capitated, 06=Percent, 09=Other"
+                    },
+                    "cn102": {
+                        "x12_id": "782",
+                        "name": "contract_amount",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 18
+                    },
+                    "cn103": {
+                        "x12_id": "332",
+                        "name": "contract_percentage",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 6
+                    },
+                    "cn104": {
+                        "x12_id": "127",
+                        "name": "contract_code",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "cn105": {
+                        "x12_id": "338",
+                        "name": "terms_discount_percentage",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 6
+                    },
+                    "cn106": {
+                        "x12_id": "799",
+                        "name": "contract_version_identifier",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 30
+                    }
+                }
+            },
+            "AMT_F5": {
+                "name": "Patient Amount Paid",
+                "required": false,
+                "repeatable": false,
+                "position": 20,
+                "elements": {
+                    "amt01": {
+                        "x12_id": "522",
+                        "name": "amount_qualifier_code",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 3,
+                        "valid_values": [
+                            "F5"
+                        ],
+                        "description": "F5=Patient Amount Paid"
+                    },
+                    "amt02": {
+                        "x12_id": "782",
+                        "name": "patient_amount_paid",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 18,
+                        "format": "decimal",
+                        "description": "Amount patient paid"
+                    },
+                    "amt03": {
+                        "x12_id": "478",
+                        "name": "credit_debit_flag_code",
+                        "required": false,
+                        "not_used": true
+                    }
+                }
+            },
+            "REF_4N": {
+                "name": "Service Authorization Exception Code",
+                "required": false,
+                "repeatable": false,
+                "position": 21,
+                "elements": {
+                    "ref01": {
+                        "x12_id": "128",
+                        "name": "reference_identification_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "4N"
+                        ],
+                        "description": "4N=Service Authorization Exception"
+                    },
+                    "ref02": {
+                        "x12_id": "127",
+                        "name": "service_authorization_exception_code",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 50,
+                        "valid_values": [
+                            "1",
+                            "2",
+                            "3",
+                            "4",
+                            "5",
+                            "6",
+                            "7"
+                        ],
+                        "description": "1=Immediate/Urgent Care, 2=Services Rendered in Retroactive Period, 3=Emergency Care, 4=Client Has Temp Medicaid, 5=Request from County for Eval, 6=Services by Out of Network Provider, 7=Other"
+                    },
+                    "ref03": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ref04": {
+                        "x12_id": "C040",
+                        "name": "reference_identifier",
+                        "required": false,
+                        "not_used": true
+                    }
+                },
+                "syntax_rules": [
+                    {
+                        "code": "R0203",
+                        "at_least_one_of": [
+                            "ref02",
+                            "ref03"
+                        ]
+                    }
+                ],
+                "max_occurs": 1
+            },
+            "REF_F5": {
+                "name": "Mandatory Medicare (Section 4081) Crossover Indicator",
+                "required": false,
+                "repeatable": false,
+                "position": 22,
+                "elements": {
+                    "ref01": {
+                        "x12_id": "128",
+                        "name": "reference_identification_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "F5"
+                        ],
+                        "description": "F5=Medicare Version Code"
+                    },
+                    "ref02": {
+                        "x12_id": "127",
+                        "name": "medicare_version_code",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "ref03": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ref04": {
+                        "x12_id": "C040",
+                        "name": "reference_identifier",
+                        "required": false,
+                        "not_used": true
+                    }
+                },
+                "syntax_rules": [
+                    {
+                        "code": "R0203",
+                        "at_least_one_of": [
+                            "ref02",
+                            "ref03"
+                        ]
+                    }
+                ],
+                "max_occurs": 1
+            },
+            "REF_EW": {
+                "name": "Mammography Certification Number",
+                "required": false,
+                "repeatable": false,
+                "position": 23,
+                "elements": {
+                    "ref01": {
+                        "x12_id": "128",
+                        "name": "reference_identification_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "EW"
+                        ],
+                        "description": "EW=Mammography Certification Number"
+                    },
+                    "ref02": {
+                        "x12_id": "127",
+                        "name": "mammography_certification_number",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "ref03": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ref04": {
+                        "x12_id": "C040",
+                        "name": "reference_identifier",
+                        "required": false,
+                        "not_used": true
+                    }
+                },
+                "syntax_rules": [
+                    {
+                        "code": "R0203",
+                        "at_least_one_of": [
+                            "ref02",
+                            "ref03"
+                        ]
+                    }
+                ],
+                "max_occurs": 1
+            },
+            "REF_9F": {
+                "name": "Referral Number",
+                "required": false,
+                "repeatable": false,
+                "position": 24,
+                "elements": {
+                    "ref01": {
+                        "x12_id": "128",
+                        "name": "reference_identification_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "9F"
+                        ],
+                        "description": "9F=Referral Number"
+                    },
+                    "ref02": {
+                        "x12_id": "127",
+                        "name": "referral_number",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "ref03": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ref04": {
+                        "x12_id": "C040",
+                        "name": "reference_identifier",
+                        "required": false,
+                        "not_used": true
+                    }
+                },
+                "syntax_rules": [
+                    {
+                        "code": "R0203",
+                        "at_least_one_of": [
+                            "ref02",
+                            "ref03"
+                        ]
+                    }
+                ],
+                "max_occurs": 1
+            },
+            "REF_G1": {
+                "name": "Prior Authorization",
+                "required": false,
+                "repeatable": false,
+                "position": 25,
+                "elements": {
+                    "ref01": {
+                        "x12_id": "128",
+                        "name": "reference_identification_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "G1"
+                        ],
+                        "description": "G1=Prior Authorization Number"
+                    },
+                    "ref02": {
+                        "x12_id": "127",
+                        "name": "prior_authorization_number",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "ref03": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ref04": {
+                        "x12_id": "C040",
+                        "name": "reference_identifier",
+                        "required": false,
+                        "not_used": true
+                    }
+                },
+                "syntax_rules": [
+                    {
+                        "code": "R0203",
+                        "at_least_one_of": [
+                            "ref02",
+                            "ref03"
+                        ]
+                    }
+                ],
+                "max_occurs": 1
+            },
+            "REF_F8": {
+                "name": "Payer Claim Control Number",
+                "required": false,
+                "conditional": "Required for corrected/replacement claims",
+                "repeatable": false,
+                "position": 26,
+                "elements": {
+                    "ref01": {
+                        "x12_id": "128",
+                        "name": "reference_identification_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "F8"
+                        ],
+                        "description": "F8=Original Reference Number (ICN/DCN)"
+                    },
+                    "ref02": {
+                        "x12_id": "127",
+                        "name": "payer_claim_control_number",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 50,
+                        "description": "Original payer claim number for replacement/correction"
+                    },
+                    "ref03": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ref04": {
+                        "x12_id": "C040",
+                        "name": "reference_identifier",
+                        "required": false,
+                        "not_used": true
+                    }
+                },
+                "syntax_rules": [
+                    {
+                        "code": "R0203",
+                        "at_least_one_of": [
+                            "ref02",
+                            "ref03"
+                        ]
+                    }
+                ],
+                "max_occurs": 1
+            },
+            "REF_X4": {
+                "name": "Clinical Laboratory Improvement Amendment Number",
+                "required": false,
+                "repeatable": false,
+                "position": 27,
+                "elements": {
+                    "ref01": {
+                        "x12_id": "128",
+                        "name": "reference_identification_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "X4"
+                        ],
+                        "description": "X4=CLIA Number"
+                    },
+                    "ref02": {
+                        "x12_id": "127",
+                        "name": "clia_number",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "ref03": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ref04": {
+                        "x12_id": "C040",
+                        "name": "reference_identifier",
+                        "required": false,
+                        "not_used": true
+                    }
+                },
+                "syntax_rules": [
+                    {
+                        "code": "R0203",
+                        "at_least_one_of": [
+                            "ref02",
+                            "ref03"
+                        ]
+                    }
+                ],
+                "max_occurs": 1
+            },
+            "REF_9A": {
+                "name": "Repriced Claim Number",
+                "required": false,
+                "repeatable": false,
+                "position": 28,
+                "elements": {
+                    "ref01": {
+                        "x12_id": "128",
+                        "name": "reference_identification_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "9A"
+                        ],
+                        "description": "9A=Repriced Claim Reference Number"
+                    },
+                    "ref02": {
+                        "x12_id": "127",
+                        "name": "repriced_claim_reference_number",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "ref03": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ref04": {
+                        "x12_id": "C040",
+                        "name": "reference_identifier",
+                        "required": false,
+                        "not_used": true
+                    }
+                },
+                "syntax_rules": [
+                    {
+                        "code": "R0203",
+                        "at_least_one_of": [
+                            "ref02",
+                            "ref03"
+                        ]
+                    }
+                ],
+                "max_occurs": 1
+            },
+            "REF_9C": {
+                "name": "Adjusted Repriced Claim Number",
+                "required": false,
+                "repeatable": false,
+                "position": 29,
+                "elements": {
+                    "ref01": {
+                        "x12_id": "128",
+                        "name": "reference_identification_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "9C"
+                        ],
+                        "description": "9C=Adjusted Repriced Claim Reference Number"
+                    },
+                    "ref02": {
+                        "x12_id": "127",
+                        "name": "adjusted_repriced_claim_number",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "ref03": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ref04": {
+                        "x12_id": "C040",
+                        "name": "reference_identifier",
+                        "required": false,
+                        "not_used": true
+                    }
+                },
+                "syntax_rules": [
+                    {
+                        "code": "R0203",
+                        "at_least_one_of": [
+                            "ref02",
+                            "ref03"
+                        ]
+                    }
+                ],
+                "max_occurs": 1
+            },
+            "REF_LX": {
+                "name": "Investigational Device Exemption Number",
+                "required": false,
+                "repeatable": false,
+                "position": 30,
+                "elements": {
+                    "ref01": {
+                        "x12_id": "128",
+                        "name": "reference_identification_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "LX"
+                        ],
+                        "description": "LX=IDE Number"
+                    },
+                    "ref02": {
+                        "x12_id": "127",
+                        "name": "ide_number",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "ref03": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ref04": {
+                        "x12_id": "C040",
+                        "name": "reference_identifier",
+                        "required": false,
+                        "not_used": true
+                    }
+                },
+                "syntax_rules": [
+                    {
+                        "code": "R0203",
+                        "at_least_one_of": [
+                            "ref02",
+                            "ref03"
+                        ]
+                    }
+                ],
+                "max_occurs": 1
+            },
+            "REF_D9": {
+                "name": "Claim Identifier for Transmission Intermediaries",
+                "required": false,
+                "repeatable": false,
+                "max_occurs": 1,
+                "position": 31,
+                "elements": {
+                    "ref01": {
+                        "x12_id": "128",
+                        "name": "reference_identification_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "D9"
+                        ],
+                        "description": "D9=Claim Number"
+                    },
+                    "ref02": {
+                        "x12_id": "127",
+                        "name": "claim_identifier",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "ref03": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ref04": {
+                        "x12_id": "C040",
+                        "name": "reference_identifier",
+                        "required": false,
+                        "not_used": true
+                    }
+                },
+                "syntax_rules": [
+                    {
+                        "code": "R0203",
+                        "at_least_one_of": [
+                            "ref02",
+                            "ref03"
+                        ]
+                    }
+                ]
+            },
+            "REF_EA": {
+                "name": "Medical Record Number",
+                "required": false,
+                "repeatable": false,
+                "position": 32,
+                "elements": {
+                    "ref01": {
+                        "x12_id": "128",
+                        "name": "reference_identification_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "EA"
+                        ],
+                        "description": "EA=Medical Record Identification Number"
+                    },
+                    "ref02": {
+                        "x12_id": "127",
+                        "name": "medical_record_number",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "ref03": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ref04": {
+                        "x12_id": "C040",
+                        "name": "reference_identifier",
+                        "required": false,
+                        "not_used": true
+                    }
+                },
+                "syntax_rules": [
+                    {
+                        "code": "R0203",
+                        "at_least_one_of": [
+                            "ref02",
+                            "ref03"
+                        ]
+                    }
+                ],
+                "max_occurs": 1
+            },
+            "REF_P4": {
+                "name": "Demonstration Project Identifier",
+                "required": false,
+                "repeatable": false,
+                "position": 33,
+                "elements": {
+                    "ref01": {
+                        "x12_id": "128",
+                        "name": "reference_identification_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "P4"
+                        ],
+                        "description": "P4=Project Code"
+                    },
+                    "ref02": {
+                        "x12_id": "127",
+                        "name": "demonstration_project_identifier",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "ref03": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ref04": {
+                        "x12_id": "C040",
+                        "name": "reference_identifier",
+                        "required": false,
+                        "not_used": true
+                    }
+                },
+                "syntax_rules": [
+                    {
+                        "code": "R0203",
+                        "at_least_one_of": [
+                            "ref02",
+                            "ref03"
+                        ]
+                    }
+                ],
+                "max_occurs": 1
+            },
+            "K3": {
+                "name": "File Information",
+                "required": false,
+                "repeatable": true,
+                "max_occurs": 10,
+                "position": 34,
+                "elements": {
+                    "k301": {
+                        "x12_id": "449",
+                        "name": "fixed_format_information",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 80,
+                        "description": "State-specific fixed format information"
+                    },
+                    "k302": {
+                        "x12_id": "1333",
+                        "name": "record_format_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "k303": {
+                        "x12_id": "C001",
+                        "name": "composite_unit_of_measure",
+                        "required": false,
+                        "not_used": true
+                    }
+                }
+            },
+            "NTE": {
+                "name": "Claim Note",
+                "required": false,
+                "repeatable": false,
+                "position": 35,
+                "elements": {
+                    "nte01": {
+                        "x12_id": "363",
+                        "name": "note_reference_code",
+                        "required": true,
+                        "min_length": 3,
+                        "max_length": 3,
+                        "valid_values": [
+                            "ADD",
+                            "CER",
+                            "DCP"
+                        ],
+                        "description": "ADD=Additional Information, CER=Certification Narrative, DCP=Goals/Rehab Potential/Discharge Plans"
+                    },
+                    "nte02": {
+                        "x12_id": "352",
+                        "name": "claim_note_text",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 80,
+                        "description": "Free-form claim note"
+                    }
+                }
+            },
+            "CR1": {
+                "name": "Ambulance Transport Information",
+                "required": false,
+                "conditional": "Required for ambulance services",
+                "repeatable": false,
+                "position": 36,
+                "elements": {
+                    "cr101": {
+                        "x12_id": "355",
+                        "name": "unit_or_basis_for_measurement_code",
+                        "required": false,
+                        "conditional": "Required if CR102 present",
+                        "valid_values": [
+                            "LB"
+                        ],
+                        "description": "LB=Pounds"
+                    },
+                    "cr102": {
+                        "x12_id": "81",
+                        "name": "patient_weight",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 10
+                    },
+                    "cr103": {
+                        "x12_id": "1316",
+                        "name": "ambulance_transport_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "cr104": {
+                        "x12_id": "1317",
+                        "name": "ambulance_transport_reason_code",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 1,
+                        "valid_values": [
+                            "A",
+                            "B",
+                            "C",
+                            "D",
+                            "E"
+                        ],
+                        "description": "A=Patient was transported to nearest facility, B=Patient transported for physician services, C=Transport for Emergency care, D=Patient to be transported by other means, E=Patient Transferred to Rehab Facility"
+                    },
+                    "cr105": {
+                        "x12_id": "355",
+                        "name": "unit_or_basis_for_measurement_code_2",
+                        "required": true,
+                        "valid_values": [
+                            "DH"
+                        ],
+                        "description": "DH=Miles"
+                    },
+                    "cr106": {
+                        "x12_id": "380",
+                        "name": "transport_distance",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 15,
+                        "description": "Miles transported"
+                    },
+                    "cr107": {
+                        "x12_id": "166",
+                        "name": "address_information",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "cr108": {
+                        "x12_id": "166",
+                        "name": "address_information",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "cr109": {
+                        "x12_id": "352",
+                        "name": "round_trip_purpose_description",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 80
+                    },
+                    "cr110": {
+                        "x12_id": "352",
+                        "name": "stretcher_purpose_description",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 80
+                    }
+                },
+                "syntax_rules": [
+                    {
+                        "code": "P0102",
+                        "if": "cr101",
+                        "then_required": [
+                            "cr102"
+                        ]
+                    },
+                    {
+                        "code": "P0102",
+                        "if": "cr102",
+                        "then_required": [
+                            "cr101"
+                        ]
+                    }
+                ]
+            },
+            "CR2": {
+                "name": "Spinal Manipulation Service Information",
+                "required": false,
+                "conditional": "Required when this information is deemed necessary by the submitter. If not required by this implementation guide, do not send.",
+                "repeatable": false,
+                "position": 37,
+                "elements": {
+                    "cr201": {
+                        "x12_id": "609",
+                        "name": "not_used_1",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "cr202": {
+                        "x12_id": "380",
+                        "name": "not_used_2",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "cr203": {
+                        "x12_id": "1367",
+                        "name": "not_used_3",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "cr204": {
+                        "x12_id": "1367",
+                        "name": "not_used_4",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "cr205": {
+                        "x12_id": "355",
+                        "name": "not_used_5",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "cr206": {
+                        "x12_id": "380",
+                        "name": "not_used_6",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "cr207": {
+                        "x12_id": "380",
+                        "name": "not_used_7",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "cr208": {
+                        "x12_id": "1342",
+                        "name": "patient_condition_code",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 1,
+                        "valid_values": [
+                            "A",
+                            "C",
+                            "D",
+                            "E",
+                            "F",
+                            "G",
+                            "M"
+                        ],
+                        "description": "A=Acute, C=Chronic, D=Non-Acute, E=Non-Life Threatening, F=Routine, G=Symptomatic, M=Acute Manifestation of Chronic"
+                    },
+                    "cr209": {
+                        "x12_id": "1073",
+                        "name": "yes_no_condition_or_response_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "cr210": {
+                        "x12_id": "352",
+                        "name": "patient_condition_description",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 80
+                    },
+                    "cr211": {
+                        "x12_id": "352",
+                        "name": "patient_condition_description_2",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 80
+                    },
+                    "cr212": {
+                        "x12_id": "1073",
+                        "name": "yes_no_condition_or_response_code",
+                        "required": false,
+                        "not_used": true
+                    }
+                }
+            },
+            "CRC_07": {
+                "name": "Ambulance Certification",
+                "required": false,
+                "repeatable": true,
+                "max_occurs": 3,
+                "position": 38,
+                "elements": {
+                    "crc01": {
+                        "x12_id": "1136",
+                        "name": "code_category",
+                        "required": true,
+                        "valid_values": [
+                            "07"
+                        ],
+                        "description": "07=Ambulance Certification"
+                    },
+                    "crc02": {
+                        "x12_id": "1073",
+                        "name": "certification_condition_indicator",
+                        "required": true,
+                        "valid_values": [
+                            "N",
+                            "Y"
+                        ],
+                        "description": "Y=Yes, N=No"
+                    },
+                    "crc03": {
+                        "x12_id": "1321",
+                        "name": "condition_code_1",
+                        "required": true,
+                        "valid_values": [
+                            "01",
+                            "04",
+                            "05",
+                            "06",
+                            "07",
+                            "08",
+                            "09",
+                            "12"
+                        ],
+                        "description": "01=Admitted to hospital, 04=Moved by stretcher, 05=Unconscious or in shock, 06=Emergency transport, 07=Physically restrained, 08=Visible hemorrhaging, 09=Medically necessary, 12=Bed or chair confined"
+                    },
+                    "crc04": {
+                        "x12_id": "1321",
+                        "name": "condition_code_2",
+                        "required": false,
+                        "valid_values": [
+                            "01",
+                            "04",
+                            "05",
+                            "06",
+                            "07",
+                            "08",
+                            "09",
+                            "12"
+                        ]
+                    },
+                    "crc05": {
+                        "x12_id": "1321",
+                        "name": "condition_code_3",
+                        "required": false,
+                        "valid_values": [
+                            "01",
+                            "04",
+                            "05",
+                            "06",
+                            "07",
+                            "08",
+                            "09",
+                            "12"
+                        ]
+                    },
+                    "crc06": {
+                        "x12_id": "1321",
+                        "name": "condition_code_4",
+                        "required": false,
+                        "valid_values": [
+                            "01",
+                            "04",
+                            "05",
+                            "06",
+                            "07",
+                            "08",
+                            "09",
+                            "12"
+                        ]
+                    },
+                    "crc07": {
+                        "x12_id": "1321",
+                        "name": "condition_code_5",
+                        "required": false,
+                        "valid_values": [
+                            "01",
+                            "04",
+                            "05",
+                            "06",
+                            "07",
+                            "08",
+                            "09",
+                            "12"
+                        ]
+                    }
+                }
+            },
+            "CRC_70": {
+                "name": "Patient Condition Information - Vision",
+                "required": false,
+                "repeatable": true,
+                "max_occurs": 3,
+                "position": 39,
+                "elements": {
+                    "crc01": {
+                        "x12_id": "1136",
+                        "name": "code_category",
+                        "required": true,
+                        "valid_values": [
+                            "E1",
+                            "E2",
+                            "E3"
+                        ],
+                        "description": "E1=Spectacle Lenses, E2=Contact Lenses, E3=Spectacle Frames"
+                    },
+                    "crc02": {
+                        "x12_id": "1073",
+                        "name": "certification_condition_indicator",
+                        "required": true,
+                        "valid_values": [
+                            "N",
+                            "Y"
+                        ]
+                    },
+                    "crc03": {
+                        "x12_id": "1321",
+                        "name": "condition_code",
+                        "required": true,
+                        "valid_values": [
+                            "L1",
+                            "L2",
+                            "L3",
+                            "L4",
+                            "L5"
+                        ],
+                        "description": "L1=General standard of 20 degree or .5 diopter sphere or cylinder change met, L2=Replacement due to loss or theft, L3=Replacement due to breakage or damage, L4=Replacement due to patient preference, L5=Replacement due to medical reason"
+                    },
+                    "crc04": {
+                        "x12_id": "1321",
+                        "name": "condition_code",
+                        "required": false,
+                        "valid_values": [
+                            "L1",
+                            "L2",
+                            "L3",
+                            "L4",
+                            "L5"
+                        ]
+                    },
+                    "crc05": {
+                        "x12_id": "1321",
+                        "name": "condition_code",
+                        "required": false,
+                        "valid_values": [
+                            "L1",
+                            "L2",
+                            "L3",
+                            "L4",
+                            "L5"
+                        ]
+                    },
+                    "crc06": {
+                        "x12_id": "1321",
+                        "name": "condition_code",
+                        "required": false,
+                        "valid_values": [
+                            "L1",
+                            "L2",
+                            "L3",
+                            "L4",
+                            "L5"
+                        ]
+                    },
+                    "crc07": {
+                        "x12_id": "1321",
+                        "name": "condition_code",
+                        "required": false,
+                        "valid_values": [
+                            "L1",
+                            "L2",
+                            "L3",
+                            "L4",
+                            "L5"
+                        ]
+                    }
+                }
+            },
+            "CRC_09": {
+                "name": "Homebound Indicator",
+                "required": false,
+                "repeatable": false,
+                "position": 40,
+                "elements": {
+                    "crc01": {
+                        "x12_id": "1136",
+                        "name": "code_category",
+                        "required": true,
+                        "valid_values": [
+                            "75"
+                        ],
+                        "description": "75=Homebound"
+                    },
+                    "crc02": {
+                        "x12_id": "1073",
+                        "name": "certification_condition_indicator",
+                        "required": true,
+                        "valid_values": [
+                            "Y"
+                        ],
+                        "description": "Y=Yes (patient is homebound)"
+                    },
+                    "crc03": {
+                        "x12_id": "1321",
+                        "name": "homebound_indicator",
+                        "required": true,
+                        "valid_values": [
+                            "IH"
+                        ],
+                        "description": "IH=Independent at Home"
+                    }
+                }
+            },
+            "CRC_11": {
+                "name": "EPSDT Referral",
+                "required": false,
+                "repeatable": false,
+                "position": 41,
+                "elements": {
+                    "crc01": {
+                        "x12_id": "1136",
+                        "name": "code_category",
+                        "required": true,
+                        "valid_values": [
+                            "ZZ"
+                        ],
+                        "description": "ZZ=EPSDT Referral"
+                    },
+                    "crc02": {
+                        "x12_id": "1073",
+                        "name": "certification_condition_indicator",
+                        "required": true,
+                        "valid_values": [
+                            "N",
+                            "Y"
+                        ]
+                    },
+                    "crc03": {
+                        "x12_id": "1321",
+                        "name": "epsdt_condition_indicator_1",
+                        "required": true,
+                        "valid_values": [
+                            "AV",
+                            "NU",
+                            "S2",
+                            "ST"
+                        ],
+                        "description": "AV=Available Not Used, NU=Not Used, S2=Under Treatment, ST=New Services Requested"
+                    },
+                    "crc04": {
+                        "x12_id": "1321",
+                        "name": "epsdt_condition_indicator_2",
+                        "required": false,
+                        "valid_values": [
+                            "AV",
+                            "NU",
+                            "S2",
+                            "ST"
+                        ]
+                    },
+                    "crc05": {
+                        "x12_id": "1321",
+                        "name": "epsdt_condition_indicator_3",
+                        "required": false,
+                        "valid_values": [
+                            "AV",
+                            "NU",
+                            "S2",
+                            "ST"
+                        ]
+                    }
+                }
+            },
+            "HI_BK": {
+                "name": "Health Care Diagnosis Code",
+                "required": true,
+                "repeatable": false,
+                "position": 42,
+                "elements": {
+                    "hi01": {
+                        "x12_id": "C022",
+                        "name": "principal_diagnosis",
+                        "required": true,
+                        "composite": true,
+                        "elements": {
+                            "hi01_1": {
+                                "x12_id": "1270",
+                                "name": "diagnosis_type_code",
+                                "required": true,
+                                "valid_values": [
+                                    "ABK",
+                                    "BK"
+                                ],
+                                "description": "ABK=ICD-10-CM Principal Diagnosis, BK=ICD-9-CM Principal Diagnosis"
+                            },
+                            "hi01_2": {
+                                "x12_id": "1271",
+                                "name": "diagnosis_code",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 30,
+                                "description": "ICD-10-CM code (no decimal)"
+                            }
+                        }
+                    },
+                    "hi02": {
+                        "x12_id": "C022",
+                        "name": "diagnosis_2",
+                        "required": false,
+                        "conditional": "Required when an additional diagnosis is necessary and preceding HI composites are used. If not required by this implementation guide, do not send.",
+                        "composite": true,
+                        "elements": {
+                            "hi02_1": {
+                                "x12_id": "1270",
+                                "name": "diagnosis_type_code",
+                                "required": true,
+                                "valid_values": [
+                                    "ABF",
+                                    "BF"
+                                ],
+                                "description": "ABF=ICD-10-CM Diagnosis, BF=ICD-9-CM Diagnosis"
+                            },
+                            "hi02_2": {
+                                "x12_id": "1271",
+                                "name": "diagnosis_code",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 30
+                            }
+                        }
+                    },
+                    "hi03": {
+                        "x12_id": "C022",
+                        "name": "diagnosis_3",
+                        "required": false,
+                        "conditional": "Required when an additional diagnosis is necessary and preceding HI composites are used. If not required by this implementation guide, do not send.",
+                        "composite": true,
+                        "elements": {
+                            "hi03_1": {
+                                "x12_id": "1270",
+                                "name": "diagnosis_type_code",
+                                "required": true,
+                                "valid_values": [
+                                    "ABF",
+                                    "BF"
+                                ],
+                                "description": "ABF=ICD-10-CM Diagnosis, BF=ICD-9-CM Diagnosis"
+                            },
+                            "hi03_2": {
+                                "x12_id": "1271",
+                                "name": "diagnosis_code",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 30
+                            }
+                        }
+                    },
+                    "hi04": {
+                        "x12_id": "C022",
+                        "name": "diagnosis_4",
+                        "required": false,
+                        "conditional": "Required when an additional diagnosis is necessary and preceding HI composites are used. If not required by this implementation guide, do not send.",
+                        "composite": true,
+                        "elements": {
+                            "hi04_1": {
+                                "x12_id": "1270",
+                                "name": "diagnosis_type_code",
+                                "required": true,
+                                "valid_values": [
+                                    "ABF",
+                                    "BF"
+                                ],
+                                "description": "ABF=ICD-10-CM Diagnosis, BF=ICD-9-CM Diagnosis"
+                            },
+                            "hi04_2": {
+                                "x12_id": "1271",
+                                "name": "diagnosis_code",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 30
+                            }
+                        }
+                    },
+                    "hi05": {
+                        "x12_id": "C022",
+                        "name": "diagnosis_5",
+                        "required": false,
+                        "conditional": "Required when an additional diagnosis is necessary and preceding HI composites are used. If not required by this implementation guide, do not send.",
+                        "composite": true,
+                        "elements": {
+                            "hi05_1": {
+                                "x12_id": "1270",
+                                "name": "diagnosis_type_code",
+                                "required": true,
+                                "valid_values": [
+                                    "ABF",
+                                    "BF"
+                                ],
+                                "description": "ABF=ICD-10-CM Diagnosis, BF=ICD-9-CM Diagnosis"
+                            },
+                            "hi05_2": {
+                                "x12_id": "1271",
+                                "name": "diagnosis_code",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 30
+                            }
+                        }
+                    },
+                    "hi06": {
+                        "x12_id": "C022",
+                        "name": "diagnosis_6",
+                        "required": false,
+                        "conditional": "Required when an additional diagnosis is necessary and preceding HI composites are used. If not required by this implementation guide, do not send.",
+                        "composite": true,
+                        "elements": {
+                            "hi06_1": {
+                                "x12_id": "1270",
+                                "name": "diagnosis_type_code",
+                                "required": true,
+                                "valid_values": [
+                                    "ABF",
+                                    "BF"
+                                ],
+                                "description": "ABF=ICD-10-CM Diagnosis, BF=ICD-9-CM Diagnosis"
+                            },
+                            "hi06_2": {
+                                "x12_id": "1271",
+                                "name": "diagnosis_code",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 30
+                            }
+                        }
+                    },
+                    "hi07": {
+                        "x12_id": "C022",
+                        "name": "diagnosis_7",
+                        "required": false,
+                        "conditional": "Required when an additional diagnosis is necessary and preceding HI composites are used. If not required by this implementation guide, do not send.",
+                        "composite": true,
+                        "elements": {
+                            "hi07_1": {
+                                "x12_id": "1270",
+                                "name": "diagnosis_type_code",
+                                "required": true,
+                                "valid_values": [
+                                    "ABF",
+                                    "BF"
+                                ],
+                                "description": "ABF=ICD-10-CM Diagnosis, BF=ICD-9-CM Diagnosis"
+                            },
+                            "hi07_2": {
+                                "x12_id": "1271",
+                                "name": "diagnosis_code",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 30
+                            }
+                        }
+                    },
+                    "hi08": {
+                        "x12_id": "C022",
+                        "name": "diagnosis_8",
+                        "required": false,
+                        "conditional": "Required when an additional diagnosis is necessary and preceding HI composites are used. If not required by this implementation guide, do not send.",
+                        "composite": true,
+                        "elements": {
+                            "hi08_1": {
+                                "x12_id": "1270",
+                                "name": "diagnosis_type_code",
+                                "required": true,
+                                "valid_values": [
+                                    "ABF",
+                                    "BF"
+                                ],
+                                "description": "ABF=ICD-10-CM Diagnosis, BF=ICD-9-CM Diagnosis"
+                            },
+                            "hi08_2": {
+                                "x12_id": "1271",
+                                "name": "diagnosis_code",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 30
+                            }
+                        }
+                    },
+                    "hi09": {
+                        "x12_id": "C022",
+                        "name": "diagnosis_9",
+                        "required": false,
+                        "conditional": "Required when an additional diagnosis is necessary and preceding HI composites are used. If not required by this implementation guide, do not send.",
+                        "composite": true,
+                        "elements": {
+                            "hi09_1": {
+                                "x12_id": "1270",
+                                "name": "diagnosis_type_code",
+                                "required": true,
+                                "valid_values": [
+                                    "ABF",
+                                    "BF"
+                                ],
+                                "description": "ABF=ICD-10-CM Diagnosis, BF=ICD-9-CM Diagnosis"
+                            },
+                            "hi09_2": {
+                                "x12_id": "1271",
+                                "name": "diagnosis_code",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 30
+                            }
+                        }
+                    },
+                    "hi10": {
+                        "x12_id": "C022",
+                        "name": "diagnosis_10",
+                        "required": false,
+                        "conditional": "Required when an additional diagnosis is necessary and preceding HI composites are used. If not required by this implementation guide, do not send.",
+                        "composite": true,
+                        "elements": {
+                            "hi10_1": {
+                                "x12_id": "1270",
+                                "name": "diagnosis_type_code",
+                                "required": true,
+                                "valid_values": [
+                                    "ABF",
+                                    "BF"
+                                ],
+                                "description": "ABF=ICD-10-CM Diagnosis, BF=ICD-9-CM Diagnosis"
+                            },
+                            "hi10_2": {
+                                "x12_id": "1271",
+                                "name": "diagnosis_code",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 30
+                            }
+                        }
+                    },
+                    "hi11": {
+                        "x12_id": "C022",
+                        "name": "diagnosis_11",
+                        "required": false,
+                        "conditional": "Required when an additional diagnosis is necessary and preceding HI composites are used. If not required by this implementation guide, do not send.",
+                        "composite": true,
+                        "elements": {
+                            "hi11_1": {
+                                "x12_id": "1270",
+                                "name": "diagnosis_type_code",
+                                "required": true,
+                                "valid_values": [
+                                    "ABF",
+                                    "BF"
+                                ],
+                                "description": "ABF=ICD-10-CM Diagnosis, BF=ICD-9-CM Diagnosis"
+                            },
+                            "hi11_2": {
+                                "x12_id": "1271",
+                                "name": "diagnosis_code",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 30
+                            }
+                        }
+                    },
+                    "hi12": {
+                        "x12_id": "C022",
+                        "name": "diagnosis_12",
+                        "required": false,
+                        "conditional": "Required when an additional diagnosis is necessary and preceding HI composites are used. If not required by this implementation guide, do not send.",
+                        "composite": true,
+                        "elements": {
+                            "hi12_1": {
+                                "x12_id": "1270",
+                                "name": "diagnosis_type_code",
+                                "required": true,
+                                "valid_values": [
+                                    "ABF",
+                                    "BF"
+                                ],
+                                "description": "ABF=ICD-10-CM Diagnosis, BF=ICD-9-CM Diagnosis"
+                            },
+                            "hi12_2": {
+                                "x12_id": "1271",
+                                "name": "diagnosis_code",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 30
+                            }
+                        }
+                    }
+                }
+            },
+            "HI_BP": {
+                "name": "Anesthesia Related Procedure",
+                "required": false,
+                "repeatable": false,
+                "position": 43,
+                "elements": {
+                    "hi01": {
+                        "x12_id": "C022",
+                        "name": "anesthesia_procedure",
+                        "required": true,
+                        "composite": true,
+                        "elements": {
+                            "hi01_1": {
+                                "x12_id": "1270",
+                                "name": "code_list_qualifier_code",
+                                "required": true,
+                                "valid_values": [
+                                    "BP"
+                                ],
+                                "description": "BP=Health Care Financing Administration Common Procedural Coding System"
+                            },
+                            "hi01_2": {
+                                "x12_id": "1271",
+                                "name": "procedure_code",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 30
+                            }
+                        }
+                    },
+                    "hi02": {
+                        "x12_id": "C022",
+                        "name": "anesthesia_related_procedure_2",
+                        "required": false,
+                        "conditional": "Required when it is necessary to report an additional procedure. If not required by this implementation guide, do not send.",
+                        "composite": true,
+                        "elements": {
+                            "hi02_1": {
+                                "x12_id": "1270",
+                                "name": "code_list_qualifier_code",
+                                "required": true,
+                                "valid_values": [
+                                    "BO"
+                                ],
+                                "description": "BO=Health Care Financing Administration Common Procedural Coding System"
+                            },
+                            "hi02_2": {
+                                "x12_id": "1271",
+                                "name": "procedure_code",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 30
+                            }
+                        }
+                    }
+                }
+            },
+            "HI_BG": {
+                "name": "Condition Information",
+                "required": false,
+                "repeatable": true,
+                "max_occurs": 2,
+                "position": 44,
+                "elements": {
+                    "hi01": {
+                        "x12_id": "C022",
+                        "name": "condition_info",
+                        "required": true,
+                        "composite": true,
+                        "elements": {
+                            "hi01_1": {
+                                "x12_id": "1270",
+                                "name": "code_list_qualifier_code",
+                                "required": true,
+                                "valid_values": [
+                                    "BG"
+                                ],
+                                "description": "BG=Condition Code"
+                            },
+                            "hi01_2": {
+                                "x12_id": "1271",
+                                "name": "condition_code",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 30
+                            }
+                        }
+                    },
+                    "hi02": {
+                        "x12_id": "C022",
+                        "name": "condition_info_2",
+                        "required": false,
+                        "conditional": "Required when an additional condition code is necessary and preceding HI composites are used. If not required by this implementation guide, do not send.",
+                        "composite": true,
+                        "elements": {
+                            "hi02_1": {
+                                "x12_id": "1270",
+                                "name": "code_list_qualifier_code",
+                                "required": true,
+                                "valid_values": ["BG"],
+                                "description": "BG=Condition Code"
+                            },
+                            "hi02_2": {
+                                "x12_id": "1271",
+                                "name": "condition_code",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 30
+                            }
+                        }
+                    },
+                    "hi03": {
+                        "x12_id": "C022",
+                        "name": "condition_info_3",
+                        "required": false,
+                        "conditional": "Required when an additional condition code is necessary and preceding HI composites are used. If not required by this implementation guide, do not send.",
+                        "composite": true,
+                        "elements": {
+                            "hi03_1": {
+                                "x12_id": "1270",
+                                "name": "code_list_qualifier_code",
+                                "required": true,
+                                "valid_values": ["BG"],
+                                "description": "BG=Condition Code"
+                            },
+                            "hi03_2": {
+                                "x12_id": "1271",
+                                "name": "condition_code",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 30
+                            }
+                        }
+                    },
+                    "hi04": {
+                        "x12_id": "C022",
+                        "name": "condition_info_4",
+                        "required": false,
+                        "conditional": "Required when an additional condition code is necessary and preceding HI composites are used. If not required by this implementation guide, do not send.",
+                        "composite": true,
+                        "elements": {
+                            "hi04_1": {
+                                "x12_id": "1270",
+                                "name": "code_list_qualifier_code",
+                                "required": true,
+                                "valid_values": ["BG"],
+                                "description": "BG=Condition Code"
+                            },
+                            "hi04_2": {
+                                "x12_id": "1271",
+                                "name": "condition_code",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 30
+                            }
+                        }
+                    },
+                    "hi05": {
+                        "x12_id": "C022",
+                        "name": "condition_info_5",
+                        "required": false,
+                        "conditional": "Required when an additional condition code is necessary and preceding HI composites are used. If not required by this implementation guide, do not send.",
+                        "composite": true,
+                        "elements": {
+                            "hi05_1": {
+                                "x12_id": "1270",
+                                "name": "code_list_qualifier_code",
+                                "required": true,
+                                "valid_values": ["BG"],
+                                "description": "BG=Condition Code"
+                            },
+                            "hi05_2": {
+                                "x12_id": "1271",
+                                "name": "condition_code",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 30
+                            }
+                        }
+                    },
+                    "hi06": {
+                        "x12_id": "C022",
+                        "name": "condition_info_6",
+                        "required": false,
+                        "conditional": "Required when an additional condition code is necessary and preceding HI composites are used. If not required by this implementation guide, do not send.",
+                        "composite": true,
+                        "elements": {
+                            "hi06_1": {
+                                "x12_id": "1270",
+                                "name": "code_list_qualifier_code",
+                                "required": true,
+                                "valid_values": ["BG"],
+                                "description": "BG=Condition Code"
+                            },
+                            "hi06_2": {
+                                "x12_id": "1271",
+                                "name": "condition_code",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 30
+                            }
+                        }
+                    },
+                    "hi07": {
+                        "x12_id": "C022",
+                        "name": "condition_info_7",
+                        "required": false,
+                        "conditional": "Required when an additional condition code is necessary and preceding HI composites are used. If not required by this implementation guide, do not send.",
+                        "composite": true,
+                        "elements": {
+                            "hi07_1": {
+                                "x12_id": "1270",
+                                "name": "code_list_qualifier_code",
+                                "required": true,
+                                "valid_values": ["BG"],
+                                "description": "BG=Condition Code"
+                            },
+                            "hi07_2": {
+                                "x12_id": "1271",
+                                "name": "condition_code",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 30
+                            }
+                        }
+                    },
+                    "hi08": {
+                        "x12_id": "C022",
+                        "name": "condition_info_8",
+                        "required": false,
+                        "conditional": "Required when an additional condition code is necessary and preceding HI composites are used. If not required by this implementation guide, do not send.",
+                        "composite": true,
+                        "elements": {
+                            "hi08_1": {
+                                "x12_id": "1270",
+                                "name": "code_list_qualifier_code",
+                                "required": true,
+                                "valid_values": ["BG"],
+                                "description": "BG=Condition Code"
+                            },
+                            "hi08_2": {
+                                "x12_id": "1271",
+                                "name": "condition_code",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 30
+                            }
+                        }
+                    },
+                    "hi09": {
+                        "x12_id": "C022",
+                        "name": "condition_info_9",
+                        "required": false,
+                        "conditional": "Required when an additional condition code is necessary and preceding HI composites are used. If not required by this implementation guide, do not send.",
+                        "composite": true,
+                        "elements": {
+                            "hi09_1": {
+                                "x12_id": "1270",
+                                "name": "code_list_qualifier_code",
+                                "required": true,
+                                "valid_values": ["BG"],
+                                "description": "BG=Condition Code"
+                            },
+                            "hi09_2": {
+                                "x12_id": "1271",
+                                "name": "condition_code",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 30
+                            }
+                        }
+                    },
+                    "hi10": {
+                        "x12_id": "C022",
+                        "name": "condition_info_10",
+                        "required": false,
+                        "conditional": "Required when an additional condition code is necessary and preceding HI composites are used. If not required by this implementation guide, do not send.",
+                        "composite": true,
+                        "elements": {
+                            "hi10_1": {
+                                "x12_id": "1270",
+                                "name": "code_list_qualifier_code",
+                                "required": true,
+                                "valid_values": ["BG"],
+                                "description": "BG=Condition Code"
+                            },
+                            "hi10_2": {
+                                "x12_id": "1271",
+                                "name": "condition_code",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 30
+                            }
+                        }
+                    },
+                    "hi11": {
+                        "x12_id": "C022",
+                        "name": "condition_info_11",
+                        "required": false,
+                        "conditional": "Required when an additional condition code is necessary and preceding HI composites are used. If not required by this implementation guide, do not send.",
+                        "composite": true,
+                        "elements": {
+                            "hi11_1": {
+                                "x12_id": "1270",
+                                "name": "code_list_qualifier_code",
+                                "required": true,
+                                "valid_values": ["BG"],
+                                "description": "BG=Condition Code"
+                            },
+                            "hi11_2": {
+                                "x12_id": "1271",
+                                "name": "condition_code",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 30
+                            }
+                        }
+                    },
+                    "hi12": {
+                        "x12_id": "C022",
+                        "name": "condition_info_12",
+                        "required": false,
+                        "conditional": "Required when an additional condition code is necessary and preceding HI composites are used. If not required by this implementation guide, do not send.",
+                        "composite": true,
+                        "elements": {
+                            "hi12_1": {
+                                "x12_id": "1270",
+                                "name": "code_list_qualifier_code",
+                                "required": true,
+                                "valid_values": ["BG"],
+                                "description": "BG=Condition Code"
+                            },
+                            "hi12_2": {
+                                "x12_id": "1271",
+                                "name": "condition_code",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 30
+                            }
+                        }
+                    }
+                }
+            },
+            "HCP": {
+                "name": "Claim Pricing/Repricing Information",
+                "required": false,
+                "repeatable": false,
+                "position": 45,
+                "elements": {
+                    "hcp01": {
+                        "x12_id": "1473",
+                        "name": "pricing_methodology",
+                        "required": true,
+                        "min_length": 2,
+                        "max_length": 2,
+                        "valid_values": [
+                            "00",
+                            "01",
+                            "02",
+                            "03",
+                            "04",
+                            "05",
+                            "07",
+                            "08",
+                            "09",
+                            "10",
+                            "11",
+                            "12",
+                            "13",
+                            "14"
+                        ],
+                        "description": "00=Zero Pricing, 01=Priced as Billed, 02=Priced at Standard Rate, 03=Usual and Customary, 04=Flat Rate, 05=By Percent of Billed, 07=Flat Rate 1, 08=Flat Rate 2, 09=Per Diem, 10=Cost Report, 11=DRG, 12=Combination, 13=APC, 14=Other"
+                    },
+                    "hcp02": {
+                        "x12_id": "782",
+                        "name": "repriced_allowed_amount",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 18
+                    },
+                    "hcp03": {
+                        "x12_id": "782",
+                        "name": "repriced_saving_amount",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 18
+                    },
+                    "hcp04": {
+                        "x12_id": "127",
+                        "name": "repricing_organization_identifier",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "hcp05": {
+                        "x12_id": "118",
+                        "name": "repricing_per_diem_or_flat_rate_amount",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 9
+                    },
+                    "hcp06": {
+                        "x12_id": "127",
+                        "name": "repriced_approved_ambulatory_patient_group_code",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "hcp07": {
+                        "x12_id": "782",
+                        "name": "repriced_approved_ambulatory_patient_group_amount",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 18
+                    },
+                    "hcp08": {
+                        "x12_id": "234",
+                        "name": "product_service_id",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "hcp09": {
+                        "x12_id": "235",
+                        "name": "product_service_id_qualifier",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "hcp10": {
+                        "x12_id": "234",
+                        "name": "product_service_id",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "hcp11": {
+                        "x12_id": "355",
+                        "name": "unit_or_basis_for_measurement_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "hcp12": {
+                        "x12_id": "380",
+                        "name": "quantity",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "hcp13": {
+                        "x12_id": "901",
+                        "name": "reject_reason_code",
+                        "required": false,
+                        "min_length": 2,
+                        "max_length": 2,
+                        "valid_values": [
+                            "T1",
+                            "T2",
+                            "T3",
+                            "T4",
+                            "T5",
+                            "T6"
+                        ],
+                        "description": "T1=Cannot Identify Provider, T2=Cannot Identify Payer, T3=Cannot Identify Insured, T4=Payer Name/ID Missing, T5=Certification Info Missing, T6=Claim Does Not Contain Diagnosis Info"
+                    },
+                    "hcp14": {
+                        "x12_id": "1526",
+                        "name": "policy_compliance_code",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 2,
+                        "valid_values": [
+                            "1",
+                            "2",
+                            "3",
+                            "4",
+                            "5"
+                        ],
+                        "description": "1=Procedure Followed, 2=Not Followed: Call Not Made, 3=Not Medically Necessary, 4=Not Followed: Other, 5=Emergency"
+                    },
+                    "hcp15": {
+                        "x12_id": "1527",
+                        "name": "exception_code",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 1,
+                        "valid_values": [
+                            "1",
+                            "2",
+                            "3",
+                            "4",
+                            "5",
+                            "6"
+                        ],
+                        "description": "1=Non-Network Professional Provider in Network Hospital, 2=Emergency Care, 3=Services Outside of Network, 4=Out-of-Service Area, 5=State-Mandated Service or Provider, 6=Other"
+                    }
+                }
+            },
+            "REF_1J": {
+                "name": "Care Plan Oversight",
+                "required": false,
+                "repeatable": false,
+                "max_occurs": 1,
+                "position": 34,
+                "conditional": "Required when the physician is billing Medicare for Care Plan Oversight (CPO). If not required by this implementation guide, do not send.",
+                "syntax_rules": [
+                    {
+                        "code": "R0203",
+                        "at_least_one_of": [
+                            "ref02",
+                            "ref03"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "ref01": {
+                        "x12_id": "128",
+                        "name": "reference_identification_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "1J"
+                        ],
+                        "description": "1J=Facility ID Number (Care Plan Oversight hospice/home health NPI or Medicare number)"
+                    },
+                    "ref02": {
+                        "x12_id": "127",
+                        "name": "care_plan_oversight_number",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "ref03": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ref04": {
+                        "x12_id": "C040",
+                        "name": "reference_identifier",
+                        "required": false,
+                        "not_used": true
+                    }
+                }
+            }
+        },
+        "child_loops": [
+            "loop_2310A",
+            "loop_2310B",
+            "loop_2310C",
+            "loop_2310D",
+            "loop_2310E",
+            "loop_2310F",
+            "loop_2320",
+            "loop_2400"
+        ],
+        "validation_rules": [
+            {
+                "rule": "CLM01/02/05/06/07/08/09 required; CLM03-04 and CLM13-19 not used; CLM11-1=AA|EM|OA; CLM11-3 not used"
+            },
+            {
+                "rule": "DTP variants situational by qualifier; DTP*090/091 max 2; DTP*439 when CLM11 is AA/OA (or EM accident)"
+            },
+            {
+                "rule": "PWK max 10; PWK03-04 and PWK07-09 not used; P0506; PWK06 max 50"
+            },
+            {
+                "rule": "REF claim-level situational by qualifier (4N,F5,EW,9F,G1,F8,X4,9A,9C,LX,D9,EA,P4,1J); R0203; REF03-04 not used"
+            },
+            {
+                "rule": "NTE max 1; NTE01=ADD|CER|DCP"
+            },
+            {
+                "rule": "CR1/CR2/CRC/HI/HCP as X222; CRC*07 codes 01|04-09|12; HI01-1=ABK|BK; HI02-12-1=ABF|BF"
+            },
+            {
+                "rule": "Loop 2300 element rules apply only until first 2310 NM1, 2320 SBR, or 2400 LX"
+            }
+        ]
+    }
+}

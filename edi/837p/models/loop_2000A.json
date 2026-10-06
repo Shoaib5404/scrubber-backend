@@ -1,0 +1,1254 @@
+{
+  "loop_2000A": {
+    "name": "Billing Provider Hierarchical Level",
+    "required": true,
+    "repeatable": true,
+    "max_occurs": 999999,
+    "parent": "ST",
+    "segments": {
+      "HL": {
+        "name": "Billing Provider Hierarchical Level",
+        "required": true,
+        "repeatable": false,
+        "position": 1,
+        "elements": {
+          "hl01": {
+            "x12_id": "628",
+            "name": "hierarchical_id_number",
+            "required": true,
+            "data_type": "AN",
+            "format": "NUMERIC",
+            "min_length": 1,
+            "max_length": 12,
+            "description": "Hierarchical ID Number (X12 AN 1/12). 837P content: numeric characters only. First HL in ST-SE must be 1, then increment by 1 (e.g. 1, 2, 3, 10, 11)."
+          },
+          "hl02": {
+            "x12_id": "734",
+            "name": "hierarchical_parent_id_number",
+            "required": false,
+            "not_used": true,
+            "description": "Not used for 2000A (top of hierarchy)"
+          },
+          "hl03": {
+            "x12_id": "735",
+            "name": "hierarchical_level_code",
+            "required": true,
+            "min_length": 1,
+            "max_length": 2,
+            "valid_values": ["20"],
+            "description": "20=Information Source (Billing Provider)"
+          },
+          "hl04": {
+            "x12_id": "736",
+            "name": "hierarchical_child_code",
+            "required": true,
+            "min_length": 1,
+            "max_length": 1,
+            "valid_values": ["1"],
+            "description": "1=Additional Subordinate HL Exists"
+          }
+        }
+      },
+      "PRV": {
+        "name": "Billing Provider Specialty Information",
+        "required": false,
+        "repeatable": false,
+        "position": 2,
+        "conditional": "Required when the payer's adjudication is known to be impacted by the provider taxonomy code. If not required by this implementation guide, do not send.",
+        "elements": {
+          "prv01": {
+            "x12_id": "1221",
+            "name": "provider_code",
+            "required": true,
+            "min_length": 1,
+            "max_length": 3,
+            "valid_values": ["BI"],
+            "description": "BI=Billing"
+          },
+          "prv02": {
+            "x12_id": "128",
+            "name": "reference_identification_qualifier",
+            "required": true,
+            "required_with": "prv03",
+            "min_length": 2,
+            "max_length": 3,
+            "valid_values": ["PXC"],
+            "description": "PXC=Health Care Provider Taxonomy Code (X12 syntax P0203 with PRV03)"
+          },
+          "prv03": {
+            "x12_id": "127",
+            "name": "provider_taxonomy_code",
+            "required": true,
+            "required_with": "prv02",
+            "min_length": 1,
+            "max_length": 50,
+            "description": "Provider Taxonomy Code (code source 682); X12 AN 1/50"
+          },
+          "prv04": {
+            "x12_id": "156",
+            "name": "state_or_province_code",
+            "required": false,
+            "not_used": true
+          },
+          "prv05": {
+            "x12_id": "C035",
+            "name": "provider_specialty_information",
+            "required": false,
+            "not_used": true
+          },
+          "prv06": {
+            "x12_id": "1223",
+            "name": "provider_organization_code",
+            "required": false,
+            "not_used": true
+          }
+        }
+      },
+      "CUR": {
+        "name": "Foreign Currency Information",
+        "required": false,
+        "repeatable": false,
+        "position": 3,
+        "conditional": "Required when the amounts represented in this transaction are currencies other than the United States dollar. If not required by this implementation guide, do not send. If CUR is not used, all amounts must be expressed in US dollars.",
+        "syntax_rules": [
+          {"code": "C0807", "if": "cur08", "then_required": ["cur07"]},
+          {"code": "C0907", "if": "cur09", "then_required": ["cur07"]},
+          {"code": "L101112", "if": "cur10", "then_any_of": ["cur11", "cur12"]},
+          {"code": "C1110", "if": "cur11", "then_required": ["cur10"]},
+          {"code": "C1210", "if": "cur12", "then_required": ["cur10"]},
+          {"code": "L131415", "if": "cur13", "then_any_of": ["cur14", "cur15"]},
+          {"code": "C1413", "if": "cur14", "then_required": ["cur13"]},
+          {"code": "C1513", "if": "cur15", "then_required": ["cur13"]},
+          {"code": "L161718", "if": "cur16", "then_any_of": ["cur17", "cur18"]},
+          {"code": "C1716", "if": "cur17", "then_required": ["cur16"]},
+          {"code": "C1816", "if": "cur18", "then_required": ["cur16"]},
+          {"code": "L192021", "if": "cur19", "then_any_of": ["cur20", "cur21"]},
+          {"code": "C2019", "if": "cur20", "then_required": ["cur19"]},
+          {"code": "C2119", "if": "cur21", "then_required": ["cur19"]}
+        ],
+        "elements": {
+          "cur01": {
+            "x12_id": "98",
+            "name": "entity_identifier_code",
+            "required": true,
+            "min_length": 2,
+            "max_length": 3,
+            "valid_values": ["85"],
+            "description": "85=Billing Provider"
+          },
+          "cur02": {
+            "x12_id": "100",
+            "name": "currency_code",
+            "required": true,
+            "min_length": 3,
+            "max_length": 3,
+            "description": "ISO 4217 currency code (e.g. CAD), not country code"
+          },
+          "cur03": {
+            "x12_id": "280",
+            "name": "exchange_rate",
+            "required": false,
+            "not_used": true
+          },
+          "cur04": {
+            "x12_id": "98",
+            "name": "entity_identifier_code",
+            "required": false,
+            "not_used": true
+          },
+          "cur05": {
+            "x12_id": "100",
+            "name": "currency_code",
+            "required": false,
+            "not_used": true
+          },
+          "cur06": {
+            "x12_id": "669",
+            "name": "currency_market_exchange_code",
+            "required": false,
+            "not_used": true
+          },
+          "cur07": {
+            "x12_id": "374",
+            "name": "date_time_qualifier",
+            "required": false,
+            "not_used": true
+          },
+          "cur08": {
+            "x12_id": "373",
+            "name": "date",
+            "required": false,
+            "not_used": true
+          },
+          "cur09": {
+            "x12_id": "337",
+            "name": "time",
+            "required": false,
+            "not_used": true
+          },
+          "cur10": {
+            "x12_id": "374",
+            "name": "date_time_qualifier",
+            "required": false,
+            "not_used": true
+          },
+          "cur11": {
+            "x12_id": "373",
+            "name": "date",
+            "required": false,
+            "not_used": true
+          },
+          "cur12": {
+            "x12_id": "337",
+            "name": "time",
+            "required": false,
+            "not_used": true
+          },
+          "cur13": {
+            "x12_id": "374",
+            "name": "date_time_qualifier",
+            "required": false,
+            "not_used": true
+          },
+          "cur14": {
+            "x12_id": "373",
+            "name": "date",
+            "required": false,
+            "not_used": true
+          },
+          "cur15": {
+            "x12_id": "337",
+            "name": "time",
+            "required": false,
+            "not_used": true
+          },
+          "cur16": {
+            "x12_id": "374",
+            "name": "date_time_qualifier",
+            "required": false,
+            "not_used": true
+          },
+          "cur17": {
+            "x12_id": "373",
+            "name": "date",
+            "required": false,
+            "not_used": true
+          },
+          "cur18": {
+            "x12_id": "337",
+            "name": "time",
+            "required": false,
+            "not_used": true
+          },
+          "cur19": {
+            "x12_id": "374",
+            "name": "date_time_qualifier",
+            "required": false,
+            "not_used": true
+          },
+          "cur20": {
+            "x12_id": "373",
+            "name": "date",
+            "required": false,
+            "not_used": true
+          },
+          "cur21": {
+            "x12_id": "337",
+            "name": "time",
+            "required": false,
+            "not_used": true
+          }
+        }
+      }
+    },
+    "child_loops": ["loop_2010AA", "loop_2010AB", "loop_2010AC"],
+    "validation_rules": [
+      {"rule": "HL01 is X12 AN 1/12; 837P content must be numeric characters only; sequential starting at 1 within ST-SE"},
+      {"rule": "HL02 is not used for every 2000A HL (billing provider is top of hierarchy)"},
+      {"rule": "PRV is situational: required when taxonomy impacts adjudication; otherwise do not send"},
+      {"rule": "PRV P0203: if either PRV02 or PRV03 is present, the other is required"},
+      {"rule": "PRV04, PRV05, and PRV06 are not used"},
+      {"rule": "CUR is situational: required when amounts are not USD; otherwise do not send (USD default)"},
+      {"rule": "CUR03 through CUR21 are not used in 837P; X12 syntax C0807-C2119 still enforced if those elements appear"}
+    ]
+  },
+  "loop_2010AA": {
+    "name": "Billing Provider Name",
+    "required": true,
+    "repeatable": false,
+    "max_occurs": 1,
+    "parent": "loop_2000A",
+    "segments": {
+      "NM1": {
+        "name": "Billing Provider Name",
+        "required": true,
+        "repeatable": false,
+        "position": 1,
+        "syntax_rules": [
+          {"code": "P0809", "if": "nm108", "then_required": ["nm109"]},
+          {"code": "P0809", "if": "nm109", "then_required": ["nm108"]},
+          {"code": "C1110", "if": "nm111", "then_required": ["nm110"]},
+          {"code": "C1203", "if": "nm112", "then_required": ["nm103"]}
+        ],
+        "elements": {
+          "nm101": {
+            "x12_id": "98",
+            "name": "entity_identifier_code",
+            "required": true,
+            "min_length": 2,
+            "max_length": 3,
+            "valid_values": ["85"],
+            "description": "85=Billing Provider"
+          },
+          "nm102": {
+            "x12_id": "1065",
+            "name": "entity_type_qualifier",
+            "required": true,
+            "min_length": 1,
+            "max_length": 1,
+            "valid_values": ["1", "2"],
+            "description": "1=Person, 2=Non-Person Entity"
+          },
+          "nm103": {
+            "x12_id": "1035",
+            "name": "billing_provider_last_or_organization_name",
+            "required": true,
+            "min_length": 1,
+            "max_length": 60,
+            "description": "Organization name or last name"
+          },
+          "nm104": {
+            "x12_id": "1036",
+            "name": "billing_provider_first_name",
+            "required": false,
+            "conditional": "Required when NM102=1 (person) and the person has a first name. If not required by this implementation guide, do not send.",
+            "only_when": {"element": "nm102", "equals": "1"},
+            "min_length": 1,
+            "max_length": 35,
+            "description": "First name when NM102=1"
+          },
+          "nm105": {
+            "x12_id": "1037",
+            "name": "billing_provider_middle_name",
+            "required": false,
+            "conditional": "Required when NM102=1 (person) and the middle name or initial of the person is needed to identify the individual. If not required by this implementation guide, do not send.",
+            "only_when": {"element": "nm102", "equals": "1"},
+            "min_length": 1,
+            "max_length": 25,
+            "description": "Middle name or initial"
+          },
+          "nm106": {
+            "x12_id": "1038",
+            "name": "name_prefix",
+            "required": false,
+            "not_used": true
+          },
+          "nm107": {
+            "x12_id": "1039",
+            "name": "billing_provider_name_suffix",
+            "required": false,
+            "conditional": "Required when NM102=1 (person) and the name suffix of the person is needed to identify the individual. If not required by this implementation guide, do not send.",
+            "only_when": {"element": "nm102", "equals": "1"},
+            "min_length": 1,
+            "max_length": 10,
+            "description": "Billing Provider Name Suffix"
+          },
+          "nm108": {
+            "x12_id": "66",
+            "name": "identification_code_qualifier",
+            "required": false,
+            "conditional": "Required for providers in the US/territories on/after NPI date when eligible for NPI; OR non-US when NPI received; OR prior to NPI date when NPI received and submitter can send it. If not required by this implementation guide, do not send.",
+            "min_length": 1,
+            "max_length": 2,
+            "valid_values": ["XX"],
+            "description": "XX=NPI (situational per X222); paired with NM109 via syntax_rules P0809"
+          },
+          "nm109": {
+            "x12_id": "67",
+            "name": "billing_provider_identifier",
+            "required": false,
+            "conditional": "Required under the same situational rules as NM108. If not required by this implementation guide, do not send.",
+            "min_length": 2,
+            "max_length": 80,
+            "description": "Billing Provider Identifier (NPI when NM108=XX); paired with NM108 via syntax_rules P0809"
+          },
+          "nm110": {
+            "x12_id": "706",
+            "name": "entity_relationship_code",
+            "required": false,
+            "not_used": true
+          },
+          "nm111": {
+            "x12_id": "98",
+            "name": "entity_identifier_code",
+            "required": false,
+            "not_used": true
+          },
+          "nm112": {
+            "x12_id": "1035",
+            "name": "name_last_or_organization_name",
+            "required": false,
+            "not_used": true
+          }
+        }
+      },
+      "N3": {
+        "name": "Billing Provider Address",
+        "required": true,
+        "repeatable": false,
+        "position": 2,
+        "conditional": "Billing Provider Address must be a street address. PO Box or Lock Box addresses go in loop 2010AB when needed.",
+        "elements": {
+          "n301": {
+            "x12_id": "166",
+            "name": "billing_provider_address_line_1",
+            "required": true,
+            "min_length": 1,
+            "max_length": 55,
+            "description": "Street address line 1"
+          },
+          "n302": {
+            "x12_id": "166",
+            "name": "billing_provider_address_line_2",
+            "required": false,
+            "conditional": "Required when there is a second address line. If not required by this implementation guide, do not send.",
+            "min_length": 1,
+            "max_length": 55,
+            "description": "Street address line 2"
+          }
+        }
+      },
+      "N4": {
+        "name": "Billing Provider City, State, ZIP Code",
+        "required": true,
+        "repeatable": false,
+        "position": 3,
+        "syntax_rules": [
+          {"code": "E0207", "mutually_exclusive": ["n402", "n407"]},
+          {"code": "C0605", "if": "n406", "then_required": ["n405"]},
+          {"code": "C0704", "if": "n407", "then_required": ["n404"]}
+        ],
+        "elements": {
+          "n401": {
+            "x12_id": "19",
+            "name": "billing_provider_city_name",
+            "required": true,
+            "min_length": 2,
+            "max_length": 30,
+            "description": "City name"
+          },
+          "n402": {
+            "x12_id": "156",
+            "name": "billing_provider_state_or_province_code",
+            "required": false,
+            "conditional": "Required when the address is in the United States of America, including its territories, or Canada. If not required by this implementation guide, do not send.",
+            "min_length": 2,
+            "max_length": 2,
+            "description": "State or province code"
+          },
+          "n403": {
+            "x12_id": "116",
+            "name": "billing_provider_postal_zone_or_zip_code",
+            "required": false,
+            "conditional": "Required when the address is in the US/territories or Canada, or when a postal code exists for the country in N404. For US addresses, the full nine-digit ZIP code must be provided. If not required by this implementation guide, do not send.",
+            "min_length": 3,
+            "max_length": 15,
+            "description": "Postal zone or ZIP code"
+          },
+          "n404": {
+            "x12_id": "26",
+            "name": "country_code",
+            "required": false,
+            "conditional": "Required when the address is outside the United States of America. If not required by this implementation guide, do not send.",
+            "min_length": 2,
+            "max_length": 3,
+            "description": "ISO 3166 alpha-2 country code"
+          },
+          "n405": {
+            "x12_id": "309",
+            "name": "location_qualifier",
+            "required": false,
+            "not_used": true
+          },
+          "n406": {
+            "x12_id": "310",
+            "name": "location_identifier",
+            "required": false,
+            "not_used": true
+          },
+          "n407": {
+            "x12_id": "1715",
+            "name": "country_subdivision_code",
+            "required": false,
+            "conditional": "Required when the address is not in the US/territories or Canada, and the country in N404 has administrative subdivisions. If not required by this implementation guide, do not send.",
+            "min_length": 1,
+            "max_length": 3,
+            "description": "Country subdivision code"
+          }
+        }
+      },
+      "REF_EI": {
+        "name": "Billing Provider Tax Identification",
+        "required": true,
+        "repeatable": false,
+        "position": 4,
+        "syntax_rules": [
+          {"code": "R0203", "at_least_one_of": ["ref02", "ref03"]}
+        ],
+        "elements": {
+          "ref01": {
+            "x12_id": "128",
+            "name": "reference_identification_qualifier",
+            "required": true,
+            "min_length": 2,
+            "max_length": 3,
+            "valid_values": ["EI", "SY"],
+            "description": "EI=Employer's ID (EIN), SY=Social Security Number"
+          },
+          "ref02": {
+            "x12_id": "127",
+            "name": "billing_provider_tax_identification_number",
+            "required": true,
+            "format": "NUMERIC",
+            "min_length": 9,
+            "max_length": 9,
+            "description": "Exactly 9 digits, no separators"
+          },
+          "ref03": {
+            "x12_id": "352",
+            "name": "description",
+            "required": false,
+            "not_used": true
+          },
+          "ref04": {
+            "x12_id": "C040",
+            "name": "reference_identifier",
+            "required": false,
+            "not_used": true
+          }
+        }
+      },
+      "REF_LU": {
+        "name": "Billing Provider UPIN/License Information",
+        "required": false,
+        "repeatable": true,
+        "max_occurs": 2,
+        "position": 5,
+        "conditional": "Required prior to the mandated NPI date when a UPIN and/or license number is necessary for the receiver to identify the provider; OR on/after NPI date when NM109 of this loop is not used and a UPIN or license is necessary. If not required by this implementation guide, do not send.",
+        "syntax_rules": [
+          {"code": "R0203", "at_least_one_of": ["ref02", "ref03"]}
+        ],
+        "elements": {
+          "ref01": {
+            "x12_id": "128",
+            "name": "reference_identification_qualifier",
+            "required": true,
+            "min_length": 2,
+            "max_length": 3,
+            "valid_values": ["0B", "1G"],
+            "description": "0B=State License Number, 1G=Provider UPIN"
+          },
+          "ref02": {
+            "x12_id": "127",
+            "name": "billing_provider_additional_identifier",
+            "required": true,
+            "min_length": 1,
+            "max_length": 50,
+            "description": "State license or UPIN (UPIN format X99999 or XXX999)"
+          },
+          "ref03": {
+            "x12_id": "352",
+            "name": "description",
+            "required": false,
+            "not_used": true
+          },
+          "ref04": {
+            "x12_id": "C040",
+            "name": "reference_identifier",
+            "required": false,
+            "not_used": true
+          }
+        }
+      },
+      "PER": {
+        "name": "Billing Provider Contact Information",
+        "required": false,
+        "repeatable": true,
+        "max_occurs": 2,
+        "position": 6,
+        "conditional": "Required when this information is different than that contained in the Loop ID-1000A Submitter PER segment. If not required by this implementation guide, do not send.",
+        "syntax_rules": [
+          {"code": "P0304", "if": "per03", "then_required": ["per04"]},
+          {"code": "P0304", "if": "per04", "then_required": ["per03"]},
+          {"code": "P0506", "if": "per05", "then_required": ["per06"]},
+          {"code": "P0506", "if": "per06", "then_required": ["per05"]},
+          {"code": "P0708", "if": "per07", "then_required": ["per08"]},
+          {"code": "P0708", "if": "per08", "then_required": ["per07"]}
+        ],
+        "elements": {
+          "per01": {
+            "x12_id": "366",
+            "name": "contact_function_code",
+            "required": true,
+            "min_length": 2,
+            "max_length": 2,
+            "valid_values": ["IC"],
+            "description": "IC=Information Contact"
+          },
+          "per02": {
+            "x12_id": "93",
+            "name": "billing_provider_contact_name",
+            "required": false,
+            "conditional": "Required in the first iteration of the Billing Provider Contact Information segment. If not required by this implementation guide, do not send.",
+            "min_length": 1,
+            "max_length": 60,
+            "description": "Contact name"
+          },
+          "per03": {
+            "x12_id": "365",
+            "name": "communication_number_qualifier_1",
+            "required": true,
+            "min_length": 2,
+            "max_length": 2,
+            "valid_values": ["EM", "FX", "TE"],
+            "description": "EM=Email, FX=Fax, TE=Telephone; paired with PER04 via syntax_rules P0304"
+          },
+          "per04": {
+            "x12_id": "364",
+            "name": "communication_number_1",
+            "required": true,
+            "min_length": 1,
+            "max_length": 256,
+            "description": "Contact number/email; paired with PER03 via syntax_rules P0304"
+          },
+          "per05": {
+            "x12_id": "365",
+            "name": "communication_number_qualifier_2",
+            "required": false,
+            "conditional": "Required when this information is deemed necessary by the submitter. If not required by this implementation guide, do not send.",
+            "min_length": 2,
+            "max_length": 2,
+            "valid_values": ["EM", "EX", "FX", "TE"],
+            "description": "Second qualifier; paired with PER06 via syntax_rules P0506"
+          },
+          "per06": {
+            "x12_id": "364",
+            "name": "communication_number_2",
+            "required": false,
+            "conditional": "Required when this information is deemed necessary by the submitter. If not required by this implementation guide, do not send.",
+            "min_length": 1,
+            "max_length": 256,
+            "description": "Second number; paired with PER05 via syntax_rules P0506"
+          },
+          "per07": {
+            "x12_id": "365",
+            "name": "communication_number_qualifier_3",
+            "required": false,
+            "conditional": "Required when this information is deemed necessary by the submitter. If not required by this implementation guide, do not send.",
+            "min_length": 2,
+            "max_length": 2,
+            "valid_values": ["EM", "EX", "FX", "TE"],
+            "description": "Third qualifier; paired with PER08 via syntax_rules P0708"
+          },
+          "per08": {
+            "x12_id": "364",
+            "name": "communication_number_3",
+            "required": false,
+            "conditional": "Required when this information is deemed necessary by the submitter. If not required by this implementation guide, do not send.",
+            "min_length": 1,
+            "max_length": 256,
+            "description": "Third number; paired with PER07 via syntax_rules P0708"
+          },
+          "per09": {
+            "x12_id": "443",
+            "name": "contact_inquiry_reference",
+            "required": false,
+            "not_used": true
+          }
+        }
+      }
+    },
+    "validation_rules": [
+      {"rule": "NM104/NM105/NM107 situational when NM102=1; otherwise do not send"},
+      {"rule": "NM108/NM109 situational per NPI rules; P0809 pair; XX when qualifier present"},
+      {"rule": "NM110-NM112 not used"},
+      {"rule": "N302 situational second address line; otherwise do not send"},
+      {"rule": "N4 E0207/C0605/C0704; N405-N406 not used; US ZIP nine digits per X222"},
+      {"rule": "REF tax required; REF02 exactly 9 digits; R0203; REF03-REF04 not used"},
+      {"rule": "REF UPIN/license situational max 2; R0203; REF03-REF04 not used"},
+      {"rule": "PER situational vs 1000A; PER02 required on first iteration; P0304/P0506/P0708; PER09 not used"}
+    ]
+  },
+  "loop_2010AB": {
+    "name": "Pay-to Address Name",
+    "required": false,
+    "repeatable": false,
+    "max_occurs": 1,
+    "parent": "loop_2000A",
+    "description": "Required when the address for payment is different than that of the Billing Provider. If not required by this implementation guide, do not send. Address-only loop: no names and no identifiers.",
+    "segments": {
+      "NM1": {
+        "name": "Pay-to Address Name",
+        "required": true,
+        "repeatable": false,
+        "position": 1,
+        "syntax_rules": [
+          {"code": "P0809", "if": "nm108", "then_required": ["nm109"]},
+          {"code": "P0809", "if": "nm109", "then_required": ["nm108"]},
+          {"code": "C1110", "if": "nm111", "then_required": ["nm110"]},
+          {"code": "C1203", "if": "nm112", "then_required": ["nm103"]}
+        ],
+        "elements": {
+          "nm101": {
+            "x12_id": "98",
+            "name": "entity_identifier_code",
+            "required": true,
+            "min_length": 2,
+            "max_length": 3,
+            "valid_values": ["87"],
+            "description": "87=Pay-to Provider"
+          },
+          "nm102": {
+            "x12_id": "1065",
+            "name": "entity_type_qualifier",
+            "required": true,
+            "min_length": 1,
+            "max_length": 1,
+            "valid_values": ["1", "2"],
+            "description": "1=Person, 2=Non-Person Entity"
+          },
+          "nm103": {
+            "x12_id": "1035",
+            "name": "name_last_or_organization_name",
+            "required": false,
+            "not_used": true
+          },
+          "nm104": {
+            "x12_id": "1036",
+            "name": "name_first",
+            "required": false,
+            "not_used": true
+          },
+          "nm105": {
+            "x12_id": "1037",
+            "name": "name_middle",
+            "required": false,
+            "not_used": true
+          },
+          "nm106": {
+            "x12_id": "1038",
+            "name": "name_prefix",
+            "required": false,
+            "not_used": true
+          },
+          "nm107": {
+            "x12_id": "1039",
+            "name": "name_suffix",
+            "required": false,
+            "not_used": true
+          },
+          "nm108": {
+            "x12_id": "66",
+            "name": "identification_code_qualifier",
+            "required": false,
+            "not_used": true
+          },
+          "nm109": {
+            "x12_id": "67",
+            "name": "identification_code",
+            "required": false,
+            "not_used": true
+          },
+          "nm110": {
+            "x12_id": "706",
+            "name": "entity_relationship_code",
+            "required": false,
+            "not_used": true
+          },
+          "nm111": {
+            "x12_id": "98",
+            "name": "entity_identifier_code",
+            "required": false,
+            "not_used": true
+          },
+          "nm112": {
+            "x12_id": "1035",
+            "name": "name_last_or_organization_name",
+            "required": false,
+            "not_used": true
+          }
+        }
+      },
+      "N3": {
+        "name": "Pay-to Address",
+        "required": true,
+        "repeatable": false,
+        "position": 2,
+        "elements": {
+          "n301": {
+            "x12_id": "166",
+            "name": "pay_to_address_line_1",
+            "required": true,
+            "min_length": 1,
+            "max_length": 55,
+            "description": "Pay-To Address Line"
+          },
+          "n302": {
+            "x12_id": "166",
+            "name": "pay_to_address_line_2",
+            "required": false,
+            "conditional": "Required when there is a second address line. If not required by this implementation guide, do not send.",
+            "min_length": 1,
+            "max_length": 55,
+            "description": "Pay-To Address Line"
+          }
+        }
+      },
+      "N4": {
+        "name": "Pay-to Address City, State, ZIP Code",
+        "required": true,
+        "repeatable": false,
+        "position": 3,
+        "syntax_rules": [
+          {"code": "E0207", "mutually_exclusive": ["n402", "n407"]},
+          {"code": "C0605", "if": "n406", "then_required": ["n405"]},
+          {"code": "C0704", "if": "n407", "then_required": ["n404"]}
+        ],
+        "elements": {
+          "n401": {
+            "x12_id": "19",
+            "name": "pay_to_city_name",
+            "required": true,
+            "min_length": 2,
+            "max_length": 30,
+            "description": "Pay-to Address City Name"
+          },
+          "n402": {
+            "x12_id": "156",
+            "name": "pay_to_state_or_province_code",
+            "required": false,
+            "conditional": "Required when the address is in the United States of America, including its territories, or Canada. If not required by this implementation guide, do not send.",
+            "min_length": 2,
+            "max_length": 2,
+            "description": "Pay-to Address State Code"
+          },
+          "n403": {
+            "x12_id": "116",
+            "name": "pay_to_postal_zone_or_zip_code",
+            "required": false,
+            "conditional": "Required when the address is in the United States of America, including its territories, or Canada, or when a postal code exists for the country in N404. If not required by this implementation guide, do not send.",
+            "min_length": 3,
+            "max_length": 15,
+            "description": "Pay-to Address Postal Zone or ZIP Code"
+          },
+          "n404": {
+            "x12_id": "26",
+            "name": "country_code",
+            "required": false,
+            "conditional": "Required when the address is outside the United States of America. If not required by this implementation guide, do not send.",
+            "min_length": 2,
+            "max_length": 3,
+            "description": "ISO 3166 alpha-2 country code"
+          },
+          "n405": {
+            "x12_id": "309",
+            "name": "location_qualifier",
+            "required": false,
+            "not_used": true
+          },
+          "n406": {
+            "x12_id": "310",
+            "name": "location_identifier",
+            "required": false,
+            "not_used": true
+          },
+          "n407": {
+            "x12_id": "1715",
+            "name": "country_subdivision_code",
+            "required": false,
+            "conditional": "Required when the address is not in the United States of America, including its territories, or Canada, and the country in N404 has administrative subdivisions. If not required by this implementation guide, do not send.",
+            "min_length": 1,
+            "max_length": 3,
+            "description": "Country subdivision code"
+          }
+        }
+      }
+    },
+    "validation_rules": [
+      {"rule": "Situational: use only when pay-to address differs from 2010AA Billing Provider Address"},
+      {"rule": "NM101=87 and NM102 required; NM103-NM112 not used (address-only; no names/identifiers)"},
+      {"rule": "NM1 syntax P0809/C1110/C1203; N4 syntax E0207/C0605/C0704"},
+      {"rule": "N3 and N4 required when loop 2010AB is present"}
+    ]
+  },
+  "loop_2010AC": {
+    "name": "Pay-to Plan Name",
+    "required": false,
+    "repeatable": false,
+    "max_occurs": 1,
+    "parent": "loop_2000A",
+    "description": "Required when willing trading partners agree to use this implementation for their subrogation payment requests. May only be used when BHT06=31 (Subrogation Demand).",
+    "segments": {
+      "NM1": {
+        "name": "Pay-to Plan Name",
+        "required": true,
+        "repeatable": false,
+        "position": 1,
+        "syntax_rules": [
+          {
+            "code": "P0809",
+            "if": "nm108",
+            "then_required": [
+              "nm109"
+            ]
+          },
+          {
+            "code": "P0809",
+            "if": "nm109",
+            "then_required": [
+              "nm108"
+            ]
+          },
+          {
+            "code": "C1110",
+            "if": "nm111",
+            "then_required": [
+              "nm110"
+            ]
+          },
+          {
+            "code": "C1203",
+            "if": "nm112",
+            "then_required": [
+              "nm103"
+            ]
+          }
+        ],
+        "elements": {
+          "nm101": {
+            "x12_id": "98",
+            "name": "entity_identifier_code",
+            "required": true,
+            "min_length": 2,
+            "max_length": 3,
+            "valid_values": [
+              "PE"
+            ],
+            "description": "PE=Payee (subrogated payee)"
+          },
+          "nm102": {
+            "x12_id": "1065",
+            "name": "entity_type_qualifier",
+            "required": true,
+            "min_length": 1,
+            "max_length": 1,
+            "valid_values": [
+              "2"
+            ],
+            "description": "2=Non-Person Entity"
+          },
+          "nm103": {
+            "x12_id": "1035",
+            "name": "pay_to_plan_organizational_name",
+            "required": true,
+            "min_length": 1,
+            "max_length": 60,
+            "description": "Pay-To Plan Organizational Name"
+          },
+          "nm104": {
+            "x12_id": "1036",
+            "name": "name_first",
+            "required": false,
+            "not_used": true
+          },
+          "nm105": {
+            "x12_id": "1037",
+            "name": "name_middle",
+            "required": false,
+            "not_used": true
+          },
+          "nm106": {
+            "x12_id": "1038",
+            "name": "name_prefix",
+            "required": false,
+            "not_used": true
+          },
+          "nm107": {
+            "x12_id": "1039",
+            "name": "name_suffix",
+            "required": false,
+            "not_used": true
+          },
+          "nm108": {
+            "x12_id": "66",
+            "name": "identification_code_qualifier",
+            "required": true,
+            "min_length": 1,
+            "max_length": 2,
+            "valid_values": [
+              "PI",
+              "XV"
+            ],
+            "description": "PI=Payor Identification, XV=CMS PlanID; paired with NM109 via P0809"
+          },
+          "nm109": {
+            "x12_id": "67",
+            "name": "pay_to_plan_primary_identifier",
+            "required": true,
+            "min_length": 2,
+            "max_length": 80,
+            "description": "Pay-To Plan Primary Identifier; paired with NM108 via P0809"
+          },
+          "nm110": {
+            "x12_id": "706",
+            "name": "entity_relationship_code",
+            "required": false,
+            "not_used": true
+          },
+          "nm111": {
+            "x12_id": "98",
+            "name": "entity_identifier_code",
+            "required": false,
+            "not_used": true
+          },
+          "nm112": {
+            "x12_id": "1035",
+            "name": "name_last_or_organization_name",
+            "required": false,
+            "not_used": true
+          }
+        }
+      },
+      "N3": {
+        "name": "Pay-to Plan Address",
+        "required": true,
+        "repeatable": false,
+        "position": 2,
+        "elements": {
+          "n301": {
+            "x12_id": "166",
+            "name": "pay_to_plan_address_line_1",
+            "required": true,
+            "min_length": 1,
+            "max_length": 55,
+            "description": "Pay-To Plan Address Line"
+          },
+          "n302": {
+            "x12_id": "166",
+            "name": "pay_to_plan_address_line_2",
+            "required": false,
+            "conditional": "Required when there is a second address line. If not required by this implementation guide, do not send.",
+            "min_length": 1,
+            "max_length": 55,
+            "description": "Pay-To Plan Address Line"
+          }
+        }
+      },
+      "N4": {
+        "name": "Pay-to Plan City, State, ZIP Code",
+        "required": true,
+        "repeatable": false,
+        "position": 3,
+        "syntax_rules": [
+          {
+            "code": "E0207",
+            "mutually_exclusive": [
+              "n402",
+              "n407"
+            ]
+          },
+          {
+            "code": "C0605",
+            "if": "n406",
+            "then_required": [
+              "n405"
+            ]
+          },
+          {
+            "code": "C0704",
+            "if": "n407",
+            "then_required": [
+              "n404"
+            ]
+          }
+        ],
+        "elements": {
+          "n401": {
+            "x12_id": "19",
+            "name": "pay_to_plan_city_name",
+            "required": true,
+            "min_length": 2,
+            "max_length": 30,
+            "description": "Pay-To Plan City Name"
+          },
+          "n402": {
+            "x12_id": "156",
+            "name": "pay_to_plan_state_or_province_code",
+            "required": false,
+            "conditional": "Required when the address is in the United States of America, including its territories, or Canada. If not required by this implementation guide, do not send.",
+            "min_length": 2,
+            "max_length": 2,
+            "description": "Pay-To Plan State or Province Code"
+          },
+          "n403": {
+            "x12_id": "116",
+            "name": "pay_to_plan_postal_zone_or_zip_code",
+            "required": false,
+            "conditional": "Required when the address is in the United States of America, including its territories, or Canada, or when a postal code exists for the country in N404. If not required by this implementation guide, do not send.",
+            "min_length": 3,
+            "max_length": 15,
+            "description": "Pay-To Plan Postal Zone or ZIP Code"
+          },
+          "n404": {
+            "x12_id": "26",
+            "name": "country_code",
+            "required": false,
+            "conditional": "Required when the address is outside the United States of America. If not required by this implementation guide, do not send.",
+            "min_length": 2,
+            "max_length": 3,
+            "description": "ISO 3166 alpha-2 country code"
+          },
+          "n405": {
+            "x12_id": "309",
+            "name": "location_qualifier",
+            "required": false,
+            "not_used": true
+          },
+          "n406": {
+            "x12_id": "310",
+            "name": "location_identifier",
+            "required": false,
+            "not_used": true
+          },
+          "n407": {
+            "x12_id": "1715",
+            "name": "country_subdivision_code",
+            "required": false,
+            "conditional": "Required when the address is not in the United States of America, including its territories, or Canada, and the country in N404 has administrative subdivisions. If not required by this implementation guide, do not send.",
+            "min_length": 1,
+            "max_length": 3,
+            "description": "Country subdivision code"
+          }
+        }
+      },
+      "REF": {
+        "name": "Pay-to Plan Secondary Identification",
+        "required": false,
+        "repeatable": false,
+        "max_occurs": 1,
+        "position": 4,
+        "conditional": "Required prior to the mandated implementation date for the HIPAA National Plan Identifier when an additional identification number to that provided in the NM109 of this loop is necessary for the claim processor to identify the entity. If not required by this implementation guide, do not send.",
+        "syntax_rules": [
+          {
+            "code": "R0203",
+            "at_least_one_of": [
+              "ref02",
+              "ref03"
+            ]
+          }
+        ],
+        "elements": {
+          "ref01": {
+            "x12_id": "128",
+            "name": "reference_identification_qualifier",
+            "required": true,
+            "min_length": 2,
+            "max_length": 3,
+            "valid_values": [
+              "2U",
+              "FY",
+              "NF"
+            ],
+            "description": "2U=Payer Identification Number (only when National Plan ID in NM109), FY=Claim Office Number, NF=NAIC Code"
+          },
+          "ref02": {
+            "x12_id": "127",
+            "name": "pay_to_plan_secondary_identifier",
+            "required": true,
+            "min_length": 1,
+            "max_length": 50,
+            "description": "Pay-to Plan Secondary Identifier"
+          },
+          "ref03": {
+            "x12_id": "352",
+            "name": "description",
+            "required": false,
+            "not_used": true
+          },
+          "ref04": {
+            "x12_id": "C040",
+            "name": "reference_identifier",
+            "required": false,
+            "not_used": true
+          }
+        }
+      },
+      "REF_EI": {
+        "name": "Pay-to Plan Tax Identification Number",
+        "required": true,
+        "repeatable": false,
+        "position": 5,
+        "syntax_rules": [
+          {
+            "code": "R0203",
+            "at_least_one_of": [
+              "ref02",
+              "ref03"
+            ]
+          }
+        ],
+        "elements": {
+          "ref01": {
+            "x12_id": "128",
+            "name": "reference_identification_qualifier",
+            "required": true,
+            "min_length": 2,
+            "max_length": 3,
+            "valid_values": [
+              "EI"
+            ],
+            "description": "EI=Employer's Identification Number"
+          },
+          "ref02": {
+            "x12_id": "127",
+            "name": "pay_to_plan_tax_identification_number",
+            "required": true,
+            "format": "NUMERIC",
+            "min_length": 9,
+            "max_length": 9,
+            "description": "Exactly 9 digits, no separators"
+          },
+          "ref03": {
+            "x12_id": "352",
+            "name": "description",
+            "required": false,
+            "not_used": true
+          },
+          "ref04": {
+            "x12_id": "C040",
+            "name": "reference_identifier",
+            "required": false,
+            "not_used": true
+          }
+        }
+      }
+    },
+    "validation_rules": [
+      {
+        "rule": "Situational: subrogation payment requests; only when BHT06=31"
+      },
+      {
+        "rule": "NM101=PE, NM102=2, NM103/NM108/NM109 required; NM104-NM107 and NM110-NM112 not used"
+      },
+      {
+        "rule": "NM1 syntax P0809/C1110/C1203; N4 syntax E0207/C0605/C0704"
+      },
+      {
+        "rule": "N3, N4, and REF*EI required when loop 2010AC is present"
+      },
+      {
+        "rule": "Secondary REF situational max 1; REF01=2U/FY/NF only; 2U only when NM108=XV"
+      }
+    ]
+  }
+}

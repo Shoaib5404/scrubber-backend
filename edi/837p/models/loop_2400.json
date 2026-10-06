@@ -1,0 +1,2278 @@
+{
+    "loop_2400": {
+        "name": "Service Line Number",
+        "required": true,
+        "repeatable": true,
+        "max_occurs": 50,
+        "parent": "loop_2300",
+        "conditional": "Required. Each claim must contain at least one service line.",
+        "segments": {
+            "LX": {
+                "name": "Service Line Number",
+                "required": true,
+                "repeatable": false,
+                "elements": {
+                    "lx01": {
+                        "x12_id": "554",
+                        "name": "assigned_number",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 6,
+                        "description": "Sequential line number starting at 1"
+                    }
+                }
+            },
+            "SV1": {
+                "name": "Professional Service",
+                "required": true,
+                "repeatable": false,
+                "syntax_rules": [
+                    {
+                        "code": "P0304",
+                        "if": "sv103",
+                        "then_required": [
+                            "sv104"
+                        ]
+                    },
+                    {
+                        "code": "P0304",
+                        "if": "sv104",
+                        "then_required": [
+                            "sv103"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "sv101": {
+                        "x12_id": "C003",
+                        "name": "composite_medical_procedure_identifier",
+                        "required": true,
+                        "composite": true,
+                        "elements": {
+                            "sv101_1": {
+                                "x12_id": "235",
+                                "name": "product_or_service_id_qualifier",
+                                "required": true,
+                                "valid_values": [
+                                    "ER",
+                                    "HC",
+                                    "IV",
+                                    "WK"
+                                ]
+                            },
+                            "sv101_2": {
+                                "x12_id": "234",
+                                "name": "procedure_code",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 48
+                            },
+                            "sv101_3": {
+                                "x12_id": "1339",
+                                "name": "procedure_modifier_1",
+                                "required": false,
+                                "min_length": 2,
+                                "max_length": 2
+                            },
+                            "sv101_4": {
+                                "x12_id": "1339",
+                                "name": "procedure_modifier_2",
+                                "required": false,
+                                "min_length": 2,
+                                "max_length": 2
+                            },
+                            "sv101_5": {
+                                "x12_id": "1339",
+                                "name": "procedure_modifier_3",
+                                "required": false,
+                                "min_length": 2,
+                                "max_length": 2
+                            },
+                            "sv101_6": {
+                                "x12_id": "1339",
+                                "name": "procedure_modifier_4",
+                                "required": false,
+                                "min_length": 2,
+                                "max_length": 2
+                            },
+                            "sv101_7": {
+                                "x12_id": "352",
+                                "name": "description",
+                                "required": false,
+                                "conditional": "Required when the procedure code does not definitively describe the service and loop 2410 is not used. If not required by this implementation guide, do not send.",
+                                "min_length": 1,
+                                "max_length": 80
+                            }
+                        }
+                    },
+                    "sv102": {
+                        "x12_id": "782",
+                        "name": "line_item_charge_amount",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 18,
+                        "description": "May be 0"
+                    },
+                    "sv103": {
+                        "x12_id": "355",
+                        "name": "unit_or_basis_for_measurement_code",
+                        "required": true,
+                        "valid_values": [
+                            "MJ",
+                            "UN"
+                        ]
+                    },
+                    "sv104": {
+                        "x12_id": "380",
+                        "name": "service_unit_count",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 15
+                    },
+                    "sv105": {
+                        "x12_id": "1331",
+                        "name": "place_of_service_code",
+                        "required": false,
+                        "conditional": "Required when different from CLM05-1. If not required by this implementation guide, do not send.",
+                        "min_length": 1,
+                        "max_length": 2
+                    },
+                    "sv106": {
+                        "x12_id": "1365",
+                        "name": "service_type_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "sv107": {
+                        "x12_id": "C004",
+                        "name": "composite_diagnosis_code_pointer",
+                        "required": true,
+                        "composite": true,
+                        "elements": {
+                            "sv107_1": {
+                                "x12_id": "1328",
+                                "name": "diagnosis_code_pointer_1",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 2
+                            },
+                            "sv107_2": {
+                                "x12_id": "1328",
+                                "name": "diagnosis_code_pointer_2",
+                                "required": false,
+                                "min_length": 1,
+                                "max_length": 2
+                            },
+                            "sv107_3": {
+                                "x12_id": "1328",
+                                "name": "diagnosis_code_pointer_3",
+                                "required": false,
+                                "min_length": 1,
+                                "max_length": 2
+                            },
+                            "sv107_4": {
+                                "x12_id": "1328",
+                                "name": "diagnosis_code_pointer_4",
+                                "required": false,
+                                "min_length": 1,
+                                "max_length": 2
+                            }
+                        }
+                    },
+                    "sv108": {
+                        "x12_id": "782",
+                        "name": "monetary_amount",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "sv109": {
+                        "x12_id": "1073",
+                        "name": "emergency_indicator",
+                        "required": false,
+                        "conditional": "Required when the service is known to be an emergency. If not required by this implementation guide, do not send.",
+                        "valid_values": [
+                            "Y"
+                        ]
+                    },
+                    "sv110": {
+                        "x12_id": "1340",
+                        "name": "multiple_procedure_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "sv111": {
+                        "x12_id": "1073",
+                        "name": "epsdt_indicator",
+                        "required": false,
+                        "conditional": "Required on EPSDT screening claims. If not required by this implementation guide, do not send.",
+                        "valid_values": [
+                            "Y"
+                        ]
+                    },
+                    "sv112": {
+                        "x12_id": "1073",
+                        "name": "family_planning_indicator",
+                        "required": false,
+                        "conditional": "Required when mandated for family planning services. If not required by this implementation guide, do not send.",
+                        "valid_values": [
+                            "Y"
+                        ]
+                    },
+                    "sv113": {
+                        "x12_id": "1364",
+                        "name": "review_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "sv114": {
+                        "x12_id": "1341",
+                        "name": "national_or_local_assigned_review_value",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "sv115": {
+                        "x12_id": "1327",
+                        "name": "copay_status_code",
+                        "required": false,
+                        "conditional": "Required when the patient is exempt from co-pay. If not required by this implementation guide, do not send.",
+                        "valid_values": [
+                            "0"
+                        ]
+                    },
+                    "sv116": {
+                        "x12_id": "1334",
+                        "name": "health_care_professional_shortage_area_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "sv117": {
+                        "x12_id": "127",
+                        "name": "reference_identification",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "sv118": {
+                        "x12_id": "116",
+                        "name": "postal_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "sv119": {
+                        "x12_id": "782",
+                        "name": "monetary_amount",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "sv120": {
+                        "x12_id": "1073",
+                        "name": "yes_no_condition_or_response_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "sv121": {
+                        "x12_id": "1073",
+                        "name": "yes_no_condition_or_response_code",
+                        "required": false,
+                        "not_used": true
+                    }
+                }
+            },
+            "SV5": {
+                "name": "Durable Medical Equipment Service",
+                "required": false,
+                "repeatable": false,
+                "conditional": "Required when necessary to report both the rental and purchase price for DME. If not required by this implementation guide, do not send.",
+                "syntax_rules": [
+                    {
+                        "code": "R0405",
+                        "at_least_one_of": [
+                            "sv504",
+                            "sv505"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "sv501": {
+                        "x12_id": "C003",
+                        "name": "composite_medical_procedure_identifier",
+                        "required": true,
+                        "composite": true,
+                        "elements": {
+                            "sv501_1": {
+                                "x12_id": "235",
+                                "name": "product_or_service_id_qualifier",
+                                "required": true,
+                                "valid_values": [
+                                    "HC"
+                                ]
+                            },
+                            "sv501_2": {
+                                "x12_id": "234",
+                                "name": "procedure_code",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 48
+                            }
+                        }
+                    },
+                    "sv502": {
+                        "x12_id": "355",
+                        "name": "unit_or_basis_for_measurement_code",
+                        "required": true,
+                        "valid_values": [
+                            "DA"
+                        ]
+                    },
+                    "sv503": {
+                        "x12_id": "380",
+                        "name": "length_of_medical_necessity",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 15
+                    },
+                    "sv504": {
+                        "x12_id": "782",
+                        "name": "dme_rental_price",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 18
+                    },
+                    "sv505": {
+                        "x12_id": "782",
+                        "name": "dme_purchase_price",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 18
+                    },
+                    "sv506": {
+                        "x12_id": "594",
+                        "name": "rental_unit_price_indicator",
+                        "required": true,
+                        "valid_values": [
+                            "1",
+                            "4",
+                            "6"
+                        ]
+                    },
+                    "sv507": {
+                        "x12_id": "923",
+                        "name": "prognosis_code",
+                        "required": false,
+                        "not_used": true
+                    }
+                }
+            },
+            "PWK": {
+                "name": "Line Supplemental Information",
+                "required": false,
+                "repeatable": true,
+                "max_occurs": 10,
+                "elements": {
+                    "pwk01": {
+                        "x12_id": "755",
+                        "name": "attachment_report_type_code",
+                        "required": true,
+                        "valid_values": [
+                            "03",
+                            "04",
+                            "05",
+                            "06",
+                            "07",
+                            "08",
+                            "09",
+                            "10",
+                            "11",
+                            "13",
+                            "15",
+                            "21",
+                            "A3",
+                            "A4",
+                            "AM",
+                            "AS",
+                            "B2",
+                            "B3",
+                            "B4",
+                            "BR",
+                            "BS",
+                            "BT",
+                            "CB",
+                            "CK",
+                            "D2",
+                            "DA",
+                            "DB",
+                            "DG",
+                            "DJ",
+                            "DS",
+                            "EB",
+                            "HC",
+                            "HR",
+                            "I5",
+                            "IR",
+                            "LA",
+                            "M1",
+                            "MT",
+                            "NN",
+                            "OB",
+                            "OC",
+                            "OD",
+                            "OE",
+                            "OX",
+                            "OZ",
+                            "P4",
+                            "P5",
+                            "PE",
+                            "PN",
+                            "PO",
+                            "PQ",
+                            "PY",
+                            "PZ",
+                            "RB",
+                            "RR",
+                            "RT",
+                            "RX",
+                            "SG",
+                            "V5",
+                            "XP"
+                        ]
+                    },
+                    "pwk02": {
+                        "x12_id": "756",
+                        "name": "attachment_transmission_code",
+                        "required": true,
+                        "valid_values": [
+                            "AA",
+                            "BM",
+                            "EL",
+                            "EM",
+                            "FT",
+                            "FX"
+                        ]
+                    },
+                    "pwk03": {
+                        "x12_id": "757",
+                        "name": "report_copies_needed",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "pwk04": {
+                        "x12_id": "98",
+                        "name": "entity_identifier_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "pwk05": {
+                        "x12_id": "66",
+                        "name": "identification_code_qualifier",
+                        "required": false,
+                        "conditional": "Required when PWK02 is BM, EL, EM, FX, or FT. If not required by this implementation guide, do not send.",
+                        "valid_values": [
+                            "AC"
+                        ]
+                    },
+                    "pwk06": {
+                        "x12_id": "67",
+                        "name": "attachment_control_number",
+                        "required": false,
+                        "conditional": "Required when PWK02 is BM, EL, EM, FX, or FT. If not required by this implementation guide, do not send.",
+                        "min_length": 2,
+                        "max_length": 50
+                    },
+                    "pwk07": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    }
+                }
+            },
+            "PWK_CT": {
+                "name": "Durable Medical Equipment Certificate of Medical Necessity Indicator",
+                "required": false,
+                "repeatable": false,
+                "conditional": "Required on claims that include a DMERC Certificate of Medical Necessity (CMN). If not required by this implementation guide, do not send.",
+                "elements": {
+                    "pwk01": {
+                        "x12_id": "755",
+                        "name": "attachment_report_type_code",
+                        "required": true,
+                        "valid_values": [
+                            "CT"
+                        ]
+                    },
+                    "pwk02": {
+                        "x12_id": "756",
+                        "name": "attachment_transmission_code",
+                        "required": true,
+                        "valid_values": [
+                            "AB",
+                            "AD",
+                            "AF",
+                            "AG",
+                            "NS"
+                        ]
+                    },
+                    "pwk03": {
+                        "x12_id": "757",
+                        "name": "report_copies_needed",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "pwk04": {
+                        "x12_id": "98",
+                        "name": "entity_identifier_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "pwk05": {
+                        "x12_id": "66",
+                        "name": "identification_code_qualifier",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "pwk06": {
+                        "x12_id": "67",
+                        "name": "identification_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "pwk07": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    }
+                }
+            },
+            "CR1": {
+                "name": "Ambulance Transport Information",
+                "required": false,
+                "repeatable": false,
+                "conditional": "Required on ambulance transport services when different than claim-level CR1. If not required by this implementation guide, do not send.",
+                "syntax_rules": [
+                    {
+                        "code": "P0102",
+                        "if": "cr101",
+                        "then_required": [
+                            "cr102"
+                        ]
+                    },
+                    {
+                        "code": "P0102",
+                        "if": "cr102",
+                        "then_required": [
+                            "cr101"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "cr101": {
+                        "x12_id": "355",
+                        "name": "unit_or_basis_for_measurement_code",
+                        "required": false,
+                        "valid_values": [
+                            "LB"
+                        ]
+                    },
+                    "cr102": {
+                        "x12_id": "81",
+                        "name": "patient_weight",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 10
+                    },
+                    "cr103": {
+                        "x12_id": "1316",
+                        "name": "ambulance_transport_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "cr104": {
+                        "x12_id": "1317",
+                        "name": "ambulance_transport_reason_code",
+                        "required": true,
+                        "valid_values": [
+                            "A",
+                            "B",
+                            "C",
+                            "D",
+                            "E"
+                        ]
+                    },
+                    "cr105": {
+                        "x12_id": "355",
+                        "name": "unit_or_basis_for_measurement_code_2",
+                        "required": true,
+                        "valid_values": [
+                            "DH"
+                        ]
+                    },
+                    "cr106": {
+                        "x12_id": "380",
+                        "name": "transport_distance",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 15
+                    },
+                    "cr107": {
+                        "x12_id": "166",
+                        "name": "address_information",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "cr108": {
+                        "x12_id": "166",
+                        "name": "address_information",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "cr109": {
+                        "x12_id": "352",
+                        "name": "round_trip_purpose_description",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 80
+                    },
+                    "cr110": {
+                        "x12_id": "352",
+                        "name": "stretcher_purpose_description",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 80
+                    }
+                }
+            },
+            "CR3": {
+                "name": "Durable Medical Equipment Certification",
+                "required": false,
+                "repeatable": false,
+                "conditional": "Required when a DMERC CMN, DIF, or Oxygen Therapy Certification is included on this service line. If not required by this implementation guide, do not send.",
+                "syntax_rules": [
+                    {
+                        "code": "P0203",
+                        "if": "cr302",
+                        "then_required": [
+                            "cr303"
+                        ]
+                    },
+                    {
+                        "code": "P0203",
+                        "if": "cr303",
+                        "then_required": [
+                            "cr302"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "cr301": {
+                        "x12_id": "1322",
+                        "name": "certification_type_code",
+                        "required": true,
+                        "valid_values": [
+                            "I",
+                            "R",
+                            "S"
+                        ]
+                    },
+                    "cr302": {
+                        "x12_id": "355",
+                        "name": "unit_or_basis_for_measurement_code",
+                        "required": true,
+                        "valid_values": [
+                            "MO"
+                        ]
+                    },
+                    "cr303": {
+                        "x12_id": "380",
+                        "name": "durable_medical_equipment_duration",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 15
+                    },
+                    "cr304": {
+                        "x12_id": "1339",
+                        "name": "procedure_modifier",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "cr305": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    }
+                }
+            },
+            "CRC_07": {
+                "name": "Ambulance Certification",
+                "required": false,
+                "repeatable": true,
+                "max_occurs": 3,
+                "conditional": "Required on ambulance transport when different than claim-level CRC. Total CRC segments in 2400 may not exceed 3. If not required by this implementation guide, do not send.",
+                "elements": {
+                    "crc01": {
+                        "x12_id": "1136",
+                        "name": "code_category",
+                        "required": true,
+                        "valid_values": [
+                            "07"
+                        ]
+                    },
+                    "crc02": {
+                        "x12_id": "1073",
+                        "name": "certification_condition_indicator",
+                        "required": true,
+                        "valid_values": [
+                            "N",
+                            "Y"
+                        ]
+                    },
+                    "crc03": {
+                        "x12_id": "1321",
+                        "name": "condition_indicator_1",
+                        "required": true,
+                        "valid_values": [
+                            "01",
+                            "04",
+                            "05",
+                            "06",
+                            "07",
+                            "08",
+                            "09",
+                            "12"
+                        ]
+                    },
+                    "crc04": {
+                        "x12_id": "1321",
+                        "name": "condition_indicator",
+                        "required": false,
+                        "conditional": "Required when an additional condition code is necessary. If not required by this implementation guide, do not send.",
+                        "valid_values": [
+                            "01",
+                            "04",
+                            "05",
+                            "06",
+                            "07",
+                            "08",
+                            "09",
+                            "12"
+                        ]
+                    },
+                    "crc05": {
+                        "x12_id": "1321",
+                        "name": "condition_indicator",
+                        "required": false,
+                        "conditional": "Required when an additional condition code is necessary. If not required by this implementation guide, do not send.",
+                        "valid_values": [
+                            "01",
+                            "04",
+                            "05",
+                            "06",
+                            "07",
+                            "08",
+                            "09",
+                            "12"
+                        ]
+                    },
+                    "crc06": {
+                        "x12_id": "1321",
+                        "name": "condition_indicator",
+                        "required": false,
+                        "conditional": "Required when an additional condition code is necessary. If not required by this implementation guide, do not send.",
+                        "valid_values": [
+                            "01",
+                            "04",
+                            "05",
+                            "06",
+                            "07",
+                            "08",
+                            "09",
+                            "12"
+                        ]
+                    },
+                    "crc07": {
+                        "x12_id": "1321",
+                        "name": "condition_indicator",
+                        "required": false,
+                        "conditional": "Required when an additional condition code is necessary. If not required by this implementation guide, do not send.",
+                        "valid_values": [
+                            "01",
+                            "04",
+                            "05",
+                            "06",
+                            "07",
+                            "08",
+                            "09",
+                            "12"
+                        ]
+                    }
+                }
+            },
+            "CRC_70": {
+                "name": "Hospice Employee Indicator",
+                "required": false,
+                "repeatable": false,
+                "conditional": "Required on Medicare claims involving physician services to hospice patients. Total CRC segments in 2400 may not exceed 3. If not required by this implementation guide, do not send.",
+                "elements": {
+                    "crc01": {
+                        "x12_id": "1136",
+                        "name": "code_category",
+                        "required": true,
+                        "valid_values": [
+                            "70"
+                        ]
+                    },
+                    "crc02": {
+                        "x12_id": "1073",
+                        "name": "certification_condition_indicator",
+                        "required": true,
+                        "valid_values": [
+                            "N",
+                            "Y"
+                        ]
+                    },
+                    "crc03": {
+                        "x12_id": "1321",
+                        "name": "condition_indicator_1",
+                        "required": true,
+                        "valid_values": [
+                            "65"
+                        ]
+                    },
+                    "crc04": {
+                        "x12_id": "1321",
+                        "name": "condition_indicator",
+                        "required": false,
+                        "conditional": "Required when an additional condition code is necessary. If not required by this implementation guide, do not send.",
+                        "valid_values": [
+                            "65"
+                        ]
+                    },
+                    "crc05": {
+                        "x12_id": "1321",
+                        "name": "condition_indicator",
+                        "required": false,
+                        "conditional": "Required when an additional condition code is necessary. If not required by this implementation guide, do not send.",
+                        "valid_values": [
+                            "65"
+                        ]
+                    },
+                    "crc06": {
+                        "x12_id": "1321",
+                        "name": "condition_indicator",
+                        "required": false,
+                        "conditional": "Required when an additional condition code is necessary. If not required by this implementation guide, do not send.",
+                        "valid_values": [
+                            "65"
+                        ]
+                    },
+                    "crc07": {
+                        "x12_id": "1321",
+                        "name": "condition_indicator",
+                        "required": false,
+                        "conditional": "Required when an additional condition code is necessary. If not required by this implementation guide, do not send.",
+                        "valid_values": [
+                            "65"
+                        ]
+                    }
+                }
+            },
+            "CRC_09": {
+                "name": "Condition Indicator/Durable Medical Equipment",
+                "required": false,
+                "repeatable": false,
+                "conditional": "Required when a DMERC CMN/DIF/Oxygen certification is on this line and the information is necessary for adjudication. Total CRC segments in 2400 may not exceed 3. If not required by this implementation guide, do not send.",
+                "elements": {
+                    "crc01": {
+                        "x12_id": "1136",
+                        "name": "code_category",
+                        "required": true,
+                        "valid_values": [
+                            "09"
+                        ]
+                    },
+                    "crc02": {
+                        "x12_id": "1073",
+                        "name": "certification_condition_indicator",
+                        "required": true,
+                        "valid_values": [
+                            "N",
+                            "Y"
+                        ]
+                    },
+                    "crc03": {
+                        "x12_id": "1321",
+                        "name": "condition_indicator_1",
+                        "required": true,
+                        "valid_values": [
+                            "38",
+                            "ZV"
+                        ]
+                    },
+                    "crc04": {
+                        "x12_id": "1321",
+                        "name": "condition_indicator",
+                        "required": false,
+                        "conditional": "Required when an additional condition code is necessary. If not required by this implementation guide, do not send.",
+                        "valid_values": [
+                            "38",
+                            "ZV"
+                        ]
+                    },
+                    "crc05": {
+                        "x12_id": "1321",
+                        "name": "condition_indicator",
+                        "required": false,
+                        "conditional": "Required when an additional condition code is necessary. If not required by this implementation guide, do not send.",
+                        "valid_values": [
+                            "38",
+                            "ZV"
+                        ]
+                    },
+                    "crc06": {
+                        "x12_id": "1321",
+                        "name": "condition_indicator",
+                        "required": false,
+                        "conditional": "Required when an additional condition code is necessary. If not required by this implementation guide, do not send.",
+                        "valid_values": [
+                            "38",
+                            "ZV"
+                        ]
+                    },
+                    "crc07": {
+                        "x12_id": "1321",
+                        "name": "condition_indicator",
+                        "required": false,
+                        "conditional": "Required when an additional condition code is necessary. If not required by this implementation guide, do not send.",
+                        "valid_values": [
+                            "38",
+                            "ZV"
+                        ]
+                    }
+                }
+            },
+            "DTP_472": {
+                "name": "Date - Service Date",
+                "required": true,
+                "repeatable": false,
+                "elements": {
+                    "dtp01": {
+                        "x12_id": "374",
+                        "name": "date_time_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "472"
+                        ]
+                    },
+                    "dtp02": {
+                        "x12_id": "1250",
+                        "name": "date_time_period_format_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "D8",
+                            "RD8"
+                        ]
+                    },
+                    "dtp03": {
+                        "x12_id": "1251",
+                        "name": "date_time_period",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 35
+                    }
+                },
+                "description": "RD8 required when To and From dates are different."
+            },
+            "DTP_471": {
+                "name": "Date - Prescription Date",
+                "required": false,
+                "repeatable": false,
+                "elements": {
+                    "dtp01": {
+                        "x12_id": "374",
+                        "name": "date_time_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "471"
+                        ]
+                    },
+                    "dtp02": {
+                        "x12_id": "1250",
+                        "name": "date_time_period_format_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "D8"
+                        ]
+                    },
+                    "dtp03": {
+                        "x12_id": "1251",
+                        "name": "date_time_period",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 35
+                    }
+                }
+            },
+            "DTP_607": {
+                "name": "Date - Certification Revision/Recertification Date",
+                "required": false,
+                "repeatable": false,
+                "elements": {
+                    "dtp01": {
+                        "x12_id": "374",
+                        "name": "date_time_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "607"
+                        ]
+                    },
+                    "dtp02": {
+                        "x12_id": "1250",
+                        "name": "date_time_period_format_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "D8"
+                        ]
+                    },
+                    "dtp03": {
+                        "x12_id": "1251",
+                        "name": "date_time_period",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 35
+                    }
+                }
+            },
+            "DTP_463": {
+                "name": "Date - Begin Therapy Date",
+                "required": false,
+                "repeatable": false,
+                "elements": {
+                    "dtp01": {
+                        "x12_id": "374",
+                        "name": "date_time_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "463"
+                        ]
+                    },
+                    "dtp02": {
+                        "x12_id": "1250",
+                        "name": "date_time_period_format_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "D8"
+                        ]
+                    },
+                    "dtp03": {
+                        "x12_id": "1251",
+                        "name": "date_time_period",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 35
+                    }
+                }
+            },
+            "DTP_461": {
+                "name": "Date - Last Certification Date",
+                "required": false,
+                "repeatable": false,
+                "elements": {
+                    "dtp01": {
+                        "x12_id": "374",
+                        "name": "date_time_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "461"
+                        ]
+                    },
+                    "dtp02": {
+                        "x12_id": "1250",
+                        "name": "date_time_period_format_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "D8"
+                        ]
+                    },
+                    "dtp03": {
+                        "x12_id": "1251",
+                        "name": "date_time_period",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 35
+                    }
+                }
+            },
+            "DTP_304": {
+                "name": "Date - Last Seen Date",
+                "required": false,
+                "repeatable": false,
+                "elements": {
+                    "dtp01": {
+                        "x12_id": "374",
+                        "name": "date_time_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "304"
+                        ]
+                    },
+                    "dtp02": {
+                        "x12_id": "1250",
+                        "name": "date_time_period_format_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "D8"
+                        ]
+                    },
+                    "dtp03": {
+                        "x12_id": "1251",
+                        "name": "date_time_period",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 35
+                    }
+                }
+            },
+            "DTP_738": {
+                "name": "Date - Test Date Hemoglobin/Hematocrit",
+                "required": false,
+                "repeatable": false,
+                "elements": {
+                    "dtp01": {
+                        "x12_id": "374",
+                        "name": "date_time_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "738"
+                        ]
+                    },
+                    "dtp02": {
+                        "x12_id": "1250",
+                        "name": "date_time_period_format_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "D8"
+                        ]
+                    },
+                    "dtp03": {
+                        "x12_id": "1251",
+                        "name": "date_time_period",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 35
+                    }
+                }
+            },
+            "DTP_739": {
+                "name": "Date - Test Date Serum Creatinine",
+                "required": false,
+                "repeatable": false,
+                "elements": {
+                    "dtp01": {
+                        "x12_id": "374",
+                        "name": "date_time_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "739"
+                        ]
+                    },
+                    "dtp02": {
+                        "x12_id": "1250",
+                        "name": "date_time_period_format_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "D8"
+                        ]
+                    },
+                    "dtp03": {
+                        "x12_id": "1251",
+                        "name": "date_time_period",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 35
+                    }
+                }
+            },
+            "DTP_011": {
+                "name": "Date - Shipped Date",
+                "required": false,
+                "repeatable": false,
+                "elements": {
+                    "dtp01": {
+                        "x12_id": "374",
+                        "name": "date_time_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "011"
+                        ]
+                    },
+                    "dtp02": {
+                        "x12_id": "1250",
+                        "name": "date_time_period_format_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "D8"
+                        ]
+                    },
+                    "dtp03": {
+                        "x12_id": "1251",
+                        "name": "date_time_period",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 35
+                    }
+                }
+            },
+            "DTP_455": {
+                "name": "Date - Last X-Ray Date",
+                "required": false,
+                "repeatable": false,
+                "elements": {
+                    "dtp01": {
+                        "x12_id": "374",
+                        "name": "date_time_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "455"
+                        ]
+                    },
+                    "dtp02": {
+                        "x12_id": "1250",
+                        "name": "date_time_period_format_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "D8"
+                        ]
+                    },
+                    "dtp03": {
+                        "x12_id": "1251",
+                        "name": "date_time_period",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 35
+                    }
+                }
+            },
+            "DTP_454": {
+                "name": "Date - Initial Treatment Date",
+                "required": false,
+                "repeatable": false,
+                "elements": {
+                    "dtp01": {
+                        "x12_id": "374",
+                        "name": "date_time_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "454"
+                        ]
+                    },
+                    "dtp02": {
+                        "x12_id": "1250",
+                        "name": "date_time_period_format_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "D8"
+                        ]
+                    },
+                    "dtp03": {
+                        "x12_id": "1251",
+                        "name": "date_time_period",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 35
+                    }
+                }
+            },
+            "QTY_PT": {
+                "name": "Ambulance Patient Count",
+                "required": false,
+                "repeatable": false,
+                "conditional": "Required when more than one patient is transported in the same vehicle. If not required by this implementation guide, do not send.",
+                "elements": {
+                    "qty01": {
+                        "x12_id": "673",
+                        "name": "quantity_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "PT"
+                        ]
+                    },
+                    "qty02": {
+                        "x12_id": "380",
+                        "name": "quantity",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 15
+                    },
+                    "qty03": {
+                        "x12_id": "C001",
+                        "name": "composite_unit_of_measure",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "qty04": {
+                        "x12_id": "61",
+                        "name": "free_form_information",
+                        "required": false,
+                        "not_used": true
+                    }
+                }
+            },
+            "QTY_FL": {
+                "name": "Obstetric Anesthesia Additional Units",
+                "required": false,
+                "repeatable": false,
+                "conditional": "Required with obstetric anesthesia when reporting additional complexity. If not required by this implementation guide, do not send.",
+                "elements": {
+                    "qty01": {
+                        "x12_id": "673",
+                        "name": "quantity_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "FL"
+                        ]
+                    },
+                    "qty02": {
+                        "x12_id": "380",
+                        "name": "quantity",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 15
+                    },
+                    "qty03": {
+                        "x12_id": "C001",
+                        "name": "composite_unit_of_measure",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "qty04": {
+                        "x12_id": "61",
+                        "name": "free_form_information",
+                        "required": false,
+                        "not_used": true
+                    }
+                }
+            },
+            "MEA": {
+                "name": "Test Result",
+                "required": false,
+                "repeatable": true,
+                "max_occurs": 5,
+                "conditional": "Required on dialysis ESRD lines (R1-R4) or DMERC height (HT). If not required by this implementation guide, do not send.",
+                "elements": {
+                    "mea01": {
+                        "x12_id": "737",
+                        "name": "measurement_reference_id_code",
+                        "required": true,
+                        "valid_values": [
+                            "OG",
+                            "TR"
+                        ]
+                    },
+                    "mea02": {
+                        "x12_id": "738",
+                        "name": "measurement_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "HT",
+                            "R1",
+                            "R2",
+                            "R3",
+                            "R4"
+                        ]
+                    },
+                    "mea03": {
+                        "x12_id": "739",
+                        "name": "measurement_value",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 20
+                    },
+                    "mea04": {
+                        "x12_id": "C001",
+                        "name": "composite_unit_of_measure",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "mea05": {
+                        "x12_id": "740",
+                        "name": "range_minimum",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "mea06": {
+                        "x12_id": "741",
+                        "name": "range_maximum",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "mea07": {
+                        "x12_id": "935",
+                        "name": "measurement_significance_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "mea08": {
+                        "x12_id": "936",
+                        "name": "measurement_attribute_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "mea09": {
+                        "x12_id": "752",
+                        "name": "surface_layer_position_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "mea10": {
+                        "x12_id": "1373",
+                        "name": "measurement_method_or_device",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "mea11": {
+                        "x12_id": "1270",
+                        "name": "code_list_qualifier_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "mea12": {
+                        "x12_id": "1271",
+                        "name": "industry_code",
+                        "required": false,
+                        "not_used": true
+                    }
+                }
+            },
+            "CN1": {
+                "name": "Contract Information",
+                "required": false,
+                "repeatable": false,
+                "conditional": "Required when information is different than claim-level CN1. If not required by this implementation guide, do not send.",
+                "elements": {
+                    "cn101": {
+                        "x12_id": "1166",
+                        "name": "contract_type_code",
+                        "required": true,
+                        "valid_values": [
+                            "01",
+                            "02",
+                            "03",
+                            "04",
+                            "05",
+                            "06",
+                            "09"
+                        ]
+                    },
+                    "cn102": {
+                        "x12_id": "782",
+                        "name": "contract_amount",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 18
+                    },
+                    "cn103": {
+                        "x12_id": "332",
+                        "name": "contract_percentage",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 6
+                    },
+                    "cn104": {
+                        "x12_id": "127",
+                        "name": "contract_code",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "cn105": {
+                        "x12_id": "338",
+                        "name": "terms_discount_percentage",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 6
+                    },
+                    "cn106": {
+                        "x12_id": "799",
+                        "name": "contract_version_identifier",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 30
+                    }
+                }
+            },
+            "REF_9B": {
+                "name": "Repriced Line Item Reference Number",
+                "required": false,
+                "repeatable": false,
+                "max_occurs": 1,
+                "syntax_rules": [
+                    {
+                        "code": "R0203",
+                        "at_least_one_of": [
+                            "ref02",
+                            "ref03"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "ref01": {
+                        "x12_id": "128",
+                        "name": "reference_identification_qualifier",
+                        "required": true,
+                        "min_length": 2,
+                        "max_length": 3,
+                        "valid_values": [
+                            "9B"
+                        ]
+                    },
+                    "ref02": {
+                        "x12_id": "127",
+                        "name": "reference_identification",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "ref03": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ref04": {
+                        "x12_id": "C040",
+                        "name": "reference_identifier",
+                        "required": false,
+                        "not_used": true
+                    }
+                },
+                "conditional": "Required when this number is different than the claim-level (2300) value, or when otherwise required by the implementation guide. If not required by this implementation guide, do not send."
+            },
+            "REF_9D": {
+                "name": "Adjusted Repriced Line Item Reference Number",
+                "required": false,
+                "repeatable": false,
+                "max_occurs": 1,
+                "syntax_rules": [
+                    {
+                        "code": "R0203",
+                        "at_least_one_of": [
+                            "ref02",
+                            "ref03"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "ref01": {
+                        "x12_id": "128",
+                        "name": "reference_identification_qualifier",
+                        "required": true,
+                        "min_length": 2,
+                        "max_length": 3,
+                        "valid_values": [
+                            "9D"
+                        ]
+                    },
+                    "ref02": {
+                        "x12_id": "127",
+                        "name": "reference_identification",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "ref03": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ref04": {
+                        "x12_id": "C040",
+                        "name": "reference_identifier",
+                        "required": false,
+                        "not_used": true
+                    }
+                },
+                "conditional": "Required when this number is different than the claim-level (2300) value, or when otherwise required by the implementation guide. If not required by this implementation guide, do not send."
+            },
+            "REF_G1": {
+                "name": "Prior Authorization",
+                "required": false,
+                "repeatable": true,
+                "max_occurs": 5,
+                "syntax_rules": [
+                    {
+                        "code": "R0203",
+                        "at_least_one_of": [
+                            "ref02",
+                            "ref03"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "ref01": {
+                        "x12_id": "128",
+                        "name": "reference_identification_qualifier",
+                        "required": true,
+                        "min_length": 2,
+                        "max_length": 3,
+                        "valid_values": [
+                            "G1"
+                        ]
+                    },
+                    "ref02": {
+                        "x12_id": "127",
+                        "name": "reference_identification",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "ref03": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ref04": {
+                        "x12_id": "C040",
+                        "name": "reference_identifier",
+                        "required": false,
+                        "not_used": true
+                    }
+                },
+                "conditional": "Required when this number is different than the claim-level (2300) value, or when otherwise required by the implementation guide. If not required by this implementation guide, do not send."
+            },
+            "REF_6R": {
+                "name": "Line Item Control Number",
+                "required": false,
+                "repeatable": false,
+                "max_occurs": 1,
+                "syntax_rules": [
+                    {
+                        "code": "R0203",
+                        "at_least_one_of": [
+                            "ref02",
+                            "ref03"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "ref01": {
+                        "x12_id": "128",
+                        "name": "reference_identification_qualifier",
+                        "required": true,
+                        "min_length": 2,
+                        "max_length": 3,
+                        "valid_values": [
+                            "6R"
+                        ]
+                    },
+                    "ref02": {
+                        "x12_id": "127",
+                        "name": "reference_identification",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "ref03": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ref04": {
+                        "x12_id": "C040",
+                        "name": "reference_identifier",
+                        "required": false,
+                        "not_used": true
+                    }
+                },
+                "conditional": "Required when this number is different than the claim-level (2300) value, or when otherwise required by the implementation guide. If not required by this implementation guide, do not send."
+            },
+            "REF_EW": {
+                "name": "Mammography Certification Number",
+                "required": false,
+                "repeatable": false,
+                "max_occurs": 1,
+                "syntax_rules": [
+                    {
+                        "code": "R0203",
+                        "at_least_one_of": [
+                            "ref02",
+                            "ref03"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "ref01": {
+                        "x12_id": "128",
+                        "name": "reference_identification_qualifier",
+                        "required": true,
+                        "min_length": 2,
+                        "max_length": 3,
+                        "valid_values": [
+                            "EW"
+                        ]
+                    },
+                    "ref02": {
+                        "x12_id": "127",
+                        "name": "reference_identification",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "ref03": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ref04": {
+                        "x12_id": "C040",
+                        "name": "reference_identifier",
+                        "required": false,
+                        "not_used": true
+                    }
+                },
+                "conditional": "Required when this number is different than the claim-level (2300) value, or when otherwise required by the implementation guide. If not required by this implementation guide, do not send."
+            },
+            "REF_X4": {
+                "name": "CLIA Number",
+                "required": false,
+                "repeatable": false,
+                "max_occurs": 1,
+                "syntax_rules": [
+                    {
+                        "code": "R0203",
+                        "at_least_one_of": [
+                            "ref02",
+                            "ref03"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "ref01": {
+                        "x12_id": "128",
+                        "name": "reference_identification_qualifier",
+                        "required": true,
+                        "min_length": 2,
+                        "max_length": 3,
+                        "valid_values": [
+                            "X4"
+                        ]
+                    },
+                    "ref02": {
+                        "x12_id": "127",
+                        "name": "reference_identification",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "ref03": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ref04": {
+                        "x12_id": "C040",
+                        "name": "reference_identifier",
+                        "required": false,
+                        "not_used": true
+                    }
+                },
+                "conditional": "Required when this number is different than the claim-level (2300) value, or when otherwise required by the implementation guide. If not required by this implementation guide, do not send."
+            },
+            "REF_F4": {
+                "name": "Referring CLIA Facility Identification",
+                "required": false,
+                "repeatable": false,
+                "max_occurs": 1,
+                "syntax_rules": [
+                    {
+                        "code": "R0203",
+                        "at_least_one_of": [
+                            "ref02",
+                            "ref03"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "ref01": {
+                        "x12_id": "128",
+                        "name": "reference_identification_qualifier",
+                        "required": true,
+                        "min_length": 2,
+                        "max_length": 3,
+                        "valid_values": [
+                            "F4"
+                        ]
+                    },
+                    "ref02": {
+                        "x12_id": "127",
+                        "name": "reference_identification",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "ref03": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ref04": {
+                        "x12_id": "C040",
+                        "name": "reference_identifier",
+                        "required": false,
+                        "not_used": true
+                    }
+                },
+                "conditional": "Required when this number is different than the claim-level (2300) value, or when otherwise required by the implementation guide. If not required by this implementation guide, do not send."
+            },
+            "REF_BT": {
+                "name": "Immunization Batch Number",
+                "required": false,
+                "repeatable": false,
+                "max_occurs": 1,
+                "syntax_rules": [
+                    {
+                        "code": "R0203",
+                        "at_least_one_of": [
+                            "ref02",
+                            "ref03"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "ref01": {
+                        "x12_id": "128",
+                        "name": "reference_identification_qualifier",
+                        "required": true,
+                        "min_length": 2,
+                        "max_length": 3,
+                        "valid_values": [
+                            "BT"
+                        ]
+                    },
+                    "ref02": {
+                        "x12_id": "127",
+                        "name": "reference_identification",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "ref03": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ref04": {
+                        "x12_id": "C040",
+                        "name": "reference_identifier",
+                        "required": false,
+                        "not_used": true
+                    }
+                },
+                "conditional": "Required when this number is different than the claim-level (2300) value, or when otherwise required by the implementation guide. If not required by this implementation guide, do not send."
+            },
+            "REF_9F": {
+                "name": "Referral Number",
+                "required": false,
+                "repeatable": true,
+                "max_occurs": 5,
+                "syntax_rules": [
+                    {
+                        "code": "R0203",
+                        "at_least_one_of": [
+                            "ref02",
+                            "ref03"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "ref01": {
+                        "x12_id": "128",
+                        "name": "reference_identification_qualifier",
+                        "required": true,
+                        "min_length": 2,
+                        "max_length": 3,
+                        "valid_values": [
+                            "9F"
+                        ]
+                    },
+                    "ref02": {
+                        "x12_id": "127",
+                        "name": "reference_identification",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "ref03": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ref04": {
+                        "x12_id": "C040",
+                        "name": "reference_identifier",
+                        "required": false,
+                        "not_used": true
+                    }
+                },
+                "conditional": "Required when this number is different than the claim-level (2300) value, or when otherwise required by the implementation guide. If not required by this implementation guide, do not send."
+            },
+            "AMT_T": {
+                "name": "Sales Tax Amount",
+                "required": false,
+                "repeatable": false,
+                "elements": {
+                    "amt01": {
+                        "x12_id": "522",
+                        "name": "amount_qualifier_code",
+                        "required": true,
+                        "valid_values": [
+                            "T"
+                        ]
+                    },
+                    "amt02": {
+                        "x12_id": "782",
+                        "name": "monetary_amount",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 18
+                    },
+                    "amt03": {
+                        "x12_id": "478",
+                        "name": "credit_debit_flag_code",
+                        "required": false,
+                        "not_used": true
+                    }
+                }
+            },
+            "AMT_F4": {
+                "name": "Postage Claimed Amount",
+                "required": false,
+                "repeatable": false,
+                "elements": {
+                    "amt01": {
+                        "x12_id": "522",
+                        "name": "amount_qualifier_code",
+                        "required": true,
+                        "valid_values": [
+                            "F4"
+                        ]
+                    },
+                    "amt02": {
+                        "x12_id": "782",
+                        "name": "monetary_amount",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 18
+                    },
+                    "amt03": {
+                        "x12_id": "478",
+                        "name": "credit_debit_flag_code",
+                        "required": false,
+                        "not_used": true
+                    }
+                }
+            },
+            "K3": {
+                "name": "File Information",
+                "required": false,
+                "repeatable": true,
+                "max_occurs": 10,
+                "elements": {
+                    "k301": {
+                        "x12_id": "449",
+                        "name": "fixed_format_information",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 80
+                    },
+                    "k302": {
+                        "x12_id": "1333",
+                        "name": "record_format_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "k303": {
+                        "x12_id": "C001",
+                        "name": "composite_unit_of_measure",
+                        "required": false,
+                        "not_used": true
+                    }
+                }
+            },
+            "NTE": {
+                "name": "Line Note",
+                "required": false,
+                "repeatable": false,
+                "conditional": "Required when the information is needed to substantiate treatment and is not supported elsewhere. If not required by this implementation guide, do not send.",
+                "elements": {
+                    "nte01": {
+                        "x12_id": "363",
+                        "name": "note_reference_code",
+                        "required": true,
+                        "valid_values": [
+                            "ADD",
+                            "DCP"
+                        ]
+                    },
+                    "nte02": {
+                        "x12_id": "352",
+                        "name": "line_note_text",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 80
+                    }
+                }
+            },
+            "NTE_TPO": {
+                "name": "Third Party Organization Notes",
+                "required": false,
+                "repeatable": false,
+                "conditional": "Required when the TPO/repricer needs to forward additional information. Not completed by providers. If not required by this implementation guide, do not send.",
+                "elements": {
+                    "nte01": {
+                        "x12_id": "363",
+                        "name": "note_reference_code",
+                        "required": true,
+                        "valid_values": [
+                            "TPO"
+                        ]
+                    },
+                    "nte02": {
+                        "x12_id": "352",
+                        "name": "tpo_note_text",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 80
+                    }
+                }
+            },
+            "PS1": {
+                "name": "Purchased Service Information",
+                "required": false,
+                "repeatable": false,
+                "conditional": "Required on non-vision lines when purchased-service amount impacts adjudication, or on vision lines for lens acquisition cost. If not required by this implementation guide, do not send.",
+                "elements": {
+                    "ps101": {
+                        "x12_id": "127",
+                        "name": "purchased_service_provider_identifier",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "ps102": {
+                        "x12_id": "782",
+                        "name": "purchased_service_charge_amount",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 18
+                    },
+                    "ps103": {
+                        "x12_id": "156",
+                        "name": "state_or_province_code",
+                        "required": false,
+                        "min_length": 2,
+                        "max_length": 2
+                    }
+                }
+            },
+            "HCP": {
+                "name": "Line Pricing/Repricing Information",
+                "required": false,
+                "repeatable": false,
+                "conditional": "Required when deemed necessary by the repricer. Not completed by providers. If not required by this implementation guide, do not send.",
+                "syntax_rules": [
+                    {
+                        "code": "P0910",
+                        "if": "hcp09",
+                        "then_required": [
+                            "hcp10"
+                        ]
+                    },
+                    {
+                        "code": "P0910",
+                        "if": "hcp10",
+                        "then_required": [
+                            "hcp09"
+                        ]
+                    },
+                    {
+                        "code": "P1112",
+                        "if": "hcp11",
+                        "then_required": [
+                            "hcp12"
+                        ]
+                    },
+                    {
+                        "code": "P1112",
+                        "if": "hcp12",
+                        "then_required": [
+                            "hcp11"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "hcp01": {
+                        "x12_id": "1473",
+                        "name": "pricing_methodology",
+                        "required": true,
+                        "valid_values": [
+                            "00",
+                            "01",
+                            "02",
+                            "03",
+                            "04",
+                            "05",
+                            "06",
+                            "07",
+                            "08",
+                            "09",
+                            "10",
+                            "11",
+                            "12",
+                            "13",
+                            "14"
+                        ]
+                    },
+                    "hcp02": {
+                        "x12_id": "782",
+                        "name": "repriced_allowed_amount",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 18
+                    },
+                    "hcp03": {
+                        "x12_id": "782",
+                        "name": "repriced_saving_amount",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 18
+                    },
+                    "hcp04": {
+                        "x12_id": "127",
+                        "name": "repricing_organization_identifier",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "hcp05": {
+                        "x12_id": "118",
+                        "name": "repricing_per_diem_or_flat_rate_amount",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 9
+                    },
+                    "hcp06": {
+                        "x12_id": "127",
+                        "name": "repriced_approved_ambulatory_patient_group_code",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "hcp07": {
+                        "x12_id": "782",
+                        "name": "repriced_approved_ambulatory_patient_group_amount",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 18
+                    },
+                    "hcp08": {
+                        "x12_id": "234",
+                        "name": "product_service_id",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "hcp09": {
+                        "x12_id": "235",
+                        "name": "product_service_id_qualifier",
+                        "required": false,
+                        "valid_values": [
+                            "ER",
+                            "HC",
+                            "IV",
+                            "WK"
+                        ]
+                    },
+                    "hcp10": {
+                        "x12_id": "234",
+                        "name": "repriced_approved_hcpcs_code",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 48
+                    },
+                    "hcp11": {
+                        "x12_id": "355",
+                        "name": "unit_or_basis_for_measurement_code",
+                        "required": false,
+                        "valid_values": [
+                            "MJ",
+                            "UN"
+                        ]
+                    },
+                    "hcp12": {
+                        "x12_id": "380",
+                        "name": "quantity",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 15
+                    },
+                    "hcp13": {
+                        "x12_id": "901",
+                        "name": "reject_reason_code",
+                        "required": false,
+                        "valid_values": [
+                            "T1",
+                            "T2",
+                            "T3",
+                            "T4",
+                            "T5",
+                            "T6"
+                        ]
+                    },
+                    "hcp14": {
+                        "x12_id": "1526",
+                        "name": "policy_compliance_code",
+                        "required": false,
+                        "valid_values": [
+                            "1",
+                            "2",
+                            "3"
+                        ]
+                    },
+                    "hcp15": {
+                        "x12_id": "1527",
+                        "name": "exception_code",
+                        "required": false,
+                        "valid_values": [
+                            "1",
+                            "2",
+                            "3",
+                            "4",
+                            "5",
+                            "6"
+                        ]
+                    }
+                }
+            }
+        },
+        "child_loops": [
+            "loop_2410",
+            "loop_2420A",
+            "loop_2420B",
+            "loop_2420C",
+            "loop_2420D",
+            "loop_2420E",
+            "loop_2420F",
+            "loop_2420G",
+            "loop_2420H",
+            "loop_2430",
+            "loop_2440"
+        ]
+    }
+}

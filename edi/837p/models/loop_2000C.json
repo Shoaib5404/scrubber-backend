@@ -1,0 +1,586 @@
+{
+  "loop_2000C": {
+    "name": "Patient Hierarchical Level",
+    "required": false,
+    "conditional": "Required when the patient is a dependent of the subscriber identified in Loop ID-2000B and cannot be uniquely identified to the payer using the subscriber's identifier in the Subscriber Level. If not required by this implementation guide, do not send.",
+    "repeatable": true,
+    "max_occurs": 999999,
+    "parent": "loop_2000B",
+    "segments": {
+      "HL": {
+        "name": "Patient Hierarchical Level",
+        "required": true,
+        "repeatable": false,
+        "position": 1,
+        "elements": {
+          "hl01": {
+            "x12_id": "628",
+            "name": "hierarchical_id_number",
+            "required": true,
+            "data_type": "AN",
+            "format": "NUMERIC",
+            "min_length": 1,
+            "max_length": 12,
+            "description": "Hierarchical ID Number (X12 AN 1/12). 837P content: numeric characters only. Sequential continuing from parent within ST-SE."
+          },
+          "hl02": {
+            "x12_id": "734",
+            "name": "hierarchical_parent_id_number",
+            "required": true,
+            "min_length": 1,
+            "max_length": 12,
+            "description": "Must reference parent 2000B HL01"
+          },
+          "hl03": {
+            "x12_id": "735",
+            "name": "hierarchical_level_code",
+            "required": true,
+            "min_length": 1,
+            "max_length": 2,
+            "valid_values": ["23"],
+            "description": "23=Dependent (patient is not the subscriber)"
+          },
+          "hl04": {
+            "x12_id": "736",
+            "name": "hierarchical_child_code",
+            "required": true,
+            "min_length": 1,
+            "max_length": 1,
+            "valid_values": ["0"],
+            "description": "0=No Subordinate HL Segment in This Hierarchical Structure"
+          }
+        }
+      },
+      "PAT": {
+        "name": "Patient Information",
+        "required": true,
+        "repeatable": false,
+        "position": 2,
+        "syntax_rules": [
+          {"code": "P0506", "if": "pat05", "then_required": ["pat06"]},
+          {"code": "P0506", "if": "pat06", "then_required": ["pat05"]},
+          {"code": "P0708", "if": "pat07", "then_required": ["pat08"]},
+          {"code": "P0708", "if": "pat08", "then_required": ["pat07"]}
+        ],
+        "elements": {
+          "pat01": {
+            "x12_id": "1069",
+            "name": "individual_relationship_code",
+            "required": true,
+            "min_length": 2,
+            "max_length": 2,
+            "valid_values": ["01", "19", "20", "21", "39", "40", "53", "G8"],
+            "description": "01=Spouse, 19=Child, 20=Employee, 21=Unknown, 39=Organ Donor, 40=Cadaver Donor, 53=Life Partner, G8=Other Relationship. Do not use 18 (Self)."
+          },
+          "pat02": {
+            "x12_id": "1384",
+            "name": "patient_location_code",
+            "required": false,
+            "not_used": true
+          },
+          "pat03": {
+            "x12_id": "584",
+            "name": "employment_status_code",
+            "required": false,
+            "not_used": true
+          },
+          "pat04": {
+            "x12_id": "1220",
+            "name": "student_status_code",
+            "required": false,
+            "not_used": true
+          },
+          "pat05": {
+            "x12_id": "1250",
+            "name": "date_time_period_format_qualifier",
+            "required": false,
+            "conditional": "Required when patient is known to be deceased and the date of death is available to the provider billing system. If not required by this implementation guide, do not send.",
+            "min_length": 2,
+            "max_length": 3,
+            "valid_values": ["D8"],
+            "description": "D8=Date Expressed in Format CCYYMMDD; paired with PAT06 via syntax_rules P0506"
+          },
+          "pat06": {
+            "x12_id": "1251",
+            "name": "patient_death_date",
+            "required": false,
+            "conditional": "Required when patient is known to be deceased and the date of death is available to the provider billing system. If not required by this implementation guide, do not send.",
+            "min_length": 1,
+            "max_length": 35,
+            "format": "CCYYMMDD",
+            "description": "Patient death date; paired with PAT05 via syntax_rules P0506"
+          },
+          "pat07": {
+            "x12_id": "355",
+            "name": "unit_or_basis_for_measurement_code",
+            "required": false,
+            "conditional": "Required when claims involve Medicare Durable Medical Equipment Regional Carriers Certificate of Medical Necessity (DMERC CMN) 02.03, 10.02, or DME MAC 10.03. If not required by this implementation guide, do not send.",
+            "min_length": 2,
+            "max_length": 2,
+            "valid_values": ["01"],
+            "description": "01=Actual Pounds; paired with PAT08 via syntax_rules P0708"
+          },
+          "pat08": {
+            "x12_id": "81",
+            "name": "patient_weight",
+            "required": false,
+            "conditional": "Required when claims involve Medicare Durable Medical Equipment Regional Carriers Certificate of Medical Necessity (DMERC CMN) 02.03, 10.02, or DME MAC 10.03. If not required by this implementation guide, do not send.",
+            "min_length": 1,
+            "max_length": 10,
+            "description": "Patient weight in pounds; paired with PAT07 via syntax_rules P0708"
+          },
+          "pat09": {
+            "x12_id": "1073",
+            "name": "pregnancy_indicator",
+            "required": false,
+            "conditional": "Required when mandated by law. The determination of pregnancy shall be completed in compliance with applicable law. Y indicates the patient is pregnant. If PAT09 is not used, the patient is not pregnant or the indicator is not mandated by law. If not required by this implementation guide, do not send.",
+            "min_length": 1,
+            "max_length": 1,
+            "valid_values": ["Y"],
+            "description": "Y=Yes (pregnant)"
+          }
+        }
+      }
+    },
+    "child_loops": ["loop_2010CA"],
+    "validation_rules": [
+      {"rule": "HL01 is X12 AN 1/12; 837P content must be numeric characters only; sequential within ST-SE"},
+      {"rule": "HL02 required and must reference parent 2000B HL01; HL03=23; HL04=0"},
+      {"rule": "PAT required; PAT01 required codes 01|19|20|21|39|40|53|G8 only (not 18); PAT02-PAT04 not used; P0506/P0708"},
+      {"rule": "2000C required when parent 2000B HL04=1; do not send when patient is the subscriber"}
+    ]
+  },
+  "loop_2010CA": {
+    "name": "Patient Name",
+    "required": true,
+    "repeatable": false,
+    "max_occurs": 1,
+    "parent": "loop_2000C",
+    "segments": {
+      "NM1": {
+        "name": "Patient Name",
+        "required": true,
+        "repeatable": false,
+        "position": 1,
+        "syntax_rules": [
+          {"code": "P0809", "if": "nm108", "then_required": ["nm109"]},
+          {"code": "P0809", "if": "nm109", "then_required": ["nm108"]},
+          {"code": "C1110", "if": "nm111", "then_required": ["nm110"]},
+          {"code": "C1203", "if": "nm112", "then_required": ["nm103"]}
+        ],
+        "elements": {
+          "nm101": {
+            "x12_id": "98",
+            "name": "entity_identifier_code",
+            "required": true,
+            "min_length": 2,
+            "max_length": 3,
+            "valid_values": ["QC"],
+            "description": "QC=Patient"
+          },
+          "nm102": {
+            "x12_id": "1065",
+            "name": "entity_type_qualifier",
+            "required": true,
+            "min_length": 1,
+            "max_length": 1,
+            "valid_values": ["1"],
+            "description": "1=Person"
+          },
+          "nm103": {
+            "x12_id": "1035",
+            "name": "patient_last_name",
+            "required": true,
+            "min_length": 1,
+            "max_length": 60,
+            "description": "Patient last name"
+          },
+          "nm104": {
+            "x12_id": "1036",
+            "name": "patient_first_name",
+            "required": false,
+            "conditional": "Required when the person has a first name. If not required by this implementation guide, do not send.",
+            "min_length": 1,
+            "max_length": 35,
+            "description": "Patient first name"
+          },
+          "nm105": {
+            "x12_id": "1037",
+            "name": "patient_middle_name",
+            "required": false,
+            "conditional": "Required when the middle name or initial of the person is needed to identify the individual. If not required by this implementation guide, do not send.",
+            "min_length": 1,
+            "max_length": 25,
+            "description": "Patient middle name or initial"
+          },
+          "nm106": {
+            "x12_id": "1038",
+            "name": "name_prefix",
+            "required": false,
+            "not_used": true
+          },
+          "nm107": {
+            "x12_id": "1039",
+            "name": "patient_name_suffix",
+            "required": false,
+            "conditional": "Required when the name suffix is needed to identify the individual. If not required by this implementation guide, do not send.",
+            "min_length": 1,
+            "max_length": 10,
+            "description": "Patient name suffix (examples: I, II, III, IV, Jr, Sr)"
+          },
+          "nm108": {
+            "x12_id": "66",
+            "name": "identification_code_qualifier",
+            "required": false,
+            "not_used": true
+          },
+          "nm109": {
+            "x12_id": "67",
+            "name": "identification_code",
+            "required": false,
+            "not_used": true
+          },
+          "nm110": {
+            "x12_id": "706",
+            "name": "entity_relationship_code",
+            "required": false,
+            "not_used": true
+          },
+          "nm111": {
+            "x12_id": "98",
+            "name": "entity_identifier_code",
+            "required": false,
+            "not_used": true
+          },
+          "nm112": {
+            "x12_id": "1035",
+            "name": "name_last_or_organization_name",
+            "required": false,
+            "not_used": true
+          }
+        }
+      },
+      "N3": {
+        "name": "Patient Address",
+        "required": true,
+        "repeatable": false,
+        "position": 2,
+        "elements": {
+          "n301": {
+            "x12_id": "166",
+            "name": "patient_address_line_1",
+            "required": true,
+            "min_length": 1,
+            "max_length": 55,
+            "description": "Patient address line 1"
+          },
+          "n302": {
+            "x12_id": "166",
+            "name": "patient_address_line_2",
+            "required": false,
+            "conditional": "Required when there is a second address line. If not required by this implementation guide, do not send.",
+            "min_length": 1,
+            "max_length": 55,
+            "description": "Patient address line 2"
+          }
+        }
+      },
+      "N4": {
+        "name": "Patient City, State, ZIP Code",
+        "required": true,
+        "repeatable": false,
+        "position": 3,
+        "syntax_rules": [
+          {"code": "E0207", "mutually_exclusive": ["n402", "n407"]},
+          {"code": "C0605", "if": "n406", "then_required": ["n405"]},
+          {"code": "C0704", "if": "n407", "then_required": ["n404"]}
+        ],
+        "elements": {
+          "n401": {
+            "x12_id": "19",
+            "name": "patient_city_name",
+            "required": true,
+            "min_length": 2,
+            "max_length": 30,
+            "description": "City name"
+          },
+          "n402": {
+            "x12_id": "156",
+            "name": "patient_state_or_province_code",
+            "required": false,
+            "conditional": "Required when the address is in the United States of America, including its territories, or Canada. If not required by this implementation guide, do not send.",
+            "min_length": 2,
+            "max_length": 2,
+            "description": "State or province code"
+          },
+          "n403": {
+            "x12_id": "116",
+            "name": "patient_postal_zone_or_zip_code",
+            "required": false,
+            "conditional": "Required when the address is in the US/territories or Canada, or when a postal code exists for the country in N404. For US addresses, the full nine-digit ZIP code must be provided. If not required by this implementation guide, do not send.",
+            "min_length": 3,
+            "max_length": 15,
+            "description": "Postal zone or ZIP code"
+          },
+          "n404": {
+            "x12_id": "26",
+            "name": "country_code",
+            "required": false,
+            "conditional": "Required when the address is outside the United States of America. If not required by this implementation guide, do not send.",
+            "min_length": 2,
+            "max_length": 3,
+            "description": "ISO 3166 alpha-2 country code"
+          },
+          "n405": {
+            "x12_id": "309",
+            "name": "location_qualifier",
+            "required": false,
+            "not_used": true
+          },
+          "n406": {
+            "x12_id": "310",
+            "name": "location_identifier",
+            "required": false,
+            "not_used": true
+          },
+          "n407": {
+            "x12_id": "1715",
+            "name": "country_subdivision_code",
+            "required": false,
+            "conditional": "Required when the address is not in the US/territories or Canada, and the country in N404 has administrative subdivisions. If not required by this implementation guide, do not send.",
+            "min_length": 1,
+            "max_length": 3,
+            "description": "Country subdivision code"
+          }
+        }
+      },
+      "DMG": {
+        "name": "Patient Demographic Information",
+        "required": true,
+        "repeatable": false,
+        "position": 4,
+        "syntax_rules": [
+          {"code": "P0102", "if": "dmg01", "then_required": ["dmg02"]},
+          {"code": "P0102", "if": "dmg02", "then_required": ["dmg01"]}
+        ],
+        "elements": {
+          "dmg01": {
+            "x12_id": "1250",
+            "name": "date_time_period_format_qualifier",
+            "required": true,
+            "min_length": 2,
+            "max_length": 3,
+            "valid_values": ["D8"],
+            "description": "D8=Date Expressed in Format CCYYMMDD; paired with DMG02 via syntax_rules P0102"
+          },
+          "dmg02": {
+            "x12_id": "1251",
+            "name": "patient_birth_date",
+            "required": true,
+            "min_length": 1,
+            "max_length": 35,
+            "format": "CCYYMMDD",
+            "description": "Patient birth date; paired with DMG01 via syntax_rules P0102"
+          },
+          "dmg03": {
+            "x12_id": "1068",
+            "name": "patient_gender_code",
+            "required": true,
+            "min_length": 1,
+            "max_length": 1,
+            "valid_values": ["F", "M", "U"],
+            "description": "F=Female, M=Male, U=Unknown"
+          },
+          "dmg04": {
+            "x12_id": "1067",
+            "name": "marital_status_code",
+            "required": false,
+            "not_used": true
+          },
+          "dmg05": {
+            "x12_id": "C056",
+            "name": "composite_race_or_ethnicity_information",
+            "required": false,
+            "not_used": true
+          },
+          "dmg06": {
+            "x12_id": "1066",
+            "name": "citizenship_status_code",
+            "required": false,
+            "not_used": true
+          },
+          "dmg07": {
+            "x12_id": "26",
+            "name": "country_code",
+            "required": false,
+            "not_used": true
+          },
+          "dmg08": {
+            "x12_id": "659",
+            "name": "basis_of_verification_code",
+            "required": false,
+            "not_used": true
+          },
+          "dmg09": {
+            "x12_id": "380",
+            "name": "quantity",
+            "required": false,
+            "not_used": true
+          },
+          "dmg10": {
+            "x12_id": "1270",
+            "name": "code_list_qualifier_code",
+            "required": false,
+            "not_used": true
+          },
+          "dmg11": {
+            "x12_id": "1271",
+            "name": "industry_code",
+            "required": false,
+            "not_used": true
+          }
+        }
+      },
+      "REF_Y4": {
+        "name": "Property and Casualty Claim Number",
+        "required": false,
+        "repeatable": false,
+        "max_occurs": 1,
+        "position": 5,
+        "conditional": "Required when the services included in this claim are to be considered as part of a property and casualty claim. If not required by this implementation guide, do not send.",
+        "syntax_rules": [
+          {"code": "R0203", "at_least_one_of": ["ref02", "ref03"]}
+        ],
+        "elements": {
+          "ref01": {
+            "x12_id": "128",
+            "name": "reference_identification_qualifier",
+            "required": true,
+            "min_length": 2,
+            "max_length": 3,
+            "valid_values": ["Y4"],
+            "description": "Y4=Agency Claim Number (Property and Casualty)"
+          },
+          "ref02": {
+            "x12_id": "127",
+            "name": "property_casualty_claim_number",
+            "required": true,
+            "min_length": 1,
+            "max_length": 50,
+            "description": "Property and casualty claim number from the P&C payer"
+          },
+          "ref03": {
+            "x12_id": "352",
+            "name": "description",
+            "required": false,
+            "not_used": true
+          },
+          "ref04": {
+            "x12_id": "C040",
+            "name": "reference_identifier",
+            "required": false,
+            "not_used": true
+          }
+        }
+      },
+      "PER": {
+        "name": "Property and Casualty Patient Contact Information",
+        "required": false,
+        "repeatable": false,
+        "max_occurs": 1,
+        "position": 6,
+        "conditional": "Required for Property and Casualty claims when this information is different than the information provided in the Subscriber Contact Information PER segment in Loop ID-2010BA and this information is deemed necessary by the submitter. If not required by this implementation guide, do not send.",
+        "syntax_rules": [
+          {"code": "P0304", "if": "per03", "then_required": ["per04"]},
+          {"code": "P0304", "if": "per04", "then_required": ["per03"]},
+          {"code": "P0506", "if": "per05", "then_required": ["per06"]},
+          {"code": "P0506", "if": "per06", "then_required": ["per05"]},
+          {"code": "P0708", "if": "per07", "then_required": ["per08"]},
+          {"code": "P0708", "if": "per08", "then_required": ["per07"]}
+        ],
+        "elements": {
+          "per01": {
+            "x12_id": "366",
+            "name": "contact_function_code",
+            "required": true,
+            "min_length": 2,
+            "max_length": 2,
+            "valid_values": ["IC"],
+            "description": "IC=Information Contact"
+          },
+          "per02": {
+            "x12_id": "93",
+            "name": "patient_contact_name",
+            "required": false,
+            "conditional": "Required when the Patient contact is a person other than the person identified in the Patient Name NM1 (Loop ID-2010CA). If not required by this implementation guide, do not send.",
+            "min_length": 1,
+            "max_length": 60,
+            "description": "Contact name when different from NM1"
+          },
+          "per03": {
+            "x12_id": "365",
+            "name": "communication_number_qualifier_1",
+            "required": true,
+            "min_length": 2,
+            "max_length": 2,
+            "valid_values": ["TE"],
+            "description": "TE=Telephone; paired with PER04 via syntax_rules P0304"
+          },
+          "per04": {
+            "x12_id": "364",
+            "name": "communication_number_1",
+            "required": true,
+            "min_length": 1,
+            "max_length": 256,
+            "description": "Telephone number (NANP: AAABBBCCCC, no leading 1); paired with PER03 via syntax_rules P0304"
+          },
+          "per05": {
+            "x12_id": "365",
+            "name": "communication_number_qualifier_2",
+            "required": false,
+            "conditional": "Required when this information is deemed necessary by the submitter. If not required by this implementation guide, do not send.",
+            "min_length": 2,
+            "max_length": 2,
+            "valid_values": ["EX"],
+            "description": "EX=Telephone Extension; paired with PER06 via syntax_rules P0506"
+          },
+          "per06": {
+            "x12_id": "364",
+            "name": "communication_number_2",
+            "required": false,
+            "conditional": "Required when this information is deemed necessary by the submitter. If not required by this implementation guide, do not send.",
+            "min_length": 1,
+            "max_length": 256,
+            "description": "Telephone extension (numeric only); paired with PER05 via syntax_rules P0506"
+          },
+          "per07": {
+            "x12_id": "365",
+            "name": "communication_number_qualifier_3",
+            "required": false,
+            "not_used": true
+          },
+          "per08": {
+            "x12_id": "364",
+            "name": "communication_number_3",
+            "required": false,
+            "not_used": true
+          },
+          "per09": {
+            "x12_id": "443",
+            "name": "contact_inquiry_reference",
+            "required": false,
+            "not_used": true
+          }
+        }
+      }
+    },
+    "validation_rules": [
+      {"rule": "NM101=QC, NM102=1, NM103 required; NM104/NM105/NM107 situational; NM106 and NM108-NM112 not used; P0809/C1110/C1203"},
+      {"rule": "N3 required; N302 situational second line"},
+      {"rule": "N4 required; E0207/C0605/C0704; N405-N406 not used; US ZIP nine digits per X222"},
+      {"rule": "DMG required; DMG01=D8, DMG02 CCYYMMDD, DMG03=F|M|U; DMG04-DMG11 not used; P0102"},
+      {"rule": "REF_Y4 situational P&C max 1; REF01=Y4; R0203; REF03-REF04 not used"},
+      {"rule": "PER situational P&C max 1; PER01=IC, PER03=TE, PER04 required; PER05=EX situational; PER07-PER09 not used; P0304/P0506/P0708"}
+    ]
+  }
+}

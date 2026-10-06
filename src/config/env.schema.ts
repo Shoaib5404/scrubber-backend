@@ -43,6 +43,12 @@ export const envSchema = z.object({
   S3_FORCE_PATH_STYLE: booleanFromString.default(true),
   EDI_MAX_BYTES: z.coerce.number().int().positive().default(26_214_400),
   EDI_LOCAL_PATH: z.string().default('./storage/edi'),
+  EDI837_SPEC_PATH: z.string().default('./edi/837p/models'),
+  EDI837_VALIDATION_ENABLED: booleanFromString.default(true),
+  EDI837_VALIDATION_STRICT: booleanFromString.default(true),
+  NCCI_CLAIM_CPT_DB_THRESHOLD: z.coerce.number().int().default(48),
+  SCRUBBER_RULE_SWITCH_ENM_ONE_DAY_EARLIER: booleanFromString.default(true),
+  SCRUBBER_RULE_SWITCH_EM_BUNDLING: booleanFromString.default(true),
 
   FRONTEND_URL: z.string().default('http://localhost:3010'),
 });

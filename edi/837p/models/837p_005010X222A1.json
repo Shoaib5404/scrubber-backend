@@ -1,0 +1,671 @@
+{
+  "meta": {
+    "transaction_set": "837",
+    "implementation_guide": "005010X222A1",
+    "type": "Professional",
+    "version": "1.0.0",
+    "description": "HIPAA Health Care Claim: Professional (837P)",
+    "generated": "2026-06-15",
+    "x12_version": "005010",
+    "hipaa_compliant": true
+  },
+  "structure": {
+    "hierarchy": [
+      {
+        "level": "interchange",
+        "segments": ["ISA", "IEA"],
+        "children": [
+          {
+            "level": "functional_group",
+            "segments": ["GS", "GE"],
+            "children": [
+              {
+                "level": "transaction_set",
+                "segments": ["ST", "BHT", "SE"],
+                "children": [
+                  {
+                    "level": "header",
+                    "loops": ["loop_1000A", "loop_1000B"]
+                  },
+                  {
+                    "level": "detail",
+                    "loops": [
+                      {
+                        "id": "loop_2000A",
+                        "name": "Billing Provider",
+                        "hl_code": "20",
+                        "children": [
+                          "loop_2010AA",
+                          "loop_2010AB",
+                          "loop_2010AC",
+                          {
+                            "id": "loop_2000B",
+                            "name": "Subscriber",
+                            "hl_code": "22",
+                            "children": [
+                              "loop_2010BA",
+                              "loop_2010BB",
+                              {
+                                "id": "loop_2000C",
+                                "name": "Patient",
+                                "hl_code": "23",
+                                "conditional": true,
+                                "children": [
+                                  "loop_2010CA"
+                                ]
+                              },
+                              {
+                                "id": "loop_2300",
+                                "name": "Claim",
+                                "children": [
+                                  "loop_2310A",
+                                  "loop_2310B",
+                                  "loop_2310C",
+                                  "loop_2310D",
+                                  "loop_2310E",
+                                  "loop_2310F",
+                                  {
+                                    "id": "loop_2320",
+                                    "name": "Other Subscriber",
+                                    "children": [
+                                      "loop_2330A",
+                                      "loop_2330B",
+                                      "loop_2330C",
+                                      "loop_2330D",
+                                      "loop_2330E",
+                                      "loop_2330F",
+                                      "loop_2330G"
+                                    ]
+                                  },
+                                  {
+                                    "id": "loop_2400",
+                                    "name": "Service Line",
+                                    "children": [
+                                      "loop_2410",
+                                      "loop_2420A",
+                                      "loop_2420B",
+                                      "loop_2420C",
+                                      "loop_2420D",
+                                      "loop_2420E",
+                                      "loop_2420F",
+                                      "loop_2420G",
+                                      "loop_2420H",
+                                      "loop_2430",
+                                      "loop_2440"
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "model_files": {
+    "envelope": "./envelope.json",
+    "loop_1000": "./loop_1000.json",
+    "loop_2000A": "./loop_2000A.json",
+    "loop_2000B": "./loop_2000B.json",
+    "loop_2000C": "./loop_2000C.json",
+    "loop_2300": "./loop_2300.json",
+    "loop_2310": "./loop_2310.json",
+    "loop_2320": "./loop_2320.json",
+    "loop_2400": "./loop_2400.json",
+    "loop_2410_2420": "./loop_2410_2420.json"
+  },
+  "required_segments": {
+    "interchange": ["ISA", "IEA"],
+    "functional_group": ["GS", "GE"],
+    "transaction_set": ["ST", "BHT", "SE"],
+    "header": {
+      "loop_1000A": ["NM1", "PER"],
+      "loop_1000B": ["NM1"]
+    },
+    "detail": {
+      "loop_2000A": ["HL"],
+      "loop_2010AA": ["NM1", "N3", "N4", "REF"],
+      "loop_2000B": ["HL", "SBR"],
+      "loop_2010BA": ["NM1"],
+      "loop_2010BB": ["NM1"],
+      "loop_2000C": ["HL", "PAT"],
+      "loop_2010CA": ["NM1", "N3", "N4", "DMG"],
+      "loop_2300": ["CLM", "HI"],
+      "loop_2400": ["LX", "SV1", "DTP"]
+    }
+  },
+  "scrubber_rules": {
+    "global": [
+      {
+        "id": "G001",
+        "description": "ISA13 must equal IEA02",
+        "severity": "error",
+        "category": "envelope"
+      },
+      {
+        "id": "G002",
+        "description": "GS06 must equal GE02",
+        "severity": "error",
+        "category": "envelope"
+      },
+      {
+        "id": "G003",
+        "description": "ST02 must equal SE02",
+        "severity": "error",
+        "category": "envelope"
+      },
+      {
+        "id": "G004",
+        "description": "SE01 must equal actual segment count",
+        "severity": "error",
+        "category": "envelope"
+      },
+      {
+        "id": "G005",
+        "description": "GE01 must equal count of ST-SE pairs",
+        "severity": "error",
+        "category": "envelope"
+      },
+      {
+        "id": "G006",
+        "description": "IEA01 must equal count of GS-GE pairs",
+        "severity": "error",
+        "category": "envelope"
+      }
+    ],
+    "npi_validation": [
+      {
+        "id": "NPI001",
+        "description": "NPI must be exactly 10 digits",
+        "severity": "error",
+        "category": "provider"
+      },
+      {
+        "id": "NPI002",
+        "description": "NPI must pass Luhn check digit algorithm",
+        "severity": "error",
+        "category": "provider",
+        "algorithm": "luhn_with_prefix_80840"
+      },
+      {
+        "id": "NPI003",
+        "description": "NPI identifier qualifier must be XX",
+        "severity": "error",
+        "category": "provider"
+      }
+    ],
+    "claim_validation": [
+      {
+        "id": "CLM001",
+        "description": "CLM01 (Patient Control Number) must be unique within transaction",
+        "severity": "error",
+        "category": "claim"
+      },
+      {
+        "id": "CLM002",
+        "description": "CLM02 must equal sum of all SV102 service line charges",
+        "severity": "error",
+        "category": "claim"
+      },
+      {
+        "id": "CLM003",
+        "description": "Place of Service (CLM05-1) must be valid CMS code",
+        "severity": "error",
+        "category": "claim"
+      },
+      {
+        "id": "CLM004",
+        "description": "Frequency code 7 (replacement) requires REF*F8 original claim reference",
+        "severity": "error",
+        "category": "claim",
+        "condition": "CLM05-3 = 7"
+      },
+      {
+        "id": "CLM005",
+        "description": "Frequency code 8 (void) requires REF*F8 original claim reference",
+        "severity": "error",
+        "category": "claim",
+        "condition": "CLM05-3 = 8"
+      },
+      {
+        "id": "CLM006",
+        "description": "Auto accident (CLM11=AA) requires accident date (DTP*439)",
+        "severity": "error",
+        "category": "claim",
+        "condition": "CLM11 contains AA"
+      },
+      {
+        "id": "CLM007",
+        "description": "Auto accident (CLM11=AA) requires state code (CLM11-4)",
+        "severity": "error",
+        "category": "claim",
+        "condition": "CLM11 contains AA"
+      },
+      {
+        "id": "CLM008",
+        "description": "Ambulance POS (41, 42) requires CR1 segment",
+        "severity": "error",
+        "category": "claim",
+        "condition": "CLM05-1 in (41, 42)"
+      },
+      {
+        "id": "CLM009",
+        "description": "Ambulance POS requires 2310E (pickup) and 2310F (dropoff) loops",
+        "severity": "error",
+        "category": "claim",
+        "condition": "CLM05-1 in (41, 42)"
+      }
+    ],
+    "diagnosis_validation": [
+      {
+        "id": "DX001",
+        "description": "Principal diagnosis (HI*ABK) is required",
+        "severity": "error",
+        "category": "diagnosis"
+      },
+      {
+        "id": "DX002",
+        "description": "All diagnosis codes must be valid ICD-10-CM",
+        "severity": "error",
+        "category": "diagnosis"
+      },
+      {
+        "id": "DX003",
+        "description": "Diagnosis code pointers (SV107) must reference valid HI diagnoses",
+        "severity": "error",
+        "category": "diagnosis"
+      },
+      {
+        "id": "DX004",
+        "description": "At least one diagnosis pointer required per service line",
+        "severity": "error",
+        "category": "diagnosis"
+      },
+      {
+        "id": "DX005",
+        "description": "Diagnosis codes should not include decimal points",
+        "severity": "warning",
+        "category": "diagnosis"
+      }
+    ],
+    "service_line_validation": [
+      {
+        "id": "SVC001",
+        "description": "At least one service line (2400) required per claim",
+        "severity": "error",
+        "category": "service_line"
+      },
+      {
+        "id": "SVC002",
+        "description": "LX01 must be sequential starting at 1",
+        "severity": "error",
+        "category": "service_line"
+      },
+      {
+        "id": "SVC003",
+        "description": "Service date (DTP*472) is required",
+        "severity": "error",
+        "category": "service_line"
+      },
+      {
+        "id": "SVC004",
+        "description": "Service date cannot be in the future",
+        "severity": "error",
+        "category": "service_line"
+      },
+      {
+        "id": "SVC005",
+        "description": "Service date cannot be before patient birth date",
+        "severity": "error",
+        "category": "service_line"
+      },
+      {
+        "id": "SVC006",
+        "description": "Procedure code (SV101-2) must be valid CPT/HCPCS",
+        "severity": "error",
+        "category": "service_line"
+      },
+      {
+        "id": "SVC007",
+        "description": "Charge amount (SV102) must be positive",
+        "severity": "error",
+        "category": "service_line"
+      },
+      {
+        "id": "SVC008",
+        "description": "Units (SV104) must be positive",
+        "severity": "error",
+        "category": "service_line"
+      },
+      {
+        "id": "SVC009",
+        "description": "Modifier must be valid HCPCS modifier",
+        "severity": "warning",
+        "category": "service_line"
+      }
+    ],
+    "subscriber_validation": [
+      {
+        "id": "SUB001",
+        "description": "Subscriber relationship (SBR02) required when subscriber is patient (HL04=0)",
+        "severity": "error",
+        "category": "subscriber"
+      },
+      {
+        "id": "SUB002",
+        "description": "Subscriber ID (NM109 in 2010BA) is required",
+        "severity": "error",
+        "category": "subscriber"
+      },
+      {
+        "id": "SUB003",
+        "description": "DMG (demographics) required when subscriber is patient",
+        "severity": "error",
+        "category": "subscriber",
+        "condition": "HL04 = 0"
+      },
+      {
+        "id": "SUB004",
+        "description": "Patient birth date (DMG02) must not be in future",
+        "severity": "error",
+        "category": "subscriber"
+      },
+      {
+        "id": "SUB005",
+        "description": "Gender code (DMG03) must be F, M, or U",
+        "severity": "error",
+        "category": "subscriber"
+      }
+    ],
+    "patient_validation": [
+      {
+        "id": "PAT001",
+        "description": "2000C required when subscriber is not patient (HL04=1 in 2000B)",
+        "severity": "error",
+        "category": "patient"
+      },
+      {
+        "id": "PAT002",
+        "description": "Patient relationship (PAT01) required in 2000C",
+        "severity": "error",
+        "category": "patient"
+      },
+      {
+        "id": "PAT003",
+        "description": "Patient relationship cannot be 18 (Self) in 2000C",
+        "severity": "error",
+        "category": "patient"
+      },
+      {
+        "id": "PAT004",
+        "description": "Patient name, address, and demographics required in 2010CA",
+        "severity": "error",
+        "category": "patient"
+      }
+    ],
+    "payer_validation": [
+      {
+        "id": "PYR001",
+        "description": "Payer name (NM103 in 2010BB) is required",
+        "severity": "error",
+        "category": "payer"
+      },
+      {
+        "id": "PYR002",
+        "description": "Payer ID (NM109 in 2010BB) is required",
+        "severity": "error",
+        "category": "payer"
+      },
+      {
+        "id": "PYR003",
+        "description": "Claim filing indicator (SBR09) required for primary payer",
+        "severity": "error",
+        "category": "payer"
+      }
+    ],
+    "cob_validation": [
+      {
+        "id": "COB001",
+        "description": "2330A (Other Subscriber) and 2330B (Other Payer) required when 2320 present",
+        "severity": "error",
+        "category": "cob"
+      },
+      {
+        "id": "COB002",
+        "description": "OI segment required in 2320",
+        "severity": "error",
+        "category": "cob"
+      },
+      {
+        "id": "COB003",
+        "description": "SBR01 in 2320 must differ from primary payer responsibility",
+        "severity": "error",
+        "category": "cob"
+      },
+      {
+        "id": "COB004",
+        "description": "SVD*01 in 2430 must match NM109 in corresponding 2330B",
+        "severity": "error",
+        "category": "cob"
+      }
+    ],
+    "hl_hierarchy_validation": [
+      {
+        "id": "HL001",
+        "description": "HL01 must be sequential within transaction",
+        "severity": "error",
+        "category": "hierarchy"
+      },
+      {
+        "id": "HL002",
+        "description": "First HL (2000A) must not have HL02 (no parent)",
+        "severity": "error",
+        "category": "hierarchy"
+      },
+      {
+        "id": "HL003",
+        "description": "HL02 must reference valid parent HL01",
+        "severity": "error",
+        "category": "hierarchy"
+      },
+      {
+        "id": "HL004",
+        "description": "2000A must have HL03=20, HL04=1",
+        "severity": "error",
+        "category": "hierarchy"
+      },
+      {
+        "id": "HL005",
+        "description": "2000B must have HL03=22",
+        "severity": "error",
+        "category": "hierarchy"
+      },
+      {
+        "id": "HL006",
+        "description": "2000C must have HL03=23, HL04=0",
+        "severity": "error",
+        "category": "hierarchy"
+      }
+    ],
+    "taxonomy_validation": [
+      {
+        "id": "TAX001",
+        "description": "Provider taxonomy code must be valid NUCC code",
+        "severity": "warning",
+        "category": "provider"
+      },
+      {
+        "id": "TAX002",
+        "description": "Taxonomy code must be 10 characters",
+        "severity": "warning",
+        "category": "provider"
+      }
+    ],
+    "date_validation": [
+      {
+        "id": "DATE001",
+        "description": "All dates must be in CCYYMMDD format",
+        "severity": "error",
+        "category": "date"
+      },
+      {
+        "id": "DATE002",
+        "description": "All dates must be valid calendar dates",
+        "severity": "error",
+        "category": "date"
+      },
+      {
+        "id": "DATE003",
+        "description": "Date ranges (RD8) must have from <= to",
+        "severity": "error",
+        "category": "date"
+      },
+      {
+        "id": "DATE004",
+        "description": "Service date should not be before admission date",
+        "severity": "warning",
+        "category": "date"
+      }
+    ],
+    "amount_validation": [
+      {
+        "id": "AMT001",
+        "description": "All amounts must be numeric with up to 2 decimal places",
+        "severity": "error",
+        "category": "amount"
+      },
+      {
+        "id": "AMT002",
+        "description": "Claim total (CLM02) must equal sum of line charges",
+        "severity": "error",
+        "category": "amount"
+      },
+      {
+        "id": "AMT003",
+        "description": "COB adjustments + paid amount should reconcile with billed",
+        "severity": "warning",
+        "category": "amount"
+      }
+    ]
+  },
+  "code_sets": {
+    "place_of_service": {
+      "description": "CMS Place of Service Codes",
+      "reference": "https://www.cms.gov/Medicare/Coding/place-of-service-codes",
+      "common_values": {
+        "11": "Office",
+        "12": "Home",
+        "21": "Inpatient Hospital",
+        "22": "On Campus - Outpatient Hospital",
+        "23": "Emergency Room - Hospital",
+        "24": "Ambulatory Surgical Center",
+        "31": "Skilled Nursing Facility",
+        "32": "Nursing Facility",
+        "41": "Ambulance - Land",
+        "42": "Ambulance - Air or Water",
+        "51": "Inpatient Psychiatric Facility",
+        "52": "Psychiatric Facility Partial Hospitalization",
+        "81": "Independent Laboratory",
+        "99": "Other Place of Service"
+      }
+    },
+    "claim_frequency": {
+      "description": "Claim Frequency Type Code",
+      "values": {
+        "1": "Original Admission",
+        "6": "Corrected Claim",
+        "7": "Replacement of Prior Claim",
+        "8": "Void/Cancel Prior Claim"
+      }
+    },
+    "relationship_codes": {
+      "description": "Individual Relationship Codes",
+      "common_values": {
+        "18": "Self",
+        "01": "Spouse",
+        "19": "Child",
+        "20": "Employee",
+        "21": "Unknown",
+        "39": "Organ Donor",
+        "40": "Cadaver Donor",
+        "53": "Life Partner",
+        "G8": "Other Relationship"
+      }
+    },
+    "claim_filing_indicator": {
+      "description": "Claim Filing Indicator Codes",
+      "common_values": {
+        "11": "Other Non-Federal Programs",
+        "12": "Preferred Provider Organization (PPO)",
+        "13": "Point of Service (POS)",
+        "14": "Exclusive Provider Organization (EPO)",
+        "15": "Indemnity Insurance",
+        "16": "Health Maintenance Organization (HMO) Medicare Risk",
+        "17": "Dental Maintenance Organization",
+        "BL": "Blue Cross/Blue Shield",
+        "CH": "CHAMPUS",
+        "CI": "Commercial Insurance",
+        "HM": "Health Maintenance Organization",
+        "MA": "Medicare Part A",
+        "MB": "Medicare Part B",
+        "MC": "Medicaid",
+        "VA": "Veterans Affairs Plan",
+        "WC": "Workers' Compensation"
+      }
+    },
+    "adjustment_group_codes": {
+      "description": "Claim Adjustment Group Codes (CAGC)",
+      "values": {
+        "CO": "Contractual Obligations",
+        "CR": "Correction and Reversal",
+        "OA": "Other Adjustments",
+        "PI": "Payor Initiated Reductions",
+        "PR": "Patient Responsibility"
+      }
+    },
+    "entity_identifier_codes": {
+      "description": "Common Entity Identifier Codes",
+      "values": {
+        "40": "Receiver",
+        "41": "Submitter",
+        "45": "Drop-off Location",
+        "77": "Service Location",
+        "82": "Rendering Provider",
+        "85": "Billing Provider",
+        "87": "Pay-to Provider",
+        "DK": "Ordering Physician",
+        "DN": "Referring Provider",
+        "DQ": "Supervising Physician",
+        "IL": "Insured or Subscriber",
+        "P3": "Primary Care Provider",
+        "PE": "Payee",
+        "PR": "Payer",
+        "PW": "Pick-up Point",
+        "QB": "Purchase Service Provider",
+        "QC": "Patient"
+      }
+    }
+  },
+  "segment_ordering": {
+    "transaction": [
+      "ISA", "GS", "ST", "BHT",
+      "loop_1000A", "loop_1000B",
+      "loop_2000A", "loop_2010AA", "loop_2010AB", "loop_2010AC",
+      "loop_2000B", "loop_2010BA", "loop_2010BB",
+      "loop_2000C", "loop_2010CA",
+      "loop_2300", "loop_2310A", "loop_2310B", "loop_2310C", "loop_2310D", "loop_2310E", "loop_2310F",
+      "loop_2320", "loop_2330A", "loop_2330B", "loop_2330C", "loop_2330D", "loop_2330E", "loop_2330F", "loop_2330G",
+      "loop_2400", "loop_2410", "loop_2420A", "loop_2420B", "loop_2420C", "loop_2420D", "loop_2420E", "loop_2420F", "loop_2420G", "loop_2420H",
+      "loop_2430", "loop_2440",
+      "SE", "GE", "IEA"
+    ]
+  }
+}

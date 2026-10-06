@@ -1,0 +1,2679 @@
+{
+    "loop_2410": {
+        "name": "Drug Identification",
+        "required": false,
+        "repeatable": false,
+        "max_occurs": 1,
+        "parent": "loop_2400",
+        "conditional": "Required when NDC numbers are mandated or chosen to enhance reporting. If not required by this implementation guide, do not send.",
+        "segments": {
+            "LIN": {
+                "name": "Drug Identification",
+                "required": true,
+                "repeatable": false,
+                "elements": {
+                    "lin01": {
+                        "x12_id": "350",
+                        "name": "assigned_identification",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "lin02": {
+                        "x12_id": "235",
+                        "name": "product_or_service_id_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "N4"
+                        ]
+                    },
+                    "lin03": {
+                        "x12_id": "234",
+                        "name": "national_drug_code",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 48
+                    },
+                    "lin04": {
+                        "x12_id": "235",
+                        "name": "product_or_service_id_qualifier",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "lin05": {
+                        "x12_id": "234",
+                        "name": "product_or_service_id",
+                        "required": false,
+                        "not_used": true
+                    }
+                }
+            },
+            "CTP": {
+                "name": "Drug Quantity",
+                "required": true,
+                "repeatable": false,
+                "elements": {
+                    "ctp01": {
+                        "x12_id": "687",
+                        "name": "class_of_trade_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ctp02": {
+                        "x12_id": "236",
+                        "name": "price_identifier_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ctp03": {
+                        "x12_id": "212",
+                        "name": "unit_price",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ctp04": {
+                        "x12_id": "380",
+                        "name": "national_drug_unit_count",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 15
+                    },
+                    "ctp05": {
+                        "x12_id": "C001",
+                        "name": "composite_unit_of_measure",
+                        "required": true,
+                        "composite": true,
+                        "elements": {
+                            "ctp05_1": {
+                                "x12_id": "355",
+                                "name": "unit_or_basis_for_measurement_code",
+                                "required": true,
+                                "valid_values": [
+                                    "F2",
+                                    "GR",
+                                    "ME",
+                                    "ML",
+                                    "UN"
+                                ]
+                            }
+                        }
+                    },
+                    "ctp06": {
+                        "x12_id": "648",
+                        "name": "price_multiplier_qualifier",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ctp07": {
+                        "x12_id": "649",
+                        "name": "multiplier",
+                        "required": false,
+                        "not_used": true
+                    }
+                }
+            },
+            "REF": {
+                "name": "Prescription or Compound Drug Association Number",
+                "required": false,
+                "repeatable": false,
+                "max_occurs": 1,
+                "syntax_rules": [
+                    {
+                        "code": "R0203",
+                        "at_least_one_of": [
+                            "ref02",
+                            "ref03"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "ref01": {
+                        "x12_id": "128",
+                        "name": "reference_identification_qualifier",
+                        "required": true,
+                        "min_length": 2,
+                        "max_length": 3,
+                        "valid_values": [
+                            "VY",
+                            "XZ"
+                        ]
+                    },
+                    "ref02": {
+                        "x12_id": "127",
+                        "name": "reference_identification",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "ref03": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ref04": {
+                        "x12_id": "C040",
+                        "name": "reference_identifier",
+                        "required": false,
+                        "not_used": true
+                    }
+                },
+                "conditional": "Required when an assigned prescription number exists, or when compounding two or more drugs without a prescription number. If not required by this implementation guide, do not send."
+            }
+        }
+    },
+    "loop_2420A": {
+        "name": "Rendering Provider Name",
+        "required": false,
+        "repeatable": false,
+        "max_occurs": 1,
+        "parent": "loop_2400",
+        "conditional": "Required on or after the NPI mandate when the provider is eligible/has an NPI, or prior to the mandate when the NPI is available. If not required by this implementation guide, do not send.",
+        "segments": {
+            "NM1": {
+                "name": "Rendering Provider Name",
+                "required": true,
+                "repeatable": false,
+                "syntax_rules": [
+                    {
+                        "code": "P0809",
+                        "if": "nm108",
+                        "then_required": [
+                            "nm109"
+                        ]
+                    },
+                    {
+                        "code": "P0809",
+                        "if": "nm109",
+                        "then_required": [
+                            "nm108"
+                        ]
+                    },
+                    {
+                        "code": "C1110",
+                        "if": "nm111",
+                        "then_required": [
+                            "nm110"
+                        ]
+                    },
+                    {
+                        "code": "C1203",
+                        "if": "nm112",
+                        "then_required": [
+                            "nm103"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "nm101": {
+                        "x12_id": "98",
+                        "name": "entity_identifier_code",
+                        "required": true,
+                        "valid_values": [
+                            "82"
+                        ]
+                    },
+                    "nm102": {
+                        "x12_id": "1065",
+                        "name": "entity_type_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "1",
+                            "2"
+                        ]
+                    },
+                    "nm103": {
+                        "x12_id": "1035",
+                        "name": "name_last_or_organization_name",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 60
+                    },
+                    "nm104": {
+                        "x12_id": "1036",
+                        "name": "name_first",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 35,
+                        "only_when": {
+                            "element": "nm102",
+                            "equals": "1"
+                        }
+                    },
+                    "nm105": {
+                        "x12_id": "1037",
+                        "name": "name_middle",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 25,
+                        "only_when": {
+                            "element": "nm102",
+                            "equals": "1"
+                        }
+                    },
+                    "nm106": {
+                        "x12_id": "1038",
+                        "name": "name_prefix",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm107": {
+                        "x12_id": "1039",
+                        "name": "name_suffix",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 10,
+                        "only_when": {
+                            "element": "nm102",
+                            "equals": "1"
+                        }
+                    },
+                    "nm108": {
+                        "x12_id": "66",
+                        "name": "identification_code_qualifier",
+                        "required": false,
+                        "conditional": "Required when an NPI is reported in NM109. If not required by this implementation guide, do not send.",
+                        "valid_values": [
+                            "XX"
+                        ]
+                    },
+                    "nm109": {
+                        "x12_id": "67",
+                        "name": "identification_code",
+                        "required": false,
+                        "conditional": "Required under the same situational rules as NM108. If not required by this implementation guide, do not send.",
+                        "min_length": 2,
+                        "max_length": 80
+                    },
+                    "nm110": {
+                        "x12_id": "706",
+                        "name": "entity_relationship_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm111": {
+                        "x12_id": "98",
+                        "name": "entity_identifier_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm112": {
+                        "x12_id": "1035",
+                        "name": "name_last_or_organization_name",
+                        "required": false,
+                        "not_used": true
+                    }
+                }
+            },
+            "PRV": {
+                "name": "Rendering Provider Specialty Information",
+                "required": false,
+                "repeatable": false,
+                "conditional": "Required when adjudication is known to be impacted by the provider taxonomy code. If not required by this implementation guide, do not send.",
+                "elements": {
+                    "prv01": {
+                        "x12_id": "1221",
+                        "name": "provider_code",
+                        "required": true,
+                        "valid_values": [
+                            "PE"
+                        ]
+                    },
+                    "prv02": {
+                        "x12_id": "128",
+                        "name": "reference_identification_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "PXC"
+                        ]
+                    },
+                    "prv03": {
+                        "x12_id": "127",
+                        "name": "provider_taxonomy_code",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "prv04": {
+                        "x12_id": "156",
+                        "name": "state_or_province_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "prv05": {
+                        "x12_id": "C035",
+                        "name": "provider_specialty_information",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "prv06": {
+                        "x12_id": "1223",
+                        "name": "provider_organization_code",
+                        "required": false,
+                        "not_used": true
+                    }
+                }
+            },
+            "REF": {
+                "name": "Rendering Provider Name Secondary Identification",
+                "required": false,
+                "repeatable": true,
+                "max_occurs": 20,
+                "syntax_rules": [
+                    {
+                        "code": "R0203",
+                        "at_least_one_of": [
+                            "ref02",
+                            "ref03"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "ref01": {
+                        "x12_id": "128",
+                        "name": "reference_identification_qualifier",
+                        "required": true,
+                        "min_length": 2,
+                        "max_length": 3,
+                        "valid_values": [
+                            "0B",
+                            "1G",
+                            "G2"
+                        ]
+                    },
+                    "ref02": {
+                        "x12_id": "127",
+                        "name": "reference_identification",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "ref03": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ref04": {
+                        "x12_id": "C040",
+                        "name": "reference_identifier",
+                        "required": false,
+                        "not_used": true
+                    }
+                },
+                "conditional": "Required prior to NPI mandate, or on/after NPI date when NM109 is not used and another identifier is necessary. If not required by this implementation guide, do not send."
+            }
+        }
+    },
+    "loop_2420B": {
+        "name": "Purchased Service Provider Name",
+        "required": false,
+        "repeatable": false,
+        "max_occurs": 1,
+        "parent": "loop_2400",
+        "conditional": "Required on or after the NPI mandate when the provider is eligible/has an NPI, or prior to the mandate when the NPI is available. If not required by this implementation guide, do not send.",
+        "segments": {
+            "NM1": {
+                "name": "Purchased Service Provider Name",
+                "required": true,
+                "repeatable": false,
+                "syntax_rules": [
+                    {
+                        "code": "P0809",
+                        "if": "nm108",
+                        "then_required": [
+                            "nm109"
+                        ]
+                    },
+                    {
+                        "code": "P0809",
+                        "if": "nm109",
+                        "then_required": [
+                            "nm108"
+                        ]
+                    },
+                    {
+                        "code": "C1110",
+                        "if": "nm111",
+                        "then_required": [
+                            "nm110"
+                        ]
+                    },
+                    {
+                        "code": "C1203",
+                        "if": "nm112",
+                        "then_required": [
+                            "nm103"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "nm101": {
+                        "x12_id": "98",
+                        "name": "entity_identifier_code",
+                        "required": true,
+                        "valid_values": [
+                            "QB"
+                        ]
+                    },
+                    "nm102": {
+                        "x12_id": "1065",
+                        "name": "entity_type_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "1",
+                            "2"
+                        ]
+                    },
+                    "nm103": {
+                        "x12_id": "1035",
+                        "name": "name_last_or_organization_name",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 60
+                    },
+                    "nm104": {
+                        "x12_id": "1036",
+                        "name": "name_first",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 35,
+                        "only_when": {
+                            "element": "nm102",
+                            "equals": "1"
+                        }
+                    },
+                    "nm105": {
+                        "x12_id": "1037",
+                        "name": "name_middle",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 25,
+                        "only_when": {
+                            "element": "nm102",
+                            "equals": "1"
+                        }
+                    },
+                    "nm106": {
+                        "x12_id": "1038",
+                        "name": "name_prefix",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm107": {
+                        "x12_id": "1039",
+                        "name": "name_suffix",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 10,
+                        "only_when": {
+                            "element": "nm102",
+                            "equals": "1"
+                        }
+                    },
+                    "nm108": {
+                        "x12_id": "66",
+                        "name": "identification_code_qualifier",
+                        "required": false,
+                        "conditional": "Required when an NPI is reported in NM109. If not required by this implementation guide, do not send.",
+                        "valid_values": [
+                            "XX"
+                        ]
+                    },
+                    "nm109": {
+                        "x12_id": "67",
+                        "name": "identification_code",
+                        "required": false,
+                        "conditional": "Required under the same situational rules as NM108. If not required by this implementation guide, do not send.",
+                        "min_length": 2,
+                        "max_length": 80
+                    },
+                    "nm110": {
+                        "x12_id": "706",
+                        "name": "entity_relationship_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm111": {
+                        "x12_id": "98",
+                        "name": "entity_identifier_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm112": {
+                        "x12_id": "1035",
+                        "name": "name_last_or_organization_name",
+                        "required": false,
+                        "not_used": true
+                    }
+                }
+            },
+            "REF": {
+                "name": "Purchased Service Provider Name Secondary Identification",
+                "required": false,
+                "repeatable": true,
+                "max_occurs": 20,
+                "syntax_rules": [
+                    {
+                        "code": "R0203",
+                        "at_least_one_of": [
+                            "ref02",
+                            "ref03"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "ref01": {
+                        "x12_id": "128",
+                        "name": "reference_identification_qualifier",
+                        "required": true,
+                        "min_length": 2,
+                        "max_length": 3,
+                        "valid_values": [
+                            "0B",
+                            "1G",
+                            "G2"
+                        ]
+                    },
+                    "ref02": {
+                        "x12_id": "127",
+                        "name": "reference_identification",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "ref03": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ref04": {
+                        "x12_id": "C040",
+                        "name": "reference_identifier",
+                        "required": false,
+                        "not_used": true
+                    }
+                },
+                "conditional": "Required prior to NPI mandate, or on/after NPI date when NM109 is not used and another identifier is necessary. If not required by this implementation guide, do not send."
+            }
+        }
+    },
+    "loop_2420C": {
+        "name": "Service Facility Location Name",
+        "required": false,
+        "repeatable": false,
+        "max_occurs": 1,
+        "parent": "loop_2400",
+        "conditional": "Required when the service location has an NPI and is not a component or subpart of the Billing Provider. If not required by this implementation guide, do not send.",
+        "segments": {
+            "NM1": {
+                "name": "Service Facility Location Name",
+                "required": true,
+                "repeatable": false,
+                "syntax_rules": [
+                    {
+                        "code": "P0809",
+                        "if": "nm108",
+                        "then_required": [
+                            "nm109"
+                        ]
+                    },
+                    {
+                        "code": "P0809",
+                        "if": "nm109",
+                        "then_required": [
+                            "nm108"
+                        ]
+                    },
+                    {
+                        "code": "C1110",
+                        "if": "nm111",
+                        "then_required": [
+                            "nm110"
+                        ]
+                    },
+                    {
+                        "code": "C1203",
+                        "if": "nm112",
+                        "then_required": [
+                            "nm103"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "nm101": {
+                        "x12_id": "98",
+                        "name": "entity_identifier_code",
+                        "required": true,
+                        "valid_values": [
+                            "77"
+                        ]
+                    },
+                    "nm102": {
+                        "x12_id": "1065",
+                        "name": "entity_type_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "2"
+                        ]
+                    },
+                    "nm103": {
+                        "x12_id": "1035",
+                        "name": "name_last_or_organization_name",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 60
+                    },
+                    "nm104": {
+                        "x12_id": "1036",
+                        "name": "name_first",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm105": {
+                        "x12_id": "1037",
+                        "name": "name_middle",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm106": {
+                        "x12_id": "1038",
+                        "name": "name_prefix",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm107": {
+                        "x12_id": "1039",
+                        "name": "name_suffix",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm108": {
+                        "x12_id": "66",
+                        "name": "identification_code_qualifier",
+                        "required": false,
+                        "conditional": "Required when an NPI is reported in NM109. If not required by this implementation guide, do not send.",
+                        "valid_values": [
+                            "XX"
+                        ]
+                    },
+                    "nm109": {
+                        "x12_id": "67",
+                        "name": "identification_code",
+                        "required": false,
+                        "conditional": "Required under the same situational rules as NM108. If not required by this implementation guide, do not send.",
+                        "min_length": 2,
+                        "max_length": 80
+                    },
+                    "nm110": {
+                        "x12_id": "706",
+                        "name": "entity_relationship_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm111": {
+                        "x12_id": "98",
+                        "name": "entity_identifier_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm112": {
+                        "x12_id": "1035",
+                        "name": "name_last_or_organization_name",
+                        "required": false,
+                        "not_used": true
+                    }
+                }
+            },
+            "N3": {
+                "name": "Service Facility Location Address",
+                "required": true,
+                "repeatable": false,
+                "elements": {
+                    "n301": {
+                        "x12_id": "166",
+                        "name": "address_line_1",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 55
+                    },
+                    "n302": {
+                        "x12_id": "166",
+                        "name": "address_line_2",
+                        "required": false,
+                        "conditional": "Required when there is a second address line. If not required by this implementation guide, do not send.",
+                        "min_length": 1,
+                        "max_length": 55
+                    }
+                }
+            },
+            "N4": {
+                "name": "Service Facility Location City, State, ZIP Code",
+                "required": true,
+                "repeatable": false,
+                "syntax_rules": [
+                    {
+                        "code": "E0207",
+                        "mutually_exclusive": [
+                            "n402",
+                            "n407"
+                        ]
+                    },
+                    {
+                        "code": "C0605",
+                        "if": "n406",
+                        "then_required": [
+                            "n405"
+                        ]
+                    },
+                    {
+                        "code": "C0704",
+                        "if": "n407",
+                        "then_required": [
+                            "n404"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "n401": {
+                        "x12_id": "19",
+                        "name": "city_name",
+                        "required": true,
+                        "min_length": 2,
+                        "max_length": 30
+                    },
+                    "n402": {
+                        "x12_id": "156",
+                        "name": "state_or_province_code",
+                        "required": false,
+                        "conditional": "Required when the address is in the United States of America, including its territories, or Canada. If not required by this implementation guide, do not send.",
+                        "min_length": 2,
+                        "max_length": 2
+                    },
+                    "n403": {
+                        "x12_id": "116",
+                        "name": "postal_zone_or_zip_code",
+                        "required": false,
+                        "conditional": "Required when the address is in the US/territories or Canada, or when a postal code exists for the country in N404. If not required by this implementation guide, do not send.",
+                        "min_length": 3,
+                        "max_length": 15
+                    },
+                    "n404": {
+                        "x12_id": "26",
+                        "name": "country_code",
+                        "required": false,
+                        "conditional": "Required when the address is outside the United States of America. If not required by this implementation guide, do not send.",
+                        "min_length": 2,
+                        "max_length": 3
+                    },
+                    "n405": {
+                        "x12_id": "309",
+                        "name": "location_qualifier",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "n406": {
+                        "x12_id": "310",
+                        "name": "location_identifier",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "n407": {
+                        "x12_id": "1715",
+                        "name": "country_subdivision_code",
+                        "required": false,
+                        "conditional": "Required when the address is not in the US/territories or Canada, and the country in N404 has administrative subdivisions. If not required by this implementation guide, do not send.",
+                        "min_length": 1,
+                        "max_length": 3
+                    }
+                }
+            },
+            "REF": {
+                "name": "Service Facility Location Name Secondary Identification",
+                "required": false,
+                "repeatable": true,
+                "max_occurs": 3,
+                "syntax_rules": [
+                    {
+                        "code": "R0203",
+                        "at_least_one_of": [
+                            "ref02",
+                            "ref03"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "ref01": {
+                        "x12_id": "128",
+                        "name": "reference_identification_qualifier",
+                        "required": true,
+                        "min_length": 2,
+                        "max_length": 3,
+                        "valid_values": [
+                            "G2",
+                            "LU"
+                        ]
+                    },
+                    "ref02": {
+                        "x12_id": "127",
+                        "name": "reference_identification",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "ref03": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ref04": {
+                        "x12_id": "C040",
+                        "name": "reference_identifier",
+                        "required": false,
+                        "not_used": true
+                    }
+                },
+                "conditional": "Required prior to NPI mandate, or on/after NPI date when NM109 is not used and another identifier is necessary. If not required by this implementation guide, do not send."
+            }
+        }
+    },
+    "loop_2420D": {
+        "name": "Supervising Provider Name",
+        "required": false,
+        "repeatable": false,
+        "max_occurs": 1,
+        "parent": "loop_2400",
+        "conditional": "Required on or after the NPI mandate when the provider is eligible/has an NPI, or prior to the mandate when the NPI is available. If not required by this implementation guide, do not send.",
+        "segments": {
+            "NM1": {
+                "name": "Supervising Provider Name",
+                "required": true,
+                "repeatable": false,
+                "syntax_rules": [
+                    {
+                        "code": "P0809",
+                        "if": "nm108",
+                        "then_required": [
+                            "nm109"
+                        ]
+                    },
+                    {
+                        "code": "P0809",
+                        "if": "nm109",
+                        "then_required": [
+                            "nm108"
+                        ]
+                    },
+                    {
+                        "code": "C1110",
+                        "if": "nm111",
+                        "then_required": [
+                            "nm110"
+                        ]
+                    },
+                    {
+                        "code": "C1203",
+                        "if": "nm112",
+                        "then_required": [
+                            "nm103"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "nm101": {
+                        "x12_id": "98",
+                        "name": "entity_identifier_code",
+                        "required": true,
+                        "valid_values": [
+                            "DQ"
+                        ]
+                    },
+                    "nm102": {
+                        "x12_id": "1065",
+                        "name": "entity_type_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "1"
+                        ]
+                    },
+                    "nm103": {
+                        "x12_id": "1035",
+                        "name": "name_last_or_organization_name",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 60
+                    },
+                    "nm104": {
+                        "x12_id": "1036",
+                        "name": "name_first",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 35,
+                        "only_when": {
+                            "element": "nm102",
+                            "equals": "1"
+                        }
+                    },
+                    "nm105": {
+                        "x12_id": "1037",
+                        "name": "name_middle",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 25,
+                        "only_when": {
+                            "element": "nm102",
+                            "equals": "1"
+                        }
+                    },
+                    "nm106": {
+                        "x12_id": "1038",
+                        "name": "name_prefix",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm107": {
+                        "x12_id": "1039",
+                        "name": "name_suffix",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 10,
+                        "only_when": {
+                            "element": "nm102",
+                            "equals": "1"
+                        }
+                    },
+                    "nm108": {
+                        "x12_id": "66",
+                        "name": "identification_code_qualifier",
+                        "required": false,
+                        "conditional": "Required when an NPI is reported in NM109. If not required by this implementation guide, do not send.",
+                        "valid_values": [
+                            "XX"
+                        ]
+                    },
+                    "nm109": {
+                        "x12_id": "67",
+                        "name": "identification_code",
+                        "required": false,
+                        "conditional": "Required under the same situational rules as NM108. If not required by this implementation guide, do not send.",
+                        "min_length": 2,
+                        "max_length": 80
+                    },
+                    "nm110": {
+                        "x12_id": "706",
+                        "name": "entity_relationship_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm111": {
+                        "x12_id": "98",
+                        "name": "entity_identifier_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm112": {
+                        "x12_id": "1035",
+                        "name": "name_last_or_organization_name",
+                        "required": false,
+                        "not_used": true
+                    }
+                }
+            },
+            "REF": {
+                "name": "Supervising Provider Name Secondary Identification",
+                "required": false,
+                "repeatable": true,
+                "max_occurs": 20,
+                "syntax_rules": [
+                    {
+                        "code": "R0203",
+                        "at_least_one_of": [
+                            "ref02",
+                            "ref03"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "ref01": {
+                        "x12_id": "128",
+                        "name": "reference_identification_qualifier",
+                        "required": true,
+                        "min_length": 2,
+                        "max_length": 3,
+                        "valid_values": [
+                            "0B",
+                            "1G",
+                            "G2"
+                        ]
+                    },
+                    "ref02": {
+                        "x12_id": "127",
+                        "name": "reference_identification",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "ref03": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ref04": {
+                        "x12_id": "C040",
+                        "name": "reference_identifier",
+                        "required": false,
+                        "not_used": true
+                    }
+                },
+                "conditional": "Required prior to NPI mandate, or on/after NPI date when NM109 is not used and another identifier is necessary. If not required by this implementation guide, do not send."
+            }
+        }
+    },
+    "loop_2420E": {
+        "name": "Ordering Provider Name",
+        "required": false,
+        "repeatable": false,
+        "max_occurs": 1,
+        "parent": "loop_2400",
+        "conditional": "Required on or after the NPI mandate when the provider is eligible/has an NPI, or prior to the mandate when the NPI is available. If not required by this implementation guide, do not send.",
+        "segments": {
+            "NM1": {
+                "name": "Ordering Provider Name",
+                "required": true,
+                "repeatable": false,
+                "syntax_rules": [
+                    {
+                        "code": "P0809",
+                        "if": "nm108",
+                        "then_required": [
+                            "nm109"
+                        ]
+                    },
+                    {
+                        "code": "P0809",
+                        "if": "nm109",
+                        "then_required": [
+                            "nm108"
+                        ]
+                    },
+                    {
+                        "code": "C1110",
+                        "if": "nm111",
+                        "then_required": [
+                            "nm110"
+                        ]
+                    },
+                    {
+                        "code": "C1203",
+                        "if": "nm112",
+                        "then_required": [
+                            "nm103"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "nm101": {
+                        "x12_id": "98",
+                        "name": "entity_identifier_code",
+                        "required": true,
+                        "valid_values": [
+                            "DK"
+                        ]
+                    },
+                    "nm102": {
+                        "x12_id": "1065",
+                        "name": "entity_type_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "1"
+                        ]
+                    },
+                    "nm103": {
+                        "x12_id": "1035",
+                        "name": "name_last_or_organization_name",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 60
+                    },
+                    "nm104": {
+                        "x12_id": "1036",
+                        "name": "name_first",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 35,
+                        "only_when": {
+                            "element": "nm102",
+                            "equals": "1"
+                        }
+                    },
+                    "nm105": {
+                        "x12_id": "1037",
+                        "name": "name_middle",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 25,
+                        "only_when": {
+                            "element": "nm102",
+                            "equals": "1"
+                        }
+                    },
+                    "nm106": {
+                        "x12_id": "1038",
+                        "name": "name_prefix",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm107": {
+                        "x12_id": "1039",
+                        "name": "name_suffix",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 10,
+                        "only_when": {
+                            "element": "nm102",
+                            "equals": "1"
+                        }
+                    },
+                    "nm108": {
+                        "x12_id": "66",
+                        "name": "identification_code_qualifier",
+                        "required": false,
+                        "conditional": "Required when an NPI is reported in NM109. If not required by this implementation guide, do not send.",
+                        "valid_values": [
+                            "XX"
+                        ]
+                    },
+                    "nm109": {
+                        "x12_id": "67",
+                        "name": "identification_code",
+                        "required": false,
+                        "conditional": "Required under the same situational rules as NM108. If not required by this implementation guide, do not send.",
+                        "min_length": 2,
+                        "max_length": 80
+                    },
+                    "nm110": {
+                        "x12_id": "706",
+                        "name": "entity_relationship_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm111": {
+                        "x12_id": "98",
+                        "name": "entity_identifier_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm112": {
+                        "x12_id": "1035",
+                        "name": "name_last_or_organization_name",
+                        "required": false,
+                        "not_used": true
+                    }
+                }
+            },
+            "N3": {
+                "name": "Ordering Provider Address",
+                "required": false,
+                "repeatable": false,
+                "conditional": "Required when the information is available. If not required by this implementation guide, do not send.",
+                "elements": {
+                    "n301": {
+                        "x12_id": "166",
+                        "name": "address_line_1",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 55
+                    },
+                    "n302": {
+                        "x12_id": "166",
+                        "name": "address_line_2",
+                        "required": false,
+                        "conditional": "Required when there is a second address line. If not required by this implementation guide, do not send.",
+                        "min_length": 1,
+                        "max_length": 55
+                    }
+                }
+            },
+            "N4": {
+                "name": "Ordering Provider City, State, ZIP Code",
+                "required": true,
+                "repeatable": false,
+                "syntax_rules": [
+                    {
+                        "code": "E0207",
+                        "mutually_exclusive": [
+                            "n402",
+                            "n407"
+                        ]
+                    },
+                    {
+                        "code": "C0605",
+                        "if": "n406",
+                        "then_required": [
+                            "n405"
+                        ]
+                    },
+                    {
+                        "code": "C0704",
+                        "if": "n407",
+                        "then_required": [
+                            "n404"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "n401": {
+                        "x12_id": "19",
+                        "name": "city_name",
+                        "required": true,
+                        "min_length": 2,
+                        "max_length": 30
+                    },
+                    "n402": {
+                        "x12_id": "156",
+                        "name": "state_or_province_code",
+                        "required": false,
+                        "conditional": "Required when the address is in the United States of America, including its territories, or Canada. If not required by this implementation guide, do not send.",
+                        "min_length": 2,
+                        "max_length": 2
+                    },
+                    "n403": {
+                        "x12_id": "116",
+                        "name": "postal_zone_or_zip_code",
+                        "required": false,
+                        "conditional": "Required when the address is in the US/territories or Canada, or when a postal code exists for the country in N404. If not required by this implementation guide, do not send.",
+                        "min_length": 3,
+                        "max_length": 15
+                    },
+                    "n404": {
+                        "x12_id": "26",
+                        "name": "country_code",
+                        "required": false,
+                        "conditional": "Required when the address is outside the United States of America. If not required by this implementation guide, do not send.",
+                        "min_length": 2,
+                        "max_length": 3
+                    },
+                    "n405": {
+                        "x12_id": "309",
+                        "name": "location_qualifier",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "n406": {
+                        "x12_id": "310",
+                        "name": "location_identifier",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "n407": {
+                        "x12_id": "1715",
+                        "name": "country_subdivision_code",
+                        "required": false,
+                        "conditional": "Required when the address is not in the US/territories or Canada, and the country in N404 has administrative subdivisions. If not required by this implementation guide, do not send.",
+                        "min_length": 1,
+                        "max_length": 3
+                    }
+                }
+            },
+            "REF": {
+                "name": "Ordering Provider Name Secondary Identification",
+                "required": false,
+                "repeatable": true,
+                "max_occurs": 20,
+                "syntax_rules": [
+                    {
+                        "code": "R0203",
+                        "at_least_one_of": [
+                            "ref02",
+                            "ref03"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "ref01": {
+                        "x12_id": "128",
+                        "name": "reference_identification_qualifier",
+                        "required": true,
+                        "min_length": 2,
+                        "max_length": 3,
+                        "valid_values": [
+                            "0B",
+                            "1G",
+                            "G2"
+                        ]
+                    },
+                    "ref02": {
+                        "x12_id": "127",
+                        "name": "reference_identification",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "ref03": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ref04": {
+                        "x12_id": "C040",
+                        "name": "reference_identifier",
+                        "required": false,
+                        "not_used": true
+                    }
+                },
+                "conditional": "Required prior to NPI mandate, or on/after NPI date when NM109 is not used and another identifier is necessary. If not required by this implementation guide, do not send."
+            },
+            "PER": {
+                "name": "Ordering Provider Contact Information",
+                "required": false,
+                "repeatable": false,
+                "conditional": "Required when a DMERC CMN, DIF, or Oxygen Therapy Certification is included on this service line. If not required by this implementation guide, do not send.",
+                "syntax_rules": [
+                    {
+                        "code": "P0304",
+                        "if": "per03",
+                        "then_required": [
+                            "per04"
+                        ]
+                    },
+                    {
+                        "code": "P0304",
+                        "if": "per04",
+                        "then_required": [
+                            "per03"
+                        ]
+                    },
+                    {
+                        "code": "P0506",
+                        "if": "per05",
+                        "then_required": [
+                            "per06"
+                        ]
+                    },
+                    {
+                        "code": "P0506",
+                        "if": "per06",
+                        "then_required": [
+                            "per05"
+                        ]
+                    },
+                    {
+                        "code": "P0708",
+                        "if": "per07",
+                        "then_required": [
+                            "per08"
+                        ]
+                    },
+                    {
+                        "code": "P0708",
+                        "if": "per08",
+                        "then_required": [
+                            "per07"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "per01": {
+                        "x12_id": "366",
+                        "name": "contact_function_code",
+                        "required": true,
+                        "valid_values": [
+                            "IC"
+                        ]
+                    },
+                    "per02": {
+                        "x12_id": "93",
+                        "name": "contact_name",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 60
+                    },
+                    "per03": {
+                        "x12_id": "365",
+                        "name": "communication_number_qualifier_1",
+                        "required": true,
+                        "valid_values": [
+                            "EM",
+                            "FX",
+                            "TE"
+                        ]
+                    },
+                    "per04": {
+                        "x12_id": "364",
+                        "name": "communication_number_1",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 256
+                    },
+                    "per05": {
+                        "x12_id": "365",
+                        "name": "communication_number_qualifier_2",
+                        "required": false,
+                        "valid_values": [
+                            "EM",
+                            "EX",
+                            "FX",
+                            "TE"
+                        ]
+                    },
+                    "per06": {
+                        "x12_id": "364",
+                        "name": "communication_number_2",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 256
+                    },
+                    "per07": {
+                        "x12_id": "365",
+                        "name": "communication_number_qualifier_3",
+                        "required": false,
+                        "valid_values": [
+                            "EM",
+                            "EX",
+                            "FX",
+                            "TE"
+                        ]
+                    },
+                    "per08": {
+                        "x12_id": "364",
+                        "name": "communication_number_3",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 256
+                    },
+                    "per09": {
+                        "x12_id": "443",
+                        "name": "contact_inquiry_reference",
+                        "required": false,
+                        "not_used": true
+                    }
+                }
+            }
+        }
+    },
+    "loop_2420F": {
+        "name": "Referring Provider Name",
+        "required": false,
+        "repeatable": true,
+        "max_occurs": 2,
+        "parent": "loop_2400",
+        "conditional": "Required on or after the NPI mandate when the provider is eligible/has an NPI, or prior to the mandate when the NPI is available. If not required by this implementation guide, do not send. First iteration NM101=DN; second iteration (when used) NM101=P3.",
+        "segments": {
+            "NM1": {
+                "name": "Referring Provider Name",
+                "required": true,
+                "repeatable": false,
+                "syntax_rules": [
+                    {
+                        "code": "P0809",
+                        "if": "nm108",
+                        "then_required": [
+                            "nm109"
+                        ]
+                    },
+                    {
+                        "code": "P0809",
+                        "if": "nm109",
+                        "then_required": [
+                            "nm108"
+                        ]
+                    },
+                    {
+                        "code": "C1110",
+                        "if": "nm111",
+                        "then_required": [
+                            "nm110"
+                        ]
+                    },
+                    {
+                        "code": "C1203",
+                        "if": "nm112",
+                        "then_required": [
+                            "nm103"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "nm101": {
+                        "x12_id": "98",
+                        "name": "entity_identifier_code",
+                        "required": true,
+                        "valid_values": [
+                            "DN",
+                            "P3"
+                        ]
+                    },
+                    "nm102": {
+                        "x12_id": "1065",
+                        "name": "entity_type_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "1"
+                        ]
+                    },
+                    "nm103": {
+                        "x12_id": "1035",
+                        "name": "name_last_or_organization_name",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 60
+                    },
+                    "nm104": {
+                        "x12_id": "1036",
+                        "name": "name_first",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 35,
+                        "only_when": {
+                            "element": "nm102",
+                            "equals": "1"
+                        }
+                    },
+                    "nm105": {
+                        "x12_id": "1037",
+                        "name": "name_middle",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 25,
+                        "only_when": {
+                            "element": "nm102",
+                            "equals": "1"
+                        }
+                    },
+                    "nm106": {
+                        "x12_id": "1038",
+                        "name": "name_prefix",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm107": {
+                        "x12_id": "1039",
+                        "name": "name_suffix",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 10,
+                        "only_when": {
+                            "element": "nm102",
+                            "equals": "1"
+                        }
+                    },
+                    "nm108": {
+                        "x12_id": "66",
+                        "name": "identification_code_qualifier",
+                        "required": false,
+                        "conditional": "Required when an NPI is reported in NM109. If not required by this implementation guide, do not send.",
+                        "valid_values": [
+                            "XX"
+                        ]
+                    },
+                    "nm109": {
+                        "x12_id": "67",
+                        "name": "identification_code",
+                        "required": false,
+                        "conditional": "Required under the same situational rules as NM108. If not required by this implementation guide, do not send.",
+                        "min_length": 2,
+                        "max_length": 80
+                    },
+                    "nm110": {
+                        "x12_id": "706",
+                        "name": "entity_relationship_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm111": {
+                        "x12_id": "98",
+                        "name": "entity_identifier_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm112": {
+                        "x12_id": "1035",
+                        "name": "name_last_or_organization_name",
+                        "required": false,
+                        "not_used": true
+                    }
+                }
+            },
+            "REF": {
+                "name": "Referring Provider Name Secondary Identification",
+                "required": false,
+                "repeatable": true,
+                "max_occurs": 20,
+                "syntax_rules": [
+                    {
+                        "code": "R0203",
+                        "at_least_one_of": [
+                            "ref02",
+                            "ref03"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "ref01": {
+                        "x12_id": "128",
+                        "name": "reference_identification_qualifier",
+                        "required": true,
+                        "min_length": 2,
+                        "max_length": 3,
+                        "valid_values": [
+                            "0B",
+                            "1G",
+                            "G2"
+                        ]
+                    },
+                    "ref02": {
+                        "x12_id": "127",
+                        "name": "reference_identification",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "ref03": {
+                        "x12_id": "352",
+                        "name": "description",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "ref04": {
+                        "x12_id": "C040",
+                        "name": "reference_identifier",
+                        "required": false,
+                        "not_used": true
+                    }
+                },
+                "conditional": "Required prior to NPI mandate, or on/after NPI date when NM109 is not used and another identifier is necessary. If not required by this implementation guide, do not send."
+            }
+        }
+    },
+    "loop_2420G": {
+        "name": "Ambulance Pick-up Location",
+        "required": false,
+        "repeatable": false,
+        "max_occurs": 1,
+        "parent": "loop_2400",
+        "conditional": "Required when the ambulance pick-up location for this service line is different than Loop 2310E. If not required by this implementation guide, do not send.",
+        "segments": {
+            "NM1": {
+                "name": "Ambulance Pick-up Location",
+                "required": true,
+                "repeatable": false,
+                "syntax_rules": [
+                    {
+                        "code": "P0809",
+                        "if": "nm108",
+                        "then_required": [
+                            "nm109"
+                        ]
+                    },
+                    {
+                        "code": "P0809",
+                        "if": "nm109",
+                        "then_required": [
+                            "nm108"
+                        ]
+                    },
+                    {
+                        "code": "C1110",
+                        "if": "nm111",
+                        "then_required": [
+                            "nm110"
+                        ]
+                    },
+                    {
+                        "code": "C1203",
+                        "if": "nm112",
+                        "then_required": [
+                            "nm103"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "nm101": {
+                        "x12_id": "98",
+                        "name": "entity_identifier_code",
+                        "required": true,
+                        "valid_values": [
+                            "PW"
+                        ]
+                    },
+                    "nm102": {
+                        "x12_id": "1065",
+                        "name": "entity_type_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "2"
+                        ]
+                    },
+                    "nm103": {
+                        "x12_id": "1035",
+                        "name": "name_last_or_organization_name",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm104": {
+                        "x12_id": "1036",
+                        "name": "name_first",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm105": {
+                        "x12_id": "1037",
+                        "name": "name_middle",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm106": {
+                        "x12_id": "1038",
+                        "name": "name_prefix",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm107": {
+                        "x12_id": "1039",
+                        "name": "name_suffix",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm108": {
+                        "x12_id": "66",
+                        "name": "identification_code_qualifier",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm109": {
+                        "x12_id": "67",
+                        "name": "identification_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm110": {
+                        "x12_id": "706",
+                        "name": "entity_relationship_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm111": {
+                        "x12_id": "98",
+                        "name": "entity_identifier_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm112": {
+                        "x12_id": "1035",
+                        "name": "name_last_or_organization_name",
+                        "required": false,
+                        "not_used": true
+                    }
+                }
+            },
+            "N3": {
+                "name": "Ambulance Pick-up Location Address",
+                "required": true,
+                "repeatable": false,
+                "elements": {
+                    "n301": {
+                        "x12_id": "166",
+                        "name": "address_line_1",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 55
+                    },
+                    "n302": {
+                        "x12_id": "166",
+                        "name": "address_line_2",
+                        "required": false,
+                        "conditional": "Required when there is a second address line. If not required by this implementation guide, do not send.",
+                        "min_length": 1,
+                        "max_length": 55
+                    }
+                }
+            },
+            "N4": {
+                "name": "Ambulance Pick-up Location City, State, ZIP Code",
+                "required": true,
+                "repeatable": false,
+                "syntax_rules": [
+                    {
+                        "code": "E0207",
+                        "mutually_exclusive": [
+                            "n402",
+                            "n407"
+                        ]
+                    },
+                    {
+                        "code": "C0605",
+                        "if": "n406",
+                        "then_required": [
+                            "n405"
+                        ]
+                    },
+                    {
+                        "code": "C0704",
+                        "if": "n407",
+                        "then_required": [
+                            "n404"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "n401": {
+                        "x12_id": "19",
+                        "name": "city_name",
+                        "required": true,
+                        "min_length": 2,
+                        "max_length": 30
+                    },
+                    "n402": {
+                        "x12_id": "156",
+                        "name": "state_or_province_code",
+                        "required": false,
+                        "conditional": "Required when the address is in the United States of America, including its territories, or Canada. If not required by this implementation guide, do not send.",
+                        "min_length": 2,
+                        "max_length": 2
+                    },
+                    "n403": {
+                        "x12_id": "116",
+                        "name": "postal_zone_or_zip_code",
+                        "required": false,
+                        "conditional": "Required when the address is in the US/territories or Canada, or when a postal code exists for the country in N404. If not required by this implementation guide, do not send.",
+                        "min_length": 3,
+                        "max_length": 15
+                    },
+                    "n404": {
+                        "x12_id": "26",
+                        "name": "country_code",
+                        "required": false,
+                        "conditional": "Required when the address is outside the United States of America. If not required by this implementation guide, do not send.",
+                        "min_length": 2,
+                        "max_length": 3
+                    },
+                    "n405": {
+                        "x12_id": "309",
+                        "name": "location_qualifier",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "n406": {
+                        "x12_id": "310",
+                        "name": "location_identifier",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "n407": {
+                        "x12_id": "1715",
+                        "name": "country_subdivision_code",
+                        "required": false,
+                        "conditional": "Required when the address is not in the US/territories or Canada, and the country in N404 has administrative subdivisions. If not required by this implementation guide, do not send.",
+                        "min_length": 1,
+                        "max_length": 3
+                    }
+                }
+            }
+        }
+    },
+    "loop_2420H": {
+        "name": "Ambulance Drop-off Location",
+        "required": false,
+        "repeatable": false,
+        "max_occurs": 1,
+        "parent": "loop_2400",
+        "conditional": "Required when drop-off location name is known. If not required by this implementation guide, do not send.",
+        "segments": {
+            "NM1": {
+                "name": "Ambulance Drop-off Location",
+                "required": true,
+                "repeatable": false,
+                "syntax_rules": [
+                    {
+                        "code": "P0809",
+                        "if": "nm108",
+                        "then_required": [
+                            "nm109"
+                        ]
+                    },
+                    {
+                        "code": "P0809",
+                        "if": "nm109",
+                        "then_required": [
+                            "nm108"
+                        ]
+                    },
+                    {
+                        "code": "C1110",
+                        "if": "nm111",
+                        "then_required": [
+                            "nm110"
+                        ]
+                    },
+                    {
+                        "code": "C1203",
+                        "if": "nm112",
+                        "then_required": [
+                            "nm103"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "nm101": {
+                        "x12_id": "98",
+                        "name": "entity_identifier_code",
+                        "required": true,
+                        "valid_values": [
+                            "45"
+                        ]
+                    },
+                    "nm102": {
+                        "x12_id": "1065",
+                        "name": "entity_type_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "2"
+                        ]
+                    },
+                    "nm103": {
+                        "x12_id": "1035",
+                        "name": "name_last_or_organization_name",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 60
+                    },
+                    "nm104": {
+                        "x12_id": "1036",
+                        "name": "name_first",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm105": {
+                        "x12_id": "1037",
+                        "name": "name_middle",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm106": {
+                        "x12_id": "1038",
+                        "name": "name_prefix",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm107": {
+                        "x12_id": "1039",
+                        "name": "name_suffix",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm108": {
+                        "x12_id": "66",
+                        "name": "identification_code_qualifier",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm109": {
+                        "x12_id": "67",
+                        "name": "identification_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm110": {
+                        "x12_id": "706",
+                        "name": "entity_relationship_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm111": {
+                        "x12_id": "98",
+                        "name": "entity_identifier_code",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "nm112": {
+                        "x12_id": "1035",
+                        "name": "name_last_or_organization_name",
+                        "required": false,
+                        "not_used": true
+                    }
+                }
+            },
+            "N3": {
+                "name": "Ambulance Drop-off Location Address",
+                "required": true,
+                "repeatable": false,
+                "elements": {
+                    "n301": {
+                        "x12_id": "166",
+                        "name": "address_line_1",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 55
+                    },
+                    "n302": {
+                        "x12_id": "166",
+                        "name": "address_line_2",
+                        "required": false,
+                        "conditional": "Required when there is a second address line. If not required by this implementation guide, do not send.",
+                        "min_length": 1,
+                        "max_length": 55
+                    }
+                }
+            },
+            "N4": {
+                "name": "Ambulance Drop-off Location City, State, ZIP Code",
+                "required": true,
+                "repeatable": false,
+                "syntax_rules": [
+                    {
+                        "code": "E0207",
+                        "mutually_exclusive": [
+                            "n402",
+                            "n407"
+                        ]
+                    },
+                    {
+                        "code": "C0605",
+                        "if": "n406",
+                        "then_required": [
+                            "n405"
+                        ]
+                    },
+                    {
+                        "code": "C0704",
+                        "if": "n407",
+                        "then_required": [
+                            "n404"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "n401": {
+                        "x12_id": "19",
+                        "name": "city_name",
+                        "required": true,
+                        "min_length": 2,
+                        "max_length": 30
+                    },
+                    "n402": {
+                        "x12_id": "156",
+                        "name": "state_or_province_code",
+                        "required": false,
+                        "conditional": "Required when the address is in the United States of America, including its territories, or Canada. If not required by this implementation guide, do not send.",
+                        "min_length": 2,
+                        "max_length": 2
+                    },
+                    "n403": {
+                        "x12_id": "116",
+                        "name": "postal_zone_or_zip_code",
+                        "required": false,
+                        "conditional": "Required when the address is in the US/territories or Canada, or when a postal code exists for the country in N404. If not required by this implementation guide, do not send.",
+                        "min_length": 3,
+                        "max_length": 15
+                    },
+                    "n404": {
+                        "x12_id": "26",
+                        "name": "country_code",
+                        "required": false,
+                        "conditional": "Required when the address is outside the United States of America. If not required by this implementation guide, do not send.",
+                        "min_length": 2,
+                        "max_length": 3
+                    },
+                    "n405": {
+                        "x12_id": "309",
+                        "name": "location_qualifier",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "n406": {
+                        "x12_id": "310",
+                        "name": "location_identifier",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "n407": {
+                        "x12_id": "1715",
+                        "name": "country_subdivision_code",
+                        "required": false,
+                        "conditional": "Required when the address is not in the US/territories or Canada, and the country in N404 has administrative subdivisions. If not required by this implementation guide, do not send.",
+                        "min_length": 1,
+                        "max_length": 3
+                    }
+                }
+            }
+        }
+    },
+    "loop_2430": {
+        "name": "Line Adjudication Information",
+        "required": false,
+        "repeatable": true,
+        "max_occurs": 15,
+        "parent": "loop_2400",
+        "conditional": "Required when the claim was previously adjudicated by the payer in 2330B and this service line has payments and/or adjustments. If not required by this implementation guide, do not send.",
+        "segments": {
+            "SVD": {
+                "name": "Line Adjudication Information",
+                "required": true,
+                "repeatable": false,
+                "elements": {
+                    "svd01": {
+                        "x12_id": "67",
+                        "name": "other_payer_primary_identifier",
+                        "required": true,
+                        "min_length": 2,
+                        "max_length": 80
+                    },
+                    "svd02": {
+                        "x12_id": "782",
+                        "name": "service_line_paid_amount",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 18
+                    },
+                    "svd03": {
+                        "x12_id": "C003",
+                        "name": "composite_medical_procedure_identifier",
+                        "required": true,
+                        "composite": true,
+                        "elements": {
+                            "svd03_1": {
+                                "x12_id": "235",
+                                "name": "product_or_service_id_qualifier",
+                                "required": true,
+                                "valid_values": [
+                                    "ER",
+                                    "HC",
+                                    "IV",
+                                    "WK"
+                                ]
+                            },
+                            "svd03_2": {
+                                "x12_id": "234",
+                                "name": "procedure_code",
+                                "required": true,
+                                "min_length": 1,
+                                "max_length": 48
+                            },
+                            "svd03_3": {
+                                "x12_id": "1339",
+                                "name": "procedure_modifier_1",
+                                "required": false,
+                                "min_length": 2,
+                                "max_length": 2
+                            },
+                            "svd03_4": {
+                                "x12_id": "1339",
+                                "name": "procedure_modifier_2",
+                                "required": false,
+                                "min_length": 2,
+                                "max_length": 2
+                            },
+                            "svd03_5": {
+                                "x12_id": "1339",
+                                "name": "procedure_modifier_3",
+                                "required": false,
+                                "min_length": 2,
+                                "max_length": 2
+                            },
+                            "svd03_6": {
+                                "x12_id": "1339",
+                                "name": "procedure_modifier_4",
+                                "required": false,
+                                "min_length": 2,
+                                "max_length": 2
+                            },
+                            "svd03_7": {
+                                "x12_id": "352",
+                                "name": "description",
+                                "required": false,
+                                "min_length": 1,
+                                "max_length": 80
+                            }
+                        }
+                    },
+                    "svd04": {
+                        "x12_id": "234",
+                        "name": "product_or_service_id",
+                        "required": false,
+                        "not_used": true
+                    },
+                    "svd05": {
+                        "x12_id": "380",
+                        "name": "paid_service_unit_count",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 15
+                    },
+                    "svd06": {
+                        "x12_id": "554",
+                        "name": "bundled_line_number",
+                        "required": false,
+                        "conditional": "Required when the payer bundled this service line. If not required by this implementation guide, do not send.",
+                        "min_length": 1,
+                        "max_length": 6
+                    }
+                }
+            },
+            "CAS": {
+                "name": "Line Adjustment",
+                "required": false,
+                "repeatable": true,
+                "max_occurs": 5,
+                "conditional": "Required when the 2330B payer made line-level adjustments. If not required by this implementation guide, do not send.",
+                "syntax_rules": [
+                    {
+                        "code": "L050607",
+                        "if": "cas05",
+                        "then_any_of": [
+                            "cas06",
+                            "cas07"
+                        ]
+                    },
+                    {
+                        "code": "C",
+                        "if": "cas06",
+                        "then_required": [
+                            "cas05"
+                        ]
+                    },
+                    {
+                        "code": "C",
+                        "if": "cas07",
+                        "then_required": [
+                            "cas05"
+                        ]
+                    },
+                    {
+                        "code": "L080910",
+                        "if": "cas08",
+                        "then_any_of": [
+                            "cas09",
+                            "cas10"
+                        ]
+                    },
+                    {
+                        "code": "C",
+                        "if": "cas09",
+                        "then_required": [
+                            "cas08"
+                        ]
+                    },
+                    {
+                        "code": "C",
+                        "if": "cas10",
+                        "then_required": [
+                            "cas08"
+                        ]
+                    },
+                    {
+                        "code": "L111213",
+                        "if": "cas11",
+                        "then_any_of": [
+                            "cas12",
+                            "cas13"
+                        ]
+                    },
+                    {
+                        "code": "C",
+                        "if": "cas12",
+                        "then_required": [
+                            "cas11"
+                        ]
+                    },
+                    {
+                        "code": "C",
+                        "if": "cas13",
+                        "then_required": [
+                            "cas11"
+                        ]
+                    },
+                    {
+                        "code": "L141516",
+                        "if": "cas14",
+                        "then_any_of": [
+                            "cas15",
+                            "cas16"
+                        ]
+                    },
+                    {
+                        "code": "C",
+                        "if": "cas15",
+                        "then_required": [
+                            "cas14"
+                        ]
+                    },
+                    {
+                        "code": "C",
+                        "if": "cas16",
+                        "then_required": [
+                            "cas14"
+                        ]
+                    },
+                    {
+                        "code": "L171819",
+                        "if": "cas17",
+                        "then_any_of": [
+                            "cas18",
+                            "cas19"
+                        ]
+                    },
+                    {
+                        "code": "C",
+                        "if": "cas18",
+                        "then_required": [
+                            "cas17"
+                        ]
+                    },
+                    {
+                        "code": "C",
+                        "if": "cas19",
+                        "then_required": [
+                            "cas17"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "cas01": {
+                        "x12_id": "1033",
+                        "name": "claim_adjustment_group_code",
+                        "required": true,
+                        "valid_values": [
+                            "CO",
+                            "CR",
+                            "OA",
+                            "PI",
+                            "PR"
+                        ]
+                    },
+                    "cas02": {
+                        "x12_id": "1034",
+                        "name": "adjustment_reason_code_1",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 5
+                    },
+                    "cas03": {
+                        "x12_id": "782",
+                        "name": "adjustment_amount_1",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 18
+                    },
+                    "cas04": {
+                        "x12_id": "380",
+                        "name": "adjustment_quantity_1",
+                        "required": false,
+                        "conditional": "Required when the number of service units has been adjusted. If not required by this implementation guide, do not send.",
+                        "min_length": 1,
+                        "max_length": 15
+                    },
+                    "cas05": {
+                        "x12_id": "1034",
+                        "name": "adjustment_reason_code",
+                        "required": false,
+                        "conditional": "Required when it is necessary to report an additional non-zero adjustment. If not required by this implementation guide, do not send.",
+                        "min_length": 1,
+                        "max_length": 5
+                    },
+                    "cas06": {
+                        "x12_id": "782",
+                        "name": "adjustment_amount",
+                        "required": false,
+                        "required_with": "cas05",
+                        "min_length": 1,
+                        "max_length": 18
+                    },
+                    "cas07": {
+                        "x12_id": "380",
+                        "name": "adjustment_quantity",
+                        "required": false,
+                        "conditional": "Required when the related reason code is present and is related to a units of service adjustment. If not required by this implementation guide, do not send.",
+                        "min_length": 1,
+                        "max_length": 15
+                    },
+                    "cas08": {
+                        "x12_id": "1034",
+                        "name": "adjustment_reason_code",
+                        "required": false,
+                        "conditional": "Required when it is necessary to report an additional non-zero adjustment. If not required by this implementation guide, do not send.",
+                        "min_length": 1,
+                        "max_length": 5
+                    },
+                    "cas09": {
+                        "x12_id": "782",
+                        "name": "adjustment_amount",
+                        "required": false,
+                        "required_with": "cas08",
+                        "min_length": 1,
+                        "max_length": 18
+                    },
+                    "cas10": {
+                        "x12_id": "380",
+                        "name": "adjustment_quantity",
+                        "required": false,
+                        "conditional": "Required when the related reason code is present and is related to a units of service adjustment. If not required by this implementation guide, do not send.",
+                        "min_length": 1,
+                        "max_length": 15
+                    },
+                    "cas11": {
+                        "x12_id": "1034",
+                        "name": "adjustment_reason_code",
+                        "required": false,
+                        "conditional": "Required when it is necessary to report an additional non-zero adjustment. If not required by this implementation guide, do not send.",
+                        "min_length": 1,
+                        "max_length": 5
+                    },
+                    "cas12": {
+                        "x12_id": "782",
+                        "name": "adjustment_amount",
+                        "required": false,
+                        "required_with": "cas11",
+                        "min_length": 1,
+                        "max_length": 18
+                    },
+                    "cas13": {
+                        "x12_id": "380",
+                        "name": "adjustment_quantity",
+                        "required": false,
+                        "conditional": "Required when the related reason code is present and is related to a units of service adjustment. If not required by this implementation guide, do not send.",
+                        "min_length": 1,
+                        "max_length": 15
+                    },
+                    "cas14": {
+                        "x12_id": "1034",
+                        "name": "adjustment_reason_code",
+                        "required": false,
+                        "conditional": "Required when it is necessary to report an additional non-zero adjustment. If not required by this implementation guide, do not send.",
+                        "min_length": 1,
+                        "max_length": 5
+                    },
+                    "cas15": {
+                        "x12_id": "782",
+                        "name": "adjustment_amount",
+                        "required": false,
+                        "required_with": "cas14",
+                        "min_length": 1,
+                        "max_length": 18
+                    },
+                    "cas16": {
+                        "x12_id": "380",
+                        "name": "adjustment_quantity",
+                        "required": false,
+                        "conditional": "Required when the related reason code is present and is related to a units of service adjustment. If not required by this implementation guide, do not send.",
+                        "min_length": 1,
+                        "max_length": 15
+                    },
+                    "cas17": {
+                        "x12_id": "1034",
+                        "name": "adjustment_reason_code",
+                        "required": false,
+                        "conditional": "Required when it is necessary to report an additional non-zero adjustment. If not required by this implementation guide, do not send.",
+                        "min_length": 1,
+                        "max_length": 5
+                    },
+                    "cas18": {
+                        "x12_id": "782",
+                        "name": "adjustment_amount",
+                        "required": false,
+                        "required_with": "cas17",
+                        "min_length": 1,
+                        "max_length": 18
+                    },
+                    "cas19": {
+                        "x12_id": "380",
+                        "name": "adjustment_quantity",
+                        "required": false,
+                        "conditional": "Required when the related reason code is present and is related to a units of service adjustment. If not required by this implementation guide, do not send.",
+                        "min_length": 1,
+                        "max_length": 15
+                    }
+                }
+            },
+            "DTP_573": {
+                "name": "Line Check or Remittance Date",
+                "required": true,
+                "repeatable": false,
+                "elements": {
+                    "dtp01": {
+                        "x12_id": "374",
+                        "name": "date_time_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "573"
+                        ]
+                    },
+                    "dtp02": {
+                        "x12_id": "1250",
+                        "name": "date_time_period_format_qualifier",
+                        "required": true,
+                        "valid_values": [
+                            "D8"
+                        ]
+                    },
+                    "dtp03": {
+                        "x12_id": "1251",
+                        "name": "date_time_period",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 35
+                    }
+                }
+            },
+            "AMT_EAF": {
+                "name": "Remaining Patient Liability",
+                "required": false,
+                "repeatable": false,
+                "elements": {
+                    "amt01": {
+                        "x12_id": "522",
+                        "name": "amount_qualifier_code",
+                        "required": true,
+                        "valid_values": [
+                            "EAF"
+                        ]
+                    },
+                    "amt02": {
+                        "x12_id": "782",
+                        "name": "monetary_amount",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 18
+                    },
+                    "amt03": {
+                        "x12_id": "478",
+                        "name": "credit_debit_flag_code",
+                        "required": false,
+                        "not_used": true
+                    }
+                }
+            }
+        }
+    },
+    "loop_2440": {
+        "name": "Form Identification Code",
+        "required": false,
+        "repeatable": true,
+        "max_occurs": 99,
+        "parent": "loop_2400",
+        "conditional": "Required when adjudication is known to be impacted by supporting documentation listed in LQ01. If not required by this implementation guide, do not send.",
+        "segments": {
+            "LQ": {
+                "name": "Form Identification Code",
+                "required": true,
+                "repeatable": false,
+                "elements": {
+                    "lq01": {
+                        "x12_id": "1270",
+                        "name": "code_list_qualifier_code",
+                        "required": true,
+                        "valid_values": [
+                            "AS",
+                            "UT"
+                        ]
+                    },
+                    "lq02": {
+                        "x12_id": "1271",
+                        "name": "form_identifier",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 30
+                    }
+                }
+            },
+            "FRM": {
+                "name": "Supporting Documentation",
+                "required": true,
+                "repeatable": true,
+                "max_occurs": 99,
+                "syntax_rules": [
+                    {
+                        "code": "R020305",
+                        "at_least_one_of": [
+                            "frm02",
+                            "frm03",
+                            "frm04",
+                            "frm05"
+                        ]
+                    }
+                ],
+                "elements": {
+                    "frm01": {
+                        "x12_id": "350",
+                        "name": "question_number_letter",
+                        "required": true,
+                        "min_length": 1,
+                        "max_length": 20
+                    },
+                    "frm02": {
+                        "x12_id": "1073",
+                        "name": "question_response_yes_no",
+                        "required": false,
+                        "valid_values": [
+                            "N",
+                            "W",
+                            "Y"
+                        ]
+                    },
+                    "frm03": {
+                        "x12_id": "127",
+                        "name": "question_response_text",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 50
+                    },
+                    "frm04": {
+                        "x12_id": "373",
+                        "name": "question_response_date",
+                        "required": false,
+                        "format": "CCYYMMDD"
+                    },
+                    "frm05": {
+                        "x12_id": "332",
+                        "name": "question_response_percent",
+                        "required": false,
+                        "min_length": 1,
+                        "max_length": 6
+                    }
+                }
+            }
+        }
+    }
+}

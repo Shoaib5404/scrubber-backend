@@ -1,0 +1,337 @@
+{
+  "loop_1000A": {
+    "name": "Submitter Name",
+    "required": true,
+    "repeatable": false,
+    "max_occurs": 1,
+    "parent": "ST",
+    "segments": {
+      "NM1": {
+        "name": "Submitter Name",
+        "required": true,
+        "repeatable": false,
+        "position": 1,
+        "syntax_rules": [
+          {"code": "P0809", "if": "nm108", "then_required": ["nm109"]},
+          {"code": "P0809", "if": "nm109", "then_required": ["nm108"]},
+          {"code": "C1110", "if": "nm111", "then_required": ["nm110"]},
+          {"code": "C1203", "if": "nm112", "then_required": ["nm103"]}
+        ],
+        "elements": {
+          "nm101": {
+            "x12_id": "98",
+            "name": "entity_identifier_code",
+            "required": true,
+            "min_length": 2,
+            "max_length": 3,
+            "valid_values": ["41"],
+            "description": "41=Submitter"
+          },
+          "nm102": {
+            "x12_id": "1065",
+            "name": "entity_type_qualifier",
+            "required": true,
+            "min_length": 1,
+            "max_length": 1,
+            "valid_values": ["1", "2"],
+            "description": "1=Person, 2=Non-Person Entity"
+          },
+          "nm103": {
+            "x12_id": "1035",
+            "name": "submitter_last_or_organization_name",
+            "required": true,
+            "min_length": 1,
+            "max_length": 60,
+            "description": "Organization name if NM102=2, Last name if NM102=1"
+          },
+          "nm104": {
+            "x12_id": "1036",
+            "name": "submitter_first_name",
+            "required": false,
+            "conditional": "Required when NM102=1 (person) and the person has a first name. If not required by this implementation guide, do not send.",
+            "only_when": {"element": "nm102", "equals": "1"},
+            "min_length": 1,
+            "max_length": 35,
+            "description": "First name when NM102=1"
+          },
+          "nm105": {
+            "x12_id": "1037",
+            "name": "submitter_middle_name_or_initial",
+            "required": false,
+            "conditional": "Required when NM102=1 (person) and the middle name or initial of the person is needed to identify the individual. If not required by this implementation guide, do not send.",
+            "only_when": {"element": "nm102", "equals": "1"},
+            "min_length": 1,
+            "max_length": 25,
+            "description": "Middle name or initial"
+          },
+          "nm106": {
+            "x12_id": "1038",
+            "name": "name_prefix",
+            "required": false,
+            "not_used": true
+          },
+          "nm107": {
+            "x12_id": "1039",
+            "name": "name_suffix",
+            "required": false,
+            "not_used": true
+          },
+          "nm108": {
+            "x12_id": "66",
+            "name": "identification_code_qualifier",
+            "required": true,
+            "min_length": 1,
+            "max_length": 2,
+            "valid_values": ["46"],
+            "description": "46=Electronic Transmitter Identification Number (ETIN); paired with NM109 via syntax_rules P0809"
+          },
+          "nm109": {
+            "x12_id": "67",
+            "name": "submitter_identifier",
+            "required": true,
+            "min_length": 2,
+            "max_length": 80,
+            "description": "Submitter ETIN assigned by payer; paired with NM108 via syntax_rules P0809"
+          },
+          "nm110": {
+            "x12_id": "706",
+            "name": "entity_relationship_code",
+            "required": false,
+            "not_used": true
+          },
+          "nm111": {
+            "x12_id": "98",
+            "name": "entity_identifier_code",
+            "required": false,
+            "not_used": true
+          },
+          "nm112": {
+            "x12_id": "1035",
+            "name": "name_last_or_organization_name",
+            "required": false,
+            "not_used": true
+          }
+        }
+      },
+      "PER": {
+        "name": "Submitter EDI Contact Information",
+        "required": true,
+        "repeatable": true,
+        "max_occurs": 2,
+        "position": 2,
+        "syntax_rules": [
+          {"code": "P0304", "if": "per03", "then_required": ["per04"]},
+          {"code": "P0304", "if": "per04", "then_required": ["per03"]},
+          {"code": "P0506", "if": "per05", "then_required": ["per06"]},
+          {"code": "P0506", "if": "per06", "then_required": ["per05"]},
+          {"code": "P0708", "if": "per07", "then_required": ["per08"]},
+          {"code": "P0708", "if": "per08", "then_required": ["per07"]}
+        ],
+        "elements": {
+          "per01": {
+            "x12_id": "366",
+            "name": "contact_function_code",
+            "required": true,
+            "min_length": 2,
+            "max_length": 2,
+            "valid_values": ["IC"],
+            "description": "IC=Information Contact"
+          },
+          "per02": {
+            "x12_id": "93",
+            "name": "submitter_contact_name",
+            "required": false,
+            "conditional": "Required when the contact name is different than the name contained in the Submitter Name (NM1) segment of this loop AND it is the first iteration of the Submitter EDI Contact Information (PER) segment. If not required by this implementation guide, do not send.",
+            "min_length": 1,
+            "max_length": 60,
+            "description": "Contact person name"
+          },
+          "per03": {
+            "x12_id": "365",
+            "name": "communication_number_qualifier_1",
+            "required": true,
+            "min_length": 2,
+            "max_length": 2,
+            "valid_values": ["EM", "FX", "TE"],
+            "description": "EM=Email, FX=Fax, TE=Telephone"
+          },
+          "per04": {
+            "x12_id": "364",
+            "name": "communication_number_1",
+            "required": true,
+            "min_length": 1,
+            "max_length": 256,
+            "description": "Phone, fax, or email"
+          },
+          "per05": {
+            "x12_id": "365",
+            "name": "communication_number_qualifier_2",
+            "required": false,
+            "conditional": "Required when this information is deemed necessary by the submitter. If not required by this implementation guide, do not send.",
+            "min_length": 2,
+            "max_length": 2,
+            "valid_values": ["EM", "EX", "FX", "TE"],
+            "description": "EX=Extension; paired with PER06 via syntax_rules P0506"
+          },
+          "per06": {
+            "x12_id": "364",
+            "name": "communication_number_2",
+            "required": false,
+            "conditional": "Required if PER05 present (X12 syntax P0506)",
+            "min_length": 1,
+            "max_length": 256,
+            "description": "Second contact method; paired with PER05 via syntax_rules P0506"
+          },
+          "per07": {
+            "x12_id": "365",
+            "name": "communication_number_qualifier_3",
+            "required": false,
+            "conditional": "Required when this information is deemed necessary by the submitter. If not required by this implementation guide, do not send.",
+            "min_length": 2,
+            "max_length": 2,
+            "valid_values": ["EM", "EX", "FX", "TE"],
+            "description": "Third contact qualifier; paired with PER08 via syntax_rules P0708"
+          },
+          "per08": {
+            "x12_id": "364",
+            "name": "communication_number_3",
+            "required": false,
+            "conditional": "Required if PER07 present (X12 syntax P0708)",
+            "min_length": 1,
+            "max_length": 256,
+            "description": "Third contact method; paired with PER07 via syntax_rules P0708"
+          },
+          "per09": {
+            "x12_id": "443",
+            "name": "contact_inquiry_reference",
+            "required": false,
+            "not_used": true
+          }
+        }
+      }
+    },
+    "validation_rules": [
+      {"rule": "NM103 required regardless of entity type"},
+      {"rule": "NM104 required when NM102=1 (person) and the person has a first name; otherwise do not send"},
+      {"rule": "NM105 required when NM102=1 (person) and the middle name or initial is needed to identify the individual; otherwise do not send"},
+      {"rule": "NM106, NM107, NM110-NM112 not used; value present = error, empty = OK"},
+      {"rule": "PER02 required when contact name differs from Submitter NM1 AND it is the first PER iteration; otherwise do not send"},
+      {"rule": "PER05 and PER07 required when deemed necessary by the submitter; otherwise do not send"},
+      {"rule": "PER09 not used; PER syntax P0304/P0506/P0708"}
+    ]
+  },
+  "loop_1000B": {
+    "name": "Receiver Name",
+    "required": true,
+    "repeatable": false,
+    "max_occurs": 1,
+    "parent": "ST",
+    "segments": {
+      "NM1": {
+        "name": "Receiver Name",
+        "required": true,
+        "repeatable": false,
+        "position": 1,
+        "syntax_rules": [
+          {"code": "P0809", "if": "nm108", "then_required": ["nm109"]},
+          {"code": "P0809", "if": "nm109", "then_required": ["nm108"]},
+          {"code": "C1110", "if": "nm111", "then_required": ["nm110"]},
+          {"code": "C1203", "if": "nm112", "then_required": ["nm103"]}
+        ],
+        "elements": {
+          "nm101": {
+            "x12_id": "98",
+            "name": "entity_identifier_code",
+            "required": true,
+            "min_length": 2,
+            "max_length": 3,
+            "valid_values": ["40"],
+            "description": "40=Receiver"
+          },
+          "nm102": {
+            "x12_id": "1065",
+            "name": "entity_type_qualifier",
+            "required": true,
+            "min_length": 1,
+            "max_length": 1,
+            "valid_values": ["2"],
+            "description": "2=Non-Person Entity (always organization)"
+          },
+          "nm103": {
+            "x12_id": "1035",
+            "name": "receiver_name",
+            "required": true,
+            "min_length": 1,
+            "max_length": 60,
+            "description": "Receiver organization name"
+          },
+          "nm104": {
+            "x12_id": "1036",
+            "name": "first_name",
+            "required": false,
+            "not_used": true
+          },
+          "nm105": {
+            "x12_id": "1037",
+            "name": "middle_name",
+            "required": false,
+            "not_used": true
+          },
+          "nm106": {
+            "x12_id": "1038",
+            "name": "name_prefix",
+            "required": false,
+            "not_used": true
+          },
+          "nm107": {
+            "x12_id": "1039",
+            "name": "name_suffix",
+            "required": false,
+            "not_used": true
+          },
+          "nm108": {
+            "x12_id": "66",
+            "name": "identification_code_qualifier",
+            "required": true,
+            "min_length": 1,
+            "max_length": 2,
+            "valid_values": ["46"],
+            "description": "46=ETIN"
+          },
+          "nm109": {
+            "x12_id": "67",
+            "name": "receiver_primary_identifier",
+            "required": true,
+            "min_length": 2,
+            "max_length": 80,
+            "description": "Receiver ETIN/Payer ID"
+          },
+          "nm110": {
+            "x12_id": "706",
+            "name": "entity_relationship_code",
+            "required": false,
+            "not_used": true
+          },
+          "nm111": {
+            "x12_id": "98",
+            "name": "entity_identifier_code",
+            "required": false,
+            "not_used": true
+          },
+          "nm112": {
+            "x12_id": "1035",
+            "name": "name_last_or_organization_name",
+            "required": false,
+            "not_used": true
+          }
+        }
+      }
+    },
+    "validation_rules": [
+      {"rule": "NM102 must always be 2 for receiver"},
+      {"rule": "NM104-NM107 and NM110-NM112 not used; value present = error, empty = OK"},
+      {"rule": "NM109 typically matches payer ID used in 2010BB"},
+      {"rule": "NM1 syntax P0809/C1110/C1203"}
+    ]
+  }
+}

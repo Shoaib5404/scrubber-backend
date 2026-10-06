@@ -1,0 +1,422 @@
+{
+  "ISA": {
+    "name": "Interchange Control Header",
+    "required": true,
+    "repeatable": false,
+    "position": 1,
+    "elements": {
+      "isa01": {
+        "x12_id": "I01",
+        "name": "authorization_information_qualifier",
+        "required": true,
+        "min_length": 2,
+        "max_length": 2,
+        "valid_values": ["00", "03"],
+        "description": "00=No Authorization, 03=Additional Data Identification"
+      },
+      "isa02": {
+        "x12_id": "I02",
+        "name": "authorization_information",
+        "required": true,
+        "min_length": 10,
+        "max_length": 10,
+        "description": "10-character field, space-filled if ISA01=00"
+      },
+      "isa03": {
+        "x12_id": "I03",
+        "name": "security_information_qualifier",
+        "required": true,
+        "min_length": 2,
+        "max_length": 2,
+        "valid_values": ["00", "01"],
+        "description": "00=No Security, 01=Password"
+      },
+      "isa04": {
+        "x12_id": "I04",
+        "name": "security_information",
+        "required": true,
+        "min_length": 10,
+        "max_length": 10,
+        "description": "10-character field, space-filled if ISA03=00"
+      },
+      "isa05": {
+        "x12_id": "I05",
+        "name": "interchange_sender_id_qualifier",
+        "required": true,
+        "min_length": 2,
+        "max_length": 2,
+        "valid_values": ["01", "14", "20", "27", "28", "29", "30", "33", "ZZ"],
+        "description": "01=DUNS, 14=DUNS+4, 20=HIN, 27=Carrier ID HCFA, 28=Fiscal Intermediary, 29=Medicare ID, 30=Tax ID, 33=NPI, ZZ=Mutually Defined"
+      },
+      "isa06": {
+        "x12_id": "I06",
+        "name": "interchange_sender_id",
+        "required": true,
+        "min_length": 15,
+        "max_length": 15,
+        "description": "Sender ID, right-padded with spaces"
+      },
+      "isa07": {
+        "x12_id": "I05",
+        "name": "interchange_receiver_id_qualifier",
+        "required": true,
+        "min_length": 2,
+        "max_length": 2,
+        "valid_values": ["01", "14", "20", "27", "28", "29", "30", "33", "ZZ"],
+        "description": "Same values as ISA05"
+      },
+      "isa08": {
+        "x12_id": "I07",
+        "name": "interchange_receiver_id",
+        "required": true,
+        "min_length": 15,
+        "max_length": 15,
+        "description": "Receiver ID, right-padded with spaces"
+      },
+      "isa09": {
+        "x12_id": "I08",
+        "name": "interchange_date",
+        "required": true,
+        "min_length": 6,
+        "max_length": 6,
+        "format": "YYMMDD",
+        "description": "Date of interchange"
+      },
+      "isa10": {
+        "x12_id": "I09",
+        "name": "interchange_time",
+        "required": true,
+        "min_length": 4,
+        "max_length": 4,
+        "format": "HHMM",
+        "description": "Time of interchange"
+      },
+      "isa11": {
+        "x12_id": "I65",
+        "name": "repetition_separator",
+        "required": true,
+        "min_length": 1,
+        "max_length": 1,
+        "valid_values": ["^", ">", "|"],
+        "description": "Repetition separator for 5010"
+      },
+      "isa12": {
+        "x12_id": "I11",
+        "name": "interchange_control_version",
+        "required": true,
+        "min_length": 5,
+        "max_length": 5,
+        "valid_values": ["00501"],
+        "description": "Must be 00501 for 5010"
+      },
+      "isa13": {
+        "x12_id": "I12",
+        "name": "interchange_control_number",
+        "required": true,
+        "min_length": 9,
+        "max_length": 9,
+        "description": "Unique control number, must match IEA02"
+      },
+      "isa14": {
+        "x12_id": "I13",
+        "name": "acknowledgment_requested",
+        "required": true,
+        "min_length": 1,
+        "max_length": 1,
+        "valid_values": ["0", "1"],
+        "description": "0=No TA1 Requested, 1=TA1 Requested"
+      },
+      "isa15": {
+        "x12_id": "I14",
+        "name": "interchange_usage_indicator",
+        "required": true,
+        "min_length": 1,
+        "max_length": 1,
+        "valid_values": ["P", "T"],
+        "description": "P=Production, T=Test"
+      },
+      "isa16": {
+        "x12_id": "I15",
+        "name": "component_element_separator",
+        "required": true,
+        "min_length": 1,
+        "max_length": 1,
+        "valid_values": [":"],
+        "description": "Component element separator"
+      }
+    },
+    "validation_rules": [
+      {"rule": "ISA13 must be numeric and unique per interchange"},
+      {"rule": "ISA06 and ISA08 must not be identical"},
+      {"rule": "ISA09 must be valid date"},
+      {"rule": "ISA10 must be valid time 0000-2359"}
+    ]
+  },
+  "GS": {
+    "name": "Functional Group Header",
+    "required": true,
+    "repeatable": true,
+    "max_occurs": 999999,
+    "position": 2,
+    "elements": {
+      "gs01": {
+        "x12_id": "479",
+        "name": "functional_identifier_code",
+        "required": true,
+        "min_length": 2,
+        "max_length": 2,
+        "valid_values": ["HC"],
+        "description": "HC=Health Care Claim (837)"
+      },
+      "gs02": {
+        "x12_id": "142",
+        "name": "application_sender_code",
+        "required": true,
+        "min_length": 2,
+        "max_length": 15,
+        "description": "Sender application ID"
+      },
+      "gs03": {
+        "x12_id": "124",
+        "name": "application_receiver_code",
+        "required": true,
+        "min_length": 2,
+        "max_length": 15,
+        "description": "Receiver application ID"
+      },
+      "gs04": {
+        "x12_id": "373",
+        "name": "group_date",
+        "required": true,
+        "min_length": 8,
+        "max_length": 8,
+        "format": "CCYYMMDD",
+        "description": "Functional group creation date"
+      },
+      "gs05": {
+        "x12_id": "337",
+        "name": "group_time",
+        "required": true,
+        "min_length": 4,
+        "max_length": 8,
+        "format": "HHMM or HHMMSS or HHMMSSDD",
+        "description": "Functional group creation time"
+      },
+      "gs06": {
+        "x12_id": "28",
+        "name": "group_control_number",
+        "required": true,
+        "min_length": 1,
+        "max_length": 9,
+        "description": "Unique control number, must match GE02"
+      },
+      "gs07": {
+        "x12_id": "455",
+        "name": "responsible_agency_code",
+        "required": true,
+        "min_length": 1,
+        "max_length": 2,
+        "valid_values": ["X"],
+        "description": "X=Accredited Standards Committee X12"
+      },
+      "gs08": {
+        "x12_id": "480",
+        "name": "version_identifier_code",
+        "required": true,
+        "min_length": 1,
+        "max_length": 12,
+        "valid_values": ["005010X222A1"],
+        "description": "837P Implementation Guide version"
+      }
+    },
+    "validation_rules": [
+      {"rule": "GS06 must match GE02 in corresponding trailer"},
+      {"rule": "GS04 must be valid date"},
+      {"rule": "GS08 must match transaction type"}
+    ]
+  },
+  "ST": {
+    "name": "Transaction Set Header",
+    "required": true,
+    "repeatable": true,
+    "max_occurs": 999999,
+    "position": 3,
+    "elements": {
+      "st01": {
+        "x12_id": "143",
+        "name": "transaction_set_identifier_code",
+        "required": true,
+        "min_length": 3,
+        "max_length": 3,
+        "valid_values": ["837"],
+        "description": "837=Health Care Claim"
+      },
+      "st02": {
+        "x12_id": "329",
+        "name": "transaction_set_control_number",
+        "required": true,
+        "min_length": 4,
+        "max_length": 9,
+        "description": "Unique within functional group, must match SE02"
+      },
+      "st03": {
+        "x12_id": "1705",
+        "name": "implementation_convention_reference",
+        "required": true,
+        "min_length": 1,
+        "max_length": 35,
+        "valid_values": ["005010X222A1"],
+        "description": "Implementation guide reference"
+      }
+    },
+    "validation_rules": [
+      {"rule": "ST02 must match SE02 in corresponding trailer"},
+      {"rule": "ST03 must match GS08"}
+    ]
+  },
+  "BHT": {
+    "name": "Beginning of Hierarchical Transaction",
+    "required": true,
+    "repeatable": false,
+    "position": 4,
+    "elements": {
+      "bht01": {
+        "x12_id": "1005",
+        "name": "hierarchical_structure_code",
+        "required": true,
+        "min_length": 4,
+        "max_length": 4,
+        "valid_values": ["0019"],
+        "description": "0019=Information Source, Subscriber, Dependent"
+      },
+      "bht02": {
+        "x12_id": "353",
+        "name": "transaction_set_purpose_code",
+        "required": true,
+        "min_length": 2,
+        "max_length": 2,
+        "valid_values": ["00", "18"],
+        "description": "00=Original, 18=Reissue"
+      },
+      "bht03": {
+        "x12_id": "127",
+        "name": "originator_application_transaction_id",
+        "required": true,
+        "min_length": 1,
+        "max_length": 50,
+        "description": "Batch or transmission ID"
+      },
+      "bht04": {
+        "x12_id": "373",
+        "name": "transaction_set_creation_date",
+        "required": true,
+        "min_length": 8,
+        "max_length": 8,
+        "format": "CCYYMMDD",
+        "description": "Transaction creation date"
+      },
+      "bht05": {
+        "x12_id": "337",
+        "name": "transaction_set_creation_time",
+        "required": true,
+        "min_length": 4,
+        "max_length": 8,
+        "format": "HHMM",
+        "description": "Transaction creation time"
+      },
+      "bht06": {
+        "x12_id": "640",
+        "name": "claim_or_encounter_identifier",
+        "required": true,
+        "min_length": 2,
+        "max_length": 2,
+        "valid_values": ["31", "CH", "RP"],
+        "description": "31=Subrogation Demand, CH=Chargeable, RP=Reporting"
+      }
+    }
+  },
+  "SE": {
+    "name": "Transaction Set Trailer",
+    "required": true,
+    "repeatable": false,
+    "position": 9999,
+    "elements": {
+      "se01": {
+        "x12_id": "96",
+        "name": "number_of_included_segments",
+        "required": true,
+        "min_length": 1,
+        "max_length": 10,
+        "description": "Total segments in transaction including ST and SE"
+      },
+      "se02": {
+        "x12_id": "329",
+        "name": "transaction_set_control_number",
+        "required": true,
+        "min_length": 4,
+        "max_length": 9,
+        "description": "Must match ST02"
+      }
+    },
+    "validation_rules": [
+      {"rule": "SE01 must equal actual segment count"},
+      {"rule": "SE02 must equal ST02"}
+    ]
+  },
+  "GE": {
+    "name": "Functional Group Trailer",
+    "required": true,
+    "repeatable": false,
+    "position": 10000,
+    "elements": {
+      "ge01": {
+        "x12_id": "97",
+        "name": "number_of_transaction_sets_included",
+        "required": true,
+        "min_length": 1,
+        "max_length": 6,
+        "description": "Count of ST-SE pairs in functional group"
+      },
+      "ge02": {
+        "x12_id": "28",
+        "name": "group_control_number",
+        "required": true,
+        "min_length": 1,
+        "max_length": 9,
+        "description": "Must match GS06"
+      }
+    },
+    "validation_rules": [
+      {"rule": "GE01 must equal actual transaction set count"},
+      {"rule": "GE02 must equal GS06"}
+    ]
+  },
+  "IEA": {
+    "name": "Interchange Control Trailer",
+    "required": true,
+    "repeatable": false,
+    "position": 10001,
+    "elements": {
+      "iea01": {
+        "x12_id": "I16",
+        "name": "number_of_included_functional_groups",
+        "required": true,
+        "min_length": 1,
+        "max_length": 5,
+        "description": "Count of GS-GE pairs in interchange"
+      },
+      "iea02": {
+        "x12_id": "I12",
+        "name": "interchange_control_number",
+        "required": true,
+        "min_length": 9,
+        "max_length": 9,
+        "description": "Must match ISA13"
+      }
+    },
+    "validation_rules": [
+      {"rule": "IEA01 must equal actual functional group count"},
+      {"rule": "IEA02 must equal ISA13"}
+    ]
+  }
+}
