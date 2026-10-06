@@ -1,5 +1,9 @@
-// Neo Scrubber — Prisma schema (scaffold)
-// Full Laravel table mapping lands in Phase 2 (SP-2).
+// Neo Scrubber — core claim pipeline (SP-2 Task 6)
+// Column map sourced from Laravel migrations under neo-scrubber/database/migrations.
+// Intentional diffs vs MySQL:
+// - PK type Int (Laravel BIGINT UNSIGNED) — sufficient for app scale; Nest/Prisma DX
+// - timestamps use DateTime @default(now()) / @updatedAt where Laravel used nullable timestamps()
+// - RefreshToken is Nest-only (JWT refresh); not present in Laravel
 
 generator client {
   provider = "prisma-client-js"
@@ -10,10 +14,312 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Placeholder model so `prisma generate` succeeds before Phase 2 migrations.
-model SchemaMeta {
+enum UnitScale {
+  UN
+  MJ
+  F2
+}
+
+model User {
+  id                   Int       @id @default(autoincrement())
+  name                 String
+  email                String    @unique
+  emailVerifiedAt      DateTime? @map("email_verified_at")
+  password             String
+  role                 String    @default("customer")
+  isActive             Boolean   @default(true) @map("is_active")
+  plan                 String?
+  subscriptionStatus   String    @default("inactive") @map("subscription_status")
+  subscriptionStartsAt DateTime? @map("subscription_starts_at")
+  subscriptionEndsAt   DateTime? @map("subscription_ends_at")
+  rememberToken        String?   @map("remember_token") @db.VarChar(100)
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  apiClient           ApiClient?           @relation("ApiClientOwner")
+  createdApiClients   ApiClient[]          @relation("ApiClientCreator")
+  uploadedBatches     BatchFile[]          @relation("BatchUploader")
+  ediUploadErrorLogs  EdiUploadErrorLog[]
+  refreshTokens       RefreshToken[]
+
+  @@index([role])
+  @@index([isActive])
+  @@index([subscriptionStatus])
+  @@map("users")
+}
+
+model RolePermission {
+  id         Int      @id @default(autoincrement())
+  role       String
+  permission String
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@unique([role, permission])
+  @@index([role])
+  @@index([permission])
+  @@map("role_permissions")
+}
+
+model ApiClient {
+  id           Int       @id @default(autoincrement())
+  userId       Int?      @unique @map("user_id")
+  name         String
+  clientId     String    @unique @map("client_id")
+  clientSecret String    @map("client_secret") @db.Text
+  isActive     Boolean   @default(true) @map("is_active")
+  scopes       Json?
+  lastUsedAt   DateTime? @map("last_used_at")
+  createdBy    Int?      @map("created_by")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  user    User? @relation("ApiClientOwner", fields: [userId], references: [id], onDelete: SetNull)
+  creator User? @relation("ApiClientCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@index([userId, isActive])
+  @@map("api_clients")
+}
+
+/// Nest-only JWT refresh session (intentional addition vs Laravel Sanctum).
+model RefreshToken {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model BatchFile {
+  id                   Int       @id @default(autoincrement())
+  filename             String
+  originalFilename     String    @map("original_filename")
+  filePath             String    @map("file_path")
+  fileSize             Int?      @map("file_size")
+  uploadedById         Int?      @map("uploaded_by")
+  isaSenderId          String?   @map("isa_sender_id")
+  isaReceiverId        String?   @map("isa_receiver_id")
+  isaDate              DateTime? @map("isa_date") @db.Date
+  bhtDate              DateTime? @map("bht_date") @db.Date
+  isaTime              DateTime? @map("isa_time") @db.Time(0)
+  isaControlNumber     String?   @map("isa_control_number")
+  gsSenderCode         String?   @map("gs_sender_code")
+  gsReceiverCode       String?   @map("gs_receiver_code")
+  gsControlNumber      String?   @map("gs_control_number")
+  gsVersionCode        String?   @map("gs_version_code")
+  totalClaims          Int       @default(0) @map("total_claims")
+  totalAmount          Decimal   @default(0) @map("total_amount") @db.Decimal(14, 2)
+  validClaims          Int       @default(0) @map("valid_claims")
+  errorClaims          Int       @default(0) @map("error_claims")
+  warningClaims        Int       @default(0) @map("warning_claims")
+  status               String    @default("pending")
+  errorMessage         String?   @map("error_message") @db.Text
+  ediValidationErrors  Json?     @map("edi_validation_errors")
+  processedAt          DateTime? @map("processed_at")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  uploadedBy         User?               @relation("BatchUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  claims             Claim[]
+  ediUploadErrorLogs EdiUploadErrorLog[]
+
+  @@index([status])
+  @@index([isaControlNumber])
+  @@index([createdAt])
+  @@map("batch_files")
+}
+
+model Claim {
+  id                              Int       @id @default(autoincrement())
+  batchFileId                     Int       @map("batch_file_id")
+  stControlNumber                 String?   @map("st_control_number")
+  transactionSetCreationDate      DateTime? @map("transaction_set_creation_date") @db.Date
+  claimId                         String    @map("claim_id")
+  billingProviderName             String?   @map("billing_provider_name")
+  billingProviderNpi              String?   @map("billing_provider_npi")
+  billingProviderTaxId            String?   @map("billing_provider_tax_id")
+  billingProviderSsn              String?   @map("billing_provider_ssn") @db.VarChar(11)
+  billingProviderTaxonomy         String?   @map("billing_provider_taxonomy") @db.VarChar(10)
+  billingProviderUpin             String?   @map("billing_provider_upin") @db.VarChar(30)
+  billingProviderStateLicense     String?   @map("billing_provider_state_license") @db.VarChar(50)
+  billingProviderAddress          String?   @map("billing_provider_address") @db.Text
+  billingProviderAddressLine1     String?   @map("billing_provider_address_line_1")
+  billingProviderAddressLine2     String?   @map("billing_provider_address_line_2")
+  billingProviderCity             String?   @map("billing_provider_city")
+  billingProviderState            String?   @map("billing_provider_state") @db.VarChar(2)
+  billingProviderZip              String?   @map("billing_provider_zip") @db.VarChar(15)
+  subscriberLastName              String?   @map("subscriber_last_name")
+  subscriberFirstName             String?   @map("subscriber_first_name")
+  subscriberMemberId              String?   @map("subscriber_member_id")
+  subscriberSsn                   String?   @map("subscriber_ssn") @db.VarChar(11)
+  subscriberDob                   DateTime? @map("subscriber_dob") @db.Date
+  subscriberGender                String?   @map("subscriber_gender")
+  subscriberAddress               String?   @map("subscriber_address") @db.Text
+  subscriberGroupNumber           String?   @map("subscriber_group_number")
+  subscriberGroupName             String?   @map("subscriber_group_name") @db.VarChar(60)
+  subscriberRelationship          String?   @map("subscriber_relationship") @db.VarChar(2)
+  payerResponsibility             String?   @map("payer_responsibility") @db.VarChar(1)
+  claimFilingIndicator            String?   @map("claim_filing_indicator") @db.VarChar(2)
+  insuranceTypeCode               String?   @map("insurance_type_code") @db.VarChar(3)
+  otherSubscribers                Json?     @map("other_subscribers")
+  patientLastName                 String?   @map("patient_last_name")
+  patientFirstName                String?   @map("patient_first_name")
+  patientDob                      DateTime? @map("patient_dob") @db.Date
+  patientGender                   String?   @map("patient_gender")
+  patientRelationship             String?   @map("patient_relationship")
+  patientAddress                  String?   @map("patient_address") @db.Text
+  payerName                       String?   @map("payer_name")
+  payerId                         String?   @map("payer_id")
+  payerAddress                    String?   @map("payer_address") @db.Text
+  renderingProviderNpi            String?   @map("rendering_provider_npi")
+  renderingProviderLastName       String?   @map("rendering_provider_last_name")
+  renderingProviderFirstName      String?   @map("rendering_provider_first_name")
+  renderingProviderMiddleName     String?   @map("rendering_provider_middle_name")
+  renderingProviderUpin           String?   @map("rendering_provider_upin") @db.VarChar(30)
+  renderingProviderStateLicense   String?   @map("rendering_provider_state_license") @db.VarChar(50)
+  referringProviderNpi            String?   @map("referring_provider_npi")
+  referringProviderLastName       String?   @map("referring_provider_last_name")
+  referringProviderFirstName      String?   @map("referring_provider_first_name")
+  referringProviderMiddleName     String?   @map("referring_provider_middle_name")
+  referringProviderUpin           String?   @map("referring_provider_upin") @db.VarChar(30)
+  referringProviderStateLicense   String?   @map("referring_provider_state_license") @db.VarChar(50)
+  facilityName                    String?   @map("facility_name")
+  facilityNpi                     String?   @map("facility_npi")
+  facilityAddress                 String?   @map("facility_address") @db.Text
+  totalCharge                     Decimal   @default(0) @map("total_charge") @db.Decimal(12, 2)
+  placeOfService                  String?   @map("place_of_service")
+  frequencyCode                   String?   @map("frequency_code")
+  delayReasonCode                 String?   @map("delay_reason_code") @db.VarChar(2)
+  submissionMethod                String?   @map("submission_method") @db.VarChar(20)
+  relatedCausesCode               String?   @map("related_causes_code") @db.VarChar(50)
+  admissionDate                   DateTime? @map("admission_date") @db.Date
+  dischargeDate                   DateTime? @map("discharge_date") @db.Date
+  onsetOfIllnessDate              DateTime? @map("onset_of_illness_date") @db.Date
+  lastMenstrualPeriodDate         DateTime? @map("last_menstrual_period_date") @db.Date
+  initialTreatmentDate            DateTime? @map("initial_treatment_date") @db.Date
+  lastSeenDate                    DateTime? @map("last_seen_date") @db.Date
+  accidentDate                    DateTime? @map("accident_date") @db.Date
+  lastXrayDate                    DateTime? @map("last_xray_date") @db.Date
+  hearingVisionPrescriptionDate   DateTime? @map("hearing_vision_prescription_date") @db.Date
+  disabilityStartDate             DateTime? @map("disability_start_date") @db.Date
+  disabilityEndDate               DateTime? @map("disability_end_date") @db.Date
+  lastWorkedDate                  DateTime? @map("last_worked_date") @db.Date
+  authorizedReturnToWorkDate      DateTime? @map("authorized_return_to_work_date") @db.Date
+  assumedCareDate                 DateTime? @map("assumed_care_date") @db.Date
+  relinquishedCareDate            DateTime? @map("relinquished_care_date") @db.Date
+  originalReferenceNumber         String?   @map("original_reference_number")
+  priorAuthNumber                 String?   @map("prior_auth_number")
+  referralNumber                  String?   @map("referral_number")
+  cliaNumber                      String?   @map("clia_number") @db.VarChar(20)
+  mammographyCertificationNumber  String?   @map("mammography_certification_number") @db.VarChar(50)
+  claimNote                       String?   @map("claim_note") @db.Text
+  status                          String    @default("pending")
+  validationErrors                Json?     @map("validation_errors")
+  isModified                      Boolean   @default(false) @map("is_modified")
+  originalData                    Json?     @map("original_data")
+  createdAt                       DateTime  @default(now()) @map("created_at")
+  updatedAt                       DateTime  @updatedAt @map("updated_at")
+
+  batchFile   BatchFile         @relation(fields: [batchFileId], references: [id], onDelete: Cascade)
+  diagnoses   ClaimDiagnosis[]
+  serviceLines ServiceLine[]
+
+  @@index([claimId])
+  @@index([status])
+  @@index([subscriberMemberId])
+  @@index([billingProviderNpi])
+  @@index([payerId])
+  @@index([claimFilingIndicator])
+  @@map("claims")
+}
+
+model ClaimDiagnosis {
   id        Int      @id @default(autoincrement())
-  key       String   @unique
-  value     String?
-  createdAt DateTime @default(now())
+  claimId   Int      @map("claim_id")
+  sequence  Int
+  code      String
+  qualifier String?
+  type      String   @default("other")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  claim Claim @relation(fields: [claimId], references: [id], onDelete: Cascade)
+
+  @@unique([claimId, sequence])
+  @@index([code])
+  @@map("claim_diagnoses")
+}
+
+model ServiceLine {
+  id                          Int        @id @default(autoincrement())
+  claimId                     Int        @map("claim_id")
+  lineNumber                  Int        @map("line_number")
+  procedureCode               String     @map("procedure_code")
+  procedureDescription        String?    @map("procedure_description")
+  modifier1                   String?    @map("modifier_1")
+  modifier2                   String?    @map("modifier_2")
+  modifier3                   String?    @map("modifier_3")
+  modifier4                   String?    @map("modifier_4")
+  chargeAmount                Decimal    @default(0) @map("charge_amount") @db.Decimal(12, 2)
+  units                       Decimal    @default(1) @db.Decimal(10, 2)
+  unitScale                   UnitScale  @default(UN) @map("unit_scale")
+  serviceDateFrom             DateTime?  @map("service_date_from") @db.Date
+  serviceDateTo               DateTime?  @map("service_date_to") @db.Date
+  placeOfService              String?    @map("place_of_service")
+  diagnosisPointers           Json?      @map("diagnosis_pointers")
+  renderingProviderNpi        String?    @map("rendering_provider_npi")
+  referringProviderNpi        String?    @map("referring_provider_npi")
+  referringProviderLastName   String?    @map("referring_provider_last_name")
+  referringProviderFirstName  String?    @map("referring_provider_first_name")
+  referringProviderMiddleName String?    @map("referring_provider_middle_name")
+  otherPayerPaidAmount        Decimal?   @map("other_payer_paid_amount") @db.Decimal(12, 2)
+  referenceId                 String?    @map("reference_id")
+  ndcCode                     String?    @map("ndc_code")
+  ndcQuantity                 Decimal?   @map("ndc_quantity") @db.Decimal(12, 3)
+  ndcUnit                     String?    @map("ndc_unit")
+  status                      String     @default("pending")
+  validationErrors            Json?      @map("validation_errors")
+  isModified                  Boolean    @default(false) @map("is_modified")
+  originalData                Json?      @map("original_data")
+  createdAt                   DateTime   @default(now()) @map("created_at")
+  updatedAt                   DateTime   @updatedAt @map("updated_at")
+
+  claim Claim @relation(fields: [claimId], references: [id], onDelete: Cascade)
+
+  @@unique([claimId, lineNumber])
+  @@index([procedureCode])
+  @@index([serviceDateFrom])
+  @@map("service_lines")
+}
+
+model EdiUploadErrorLog {
+  id               Int      @id @default(autoincrement())
+  userId           Int      @map("user_id")
+  batchFileId      Int?     @map("batch_file_id")
+  failedJobUuid    String?  @unique @map("failed_job_uuid")
+  originalFilename String?  @map("original_filename")
+  fileSize         Int?     @map("file_size")
+  source           String   @default("web") @db.VarChar(20)
+  status           String   @default("failed") @db.VarChar(20)
+  errorType        String?  @map("error_type") @db.VarChar(40)
+  errorMessage     String?  @map("error_message") @db.Text
+  totalClaims      Int?     @map("total_claims")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  batchFile BatchFile? @relation(fields: [batchFileId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([userId, errorType])
+  @@index([userId, status])
+  @@map("edi_upload_error_logs")
 }

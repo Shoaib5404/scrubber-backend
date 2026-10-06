@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { HealthModule } from './modules/health/health.module';
 import { StorageModule } from './adapters/storage/storage.module';
+import { PrismaModule } from './common/prisma/prisma.module';
 import { loadEnvFrom } from './config';
 
 @Module({
@@ -18,6 +19,7 @@ import { loadEnvFrom } from './config';
         limit: 120,
       },
     ]),
+    PrismaModule,
     StorageModule,
     HealthModule,
   ],
