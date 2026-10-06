@@ -3,6 +3,11 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { ClaimIssue, ClaimValidationResult } from './types';
 import { validateClaimFields } from './rules/claim-field.rules';
+import { validateClaimFilingIndicator } from './rules/claim-filing-indicator.rules';
+import { validateBcbsClaimRouting } from './rules/bcbs-claim-routing.rules';
+import { validateDosNotInFuture } from './rules/payer-edi-specific.rules';
+import { validateServiceLineBasics } from './rules/service-line-basics.rules';
+import { buildServiceLineStatusUpdates } from './support/service-line-status.updater';
 
 @Injectable()
 export class ClaimValidationService {
@@ -19,9 +24,10 @@ export class ClaimValidationService {
     if (!claim) throw new NotFoundException('Claim not found.');
 
     let errors: ClaimIssue[] = [];
-    const warnings: ClaimIssue[] = [];
+    let warnings: ClaimIssue[] = [];
     const infos: ClaimIssue[] = [];
 
+    // PHASE 1 — ClaimService::validate order
     errors = errors.concat(
       validateClaimFields({
         billingProviderNpi: claim.billingProviderNpi,
@@ -31,18 +37,94 @@ export class ClaimValidationService {
         totalCharge: Number(claim.totalCharge),
         diagnosesCount: claim.diagnoses.length,
       }),
+      validateClaimFilingIndicator({
+        claimFilingIndicator: claim.claimFilingIndicator,
+        payerResponsibility: claim.payerResponsibility,
+        subscriberMemberId: claim.subscriberMemberId,
+        subscriberDob: claim.subscriberDob,
+        patientDob: claim.patientDob,
+        otherSubscribers: claim.otherSubscribers,
+        serviceDateFrom: claim.serviceLines[0]?.serviceDateFrom ?? null,
+      }),
     );
 
-    const halt = errors.some((e) => e.rule === 'DOS-FUT-001');
-    if (!halt) {
-      void this.config.get('SCRUBBER_RULE_SWITCH_EM_BUNDLING', true);
+    errors = errors.concat(
+      await validateBcbsClaimRouting(this.prisma, {
+        subscriberMemberId: claim.subscriberMemberId,
+        payerId: claim.payerId,
+      }),
+    );
+
+    for (const issue of validateDosNotInFuture(
+      claim.serviceLines.map((l) => ({
+        lineNumber: l.lineNumber,
+        serviceDateFrom: l.serviceDateFrom,
+        serviceDateTo: l.serviceDateTo,
+      })),
+      {
+        onsetOfIllnessDate: claim.onsetOfIllnessDate,
+        lastMenstrualPeriodDate: claim.lastMenstrualPeriodDate,
+        initialTreatmentDate: claim.initialTreatmentDate,
+        lastSeenDate: claim.lastSeenDate,
+        accidentDate: claim.accidentDate,
+        lastXrayDate: claim.lastXrayDate,
+        admissionDate: claim.admissionDate,
+        dischargeDate: claim.dischargeDate,
+        hearingVisionPrescriptionDate: claim.hearingVisionPrescriptionDate,
+        disabilityStartDate: claim.disabilityStartDate,
+        disabilityEndDate: claim.disabilityEndDate,
+        lastWorkedDate: claim.lastWorkedDate,
+        authorizedReturnToWorkDate: claim.authorizedReturnToWorkDate,
+        assumedCareDate: claim.assumedCareDate,
+        relinquishedCareDate: claim.relinquishedCareDate,
+      },
+    )) {
+      const severity = issue.severity ?? 'error';
+      if (severity === 'info') infos.push(issue);
+      else if (severity === 'warning') warnings.push(issue);
+      else errors.push(issue);
     }
 
-    for (const line of claim.serviceLines) {
-      const status = errors.length ? 'error' : warnings.length ? 'warning' : 'valid';
+    const haltAfterDosFutureGate = errors.some((e) => e.rule === 'DOS-FUT-001');
+
+    // PHASE 1b–3: skipped when DOS-FUT-001 fails
+    if (!haltAfterDosFutureGate) {
+      void this.config.get('SCRUBBER_RULE_SWITCH_EM_BUNDLING', true);
+
+      // Service line basics (Laravel runs on valid-CPT lines; CPT gate deferred)
+      const maxSequence =
+        claim.diagnoses.length === 0
+          ? null
+          : Math.max(...claim.diagnoses.map((d) => d.sequence));
+      const lineBasics = validateServiceLineBasics(
+        claim.serviceLines.map((l) => ({
+          lineNumber: l.lineNumber,
+          procedureCode: l.procedureCode,
+          chargeAmount: Number(l.chargeAmount),
+          units: Number(l.units),
+          serviceDateFrom: l.serviceDateFrom,
+          serviceDateTo: l.serviceDateTo,
+          diagnosisPointers: l.diagnosisPointers,
+        })),
+        maxSequence,
+      );
+      errors = errors.concat(lineBasics.errors);
+      warnings = warnings.concat(lineBasics.warnings);
+    }
+
+    // PHASE 4: status updater
+    const lineUpdates = buildServiceLineStatusUpdates(
+      claim.serviceLines.map((l) => ({ id: l.id, lineNumber: l.lineNumber })),
+      errors,
+      warnings,
+    );
+    for (const update of lineUpdates) {
       await this.prisma.serviceLine.update({
-        where: { id: line.id },
-        data: { status },
+        where: { id: update.id },
+        data: {
+          status: update.status,
+          validationErrors: update.validationErrors,
+        },
       });
     }
 

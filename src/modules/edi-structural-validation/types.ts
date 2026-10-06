@@ -1,3 +1,6 @@
+import type { Edi837Spec } from './edi837-spec';
+import type { SegmentElementValidator } from './support/segment-element.validator';
+
 export type ValidationSeverity = 'error' | 'critical' | 'warning' | 'info';
 
 export type Edi837ValidationIssue = {
@@ -40,10 +43,15 @@ export type EdiDocument = {
   }>;
 };
 
+export type Edi837RuleContext = {
+  spec: Edi837Spec;
+  elements: SegmentElementValidator;
+};
+
 export interface Edi837ValidationRule {
   id(): string;
   group(): string;
-  validate(doc: EdiDocument): Edi837ValidationIssue[];
+  validate(doc: EdiDocument, ctx: Edi837RuleContext): Edi837ValidationIssue[];
 }
 
 export function issue(
