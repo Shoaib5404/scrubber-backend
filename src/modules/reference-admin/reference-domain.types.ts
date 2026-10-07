@@ -27,9 +27,14 @@ export type ReferenceDomainDefinition = {
   searchFields: string[];
   writableFields: string[];
   createRequired: string[];
+  /** When set, replaces default domainOps output (e.g. omit create while allowing update). */
+  ops?: ReferenceOperation[];
 };
 
 export function domainOps(def: ReferenceDomainDefinition): ReferenceOperation[] {
+  if (def.ops) {
+    return def.ops;
+  }
   const ops: ReferenceOperation[] = ['list', 'show'];
   if (!def.readOnly) {
     ops.push('create', 'update', 'destroy');

@@ -7,6 +7,7 @@ import {
 import { WAVE_A_DOMAIN_DEFINITIONS } from './wave-a.domains';
 import { WAVE_B_DOMAIN_DEFINITIONS } from './wave-b.domains';
 import { WAVE_C_DOMAIN_DEFINITIONS } from './wave-c.domains';
+import { WAVE_D_DOMAIN_DEFINITIONS } from './wave-d.domains';
 
 export type { ReferenceOperation, ActiveFilterField, ReferenceDomainDefinition } from './reference-domain.types';
 export { domainOps, domainSupportsOp } from './reference-domain.types';
@@ -18,6 +19,7 @@ const ALL_DEFINITIONS: ReferenceDomainDefinition[] = [
   ...WAVE_A_DOMAIN_DEFINITIONS,
   ...WAVE_B_DOMAIN_DEFINITIONS,
   ...WAVE_C_DOMAIN_DEFINITIONS,
+  ...WAVE_D_DOMAIN_DEFINITIONS,
 ];
 
 const DOMAIN_BY_SLUG = new Map(ALL_DEFINITIONS.map((d) => [d.slug, d]));
