@@ -18,13 +18,17 @@ export class DetectStalledQueuesService {
     private readonly producer: QueueProducerService,
   ) {}
 
-  async run(): Promise<{ checked: number; logged: number }> {
+  /**
+   * @param minutesOverride Laravel DetectStalledQueueValidations `--minutes` CLI override;
+   * falls back to QUEUE_STALL_MINUTES (config/scrubber.php `queue_stall_minutes`) when omitted.
+   */
+  async run(minutesOverride?: number): Promise<{ checked: number; logged: number }> {
     if (!this.producer.useQueue()) {
       this.logger.log('Queue processing disabled; skipping stalled queue detection.');
       return { checked: 0, logged: 0 };
     }
 
-    const minutes = Math.max(1, this.config.get<number>('QUEUE_STALL_MINUTES', 10));
+    const minutes = Math.max(1, minutesOverride ?? this.config.get<number>('QUEUE_STALL_MINUTES', 10));
     const cutoff = new Date(Date.now() - minutes * 60_000);
     const pendingJobs = await this.producer.pendingJobCount();
 

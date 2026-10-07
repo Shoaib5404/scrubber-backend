@@ -51,6 +51,28 @@ export class LookupCacheService {
     return value;
   }
 
+  /**
+   * Read-only cache check — no loader fallback, never writes. Returns null on a cache miss
+   * (disabled/circuit-open also reads as a miss). Used by CLI inspection commands that need
+   * to report hit/miss without forcing a load (e.g. ncci:rules-cache-fetch).
+   */
+  async peek<T>(key: string): Promise<T | null> {
+    if (!this.isEnabled() || this.store.isCircuitOpen()) {
+      return null;
+    }
+    const redisKey = nestGetOrLoadKey(this.store.keyPrefix(), key);
+    const cached = await this.store.get(redisKey);
+    if (cached == null) {
+      return null;
+    }
+    try {
+      return JSON.parse(cached) as T;
+    } catch {
+      this.logger.warn(`Corrupt cache payload for ${redisKey}`);
+      return null;
+    }
+  }
+
   /** Drop a nest getOrLoad entry (call only after successful DB commit). */
   async invalidate(key: string): Promise<void> {
     const redisKey = nestGetOrLoadKey(this.store.keyPrefix(), key);

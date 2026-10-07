@@ -1534,3 +1534,51 @@ export function readNcdLabCodesColumn(rows: string[][]): string[] {
   }
   return [...seen].sort();
 }
+
+/**
+ * Laravel ImportNcci::parseNcciDate — '*' marks "no date"; 8-digit Ymd strings and Excel
+ * serials (loadExcelRows already stringifies Date cells to "YYYYMMDD", see
+ * excelCellToTrimmedString) map to UTC dates, same bounding as parseMueEffectiveDate.
+ */
+export function parseNcciDate(value: string | null): Date | null {
+  const trimmed = (value ?? '').trim();
+  if (trimmed === '' || trimmed === '*') {
+    return null;
+  }
+  if (/^\d{8}$/.test(trimmed)) {
+    const y = Number.parseInt(trimmed.slice(0, 4), 10);
+    const m = Number.parseInt(trimmed.slice(4, 6), 10);
+    const d = Number.parseInt(trimmed.slice(6, 8), 10);
+    const date = new Date(Date.UTC(y, m - 1, d));
+    return date.getUTCFullYear() === y && date.getUTCMonth() === m - 1 && date.getUTCDate() === d
+      ? date
+      : null;
+  }
+  if (/^\d+(\.\d+)?$/.test(trimmed) && Number(trimmed) < 100000) {
+    return excelSerialToDate(Number(trimmed));
+  }
+  const parsed = Date.parse(trimmed);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+  const date = new Date(parsed);
+  return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+}
+
+/** Laravel ImportNcci::parseModifier — only 0/1/9 are valid NCCI modifier indicators. */
+export function parseNcciModifier(value: string | null): number {
+  const trimmed = (value ?? '').trim();
+  return ['0', '1', '9'].includes(trimmed) ? Number(trimmed) : 0;
+}
+
+/** Laravel ImportNcci::handle — column 3 cell `'*'` means "in existence prior to 1996". */
+export function parseNcciInExistencePriorTo1996(value: string | null): boolean {
+  return (value ?? '').trim() === '*';
+}
+
+/** Laravel ImportNcci::detectSourceLabel — e.g. "ncci_2.xlsx" -> "ncci_2". */
+export function detectNcciSourceLabel(filePath: string): string {
+  const filename = path.basename(filePath, path.extname(filePath));
+  const match = /ncci[_-]?(\d)/i.exec(filename);
+  return match ? `ncci_${match[1]}` : filename;
+}

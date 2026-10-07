@@ -4,6 +4,7 @@ import { loadEnvFrom } from '../../config';
 import { PrismaModule } from '../../common/prisma/prisma.module';
 import { LookupCacheModule } from '../cache/lookup-cache.module';
 import { ImportsModule } from '../imports/imports.module';
+import { OpsCliModule } from '../ops-cli/ops-cli.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { ImportsModule } from '../imports/imports.module';
     PrismaModule,
     LookupCacheModule,
     ImportsModule,
+    OpsCliModule,
   ],
 })
 export class CliModule {}

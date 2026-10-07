@@ -93,6 +93,8 @@ import { NcdOtherLabImportCommand } from './ncd-other-lab.command';
 import { NcdOtherLabImportService } from './ncd-other-lab.import.service';
 import { NcdOtherLabCodesImportCommand } from './ncd-other-lab-codes.command';
 import { NcdOtherLabCodesImportService } from './ncd-other-lab-codes.import.service';
+import { NcciImportCommand } from './ncci.command';
+import { NcciImportService } from './ncci.import.service';
 
 @Module({
   imports: [PrismaModule, LookupCacheModule],
@@ -145,6 +147,7 @@ import { NcdOtherLabCodesImportService } from './ncd-other-lab-codes.import.serv
     Icd10UnacceptablePrincipalDxCodesImportService,
     NcdOtherLabImportService,
     NcdOtherLabCodesImportService,
+    NcciImportService,
     RadiologyCptCodesImportCommand,
     MajorSurgeryCodesImportCommand,
     InitialTreatmentCodesImportCommand,
@@ -189,6 +192,7 @@ import { NcdOtherLabCodesImportService } from './ncd-other-lab-codes.import.serv
     Icd10UnacceptablePrincipalDxCodesImportCommand,
     NcdOtherLabImportCommand,
     NcdOtherLabCodesImportCommand,
+    NcciImportCommand,
   ],
   exports: [
     RadiologyCptCodesImportService,
@@ -236,6 +240,7 @@ import { NcdOtherLabCodesImportService } from './ncd-other-lab-codes.import.serv
     Icd10UnacceptablePrincipalDxCodesImportService,
     NcdOtherLabImportService,
     NcdOtherLabCodesImportService,
+    NcciImportService,
   ],
 })
 export class ImportsModule {}

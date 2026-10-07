@@ -49,6 +49,27 @@ export class NcciRulesCacheService {
     await this.lookupCache.invalidate(NCCI_FULL_TABLE_CACHE_NAME);
   }
 
+  /**
+   * CLI (ncci:rules-cache-fetch --warm) — force a fresh load of the full active table into
+   * cache. Nest stand-in for Laravel's `NcciRulesCacheService::warmCache()` (which populates
+   * the chunked `full_table_meta`/`full_table_chunk_*` RedisHelper keys); here it simply
+   * invalidates then getOrLoad's `lookup:nest:ncci_rules:full_table_v2`.
+   */
+  async warmFullTable(): Promise<CachedNcciPair[]> {
+    await this.invalidateFullTable();
+    return this.getFullTable();
+  }
+
+  /** CLI (ncci:rules-cache-fetch) — read-through: loads + caches the full table on a miss. */
+  async getFullTable(): Promise<CachedNcciPair[]> {
+    return this.lookupCache.getOrLoad(NCCI_FULL_TABLE_CACHE_NAME, () => this.loadFullActiveTable());
+  }
+
+  /** CLI (ncci:rules-cache-fetch) — inspect without warming; null means cache miss. */
+  async peekFullTable(): Promise<CachedNcciPair[] | null> {
+    return this.lookupCache.peek<CachedNcciPair[]>(NCCI_FULL_TABLE_CACHE_NAME);
+  }
+
   private async loadFromCacheFiltered(codes: string[]): Promise<CachedNcciPair[]> {
     const all = await this.lookupCache.getOrLoad(NCCI_FULL_TABLE_CACHE_NAME, () =>
       this.loadFullActiveTable(),
