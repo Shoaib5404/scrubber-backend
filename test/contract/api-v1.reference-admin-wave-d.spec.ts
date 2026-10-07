@@ -64,9 +64,9 @@ describe('api-v1 admin reference-admin wave D contract', () => {
   });
 
   afterAll(async () => {
-    await prisma.articleXIcd10Covered.deleteMany({
-      where: { articleId: 8_000_000 + (stamp % 1_000_000) },
-    });
+    const articleId = 8_000_000 + (stamp % 1_000_000);
+    await prisma.articleXIcd10Covered.deleteMany({ where: { articleId } });
+    await prisma.article.deleteMany({ where: { articleId } });
     await prisma.contractor.deleteMany({
       where: { contractorId: 8_000_000 + (stamp % 1_000_000) },
     });
@@ -172,6 +172,16 @@ describe('api-v1 admin reference-admin wave D contract', () => {
   it('staff article-x-icd10-covered create+delete', async () => {
     const articleId = 8_000_000 + (stamp % 1_000_000);
 
+    const articleCreate = await request(app.getHttpServer())
+      .post('/api/v1/admin/references/articles')
+      .set('Authorization', `Bearer ${staffToken}`)
+      .send({
+        article_id: articleId,
+        article_version: 1,
+        title: `Wave D article ${stamp}`,
+      });
+    expect(articleCreate.status).toBe(201);
+
     const create = await request(app.getHttpServer())
       .post('/api/v1/admin/references/article-x-icd10-covered')
       .set('Authorization', `Bearer ${staffToken}`)
@@ -189,6 +199,11 @@ describe('api-v1 admin reference-admin wave D contract', () => {
       .delete(`/api/v1/admin/references/article-x-icd10-covered/${id}`)
       .set('Authorization', `Bearer ${staffToken}`);
     expect(destroy.status).toBe(200);
+
+    const articlePk = articleCreate.body.data.id as number;
+    await request(app.getHttpServer())
+      .delete(`/api/v1/admin/references/articles/${articlePk}`)
+      .set('Authorization', `Bearer ${staffToken}`);
   });
 
   it('read-only NCD domains reject POST', async () => {

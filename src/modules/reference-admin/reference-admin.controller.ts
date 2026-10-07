@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -27,6 +28,35 @@ export class ReferenceAdminController {
   listDomains() {
     const domains = this.references.listDomains();
     return { success: true, data: { domains } };
+  }
+
+  @Get('integrity/cms')
+  async cmsIntegrity() {
+    return { success: true, data: await this.references.cmsIntegrityReport() };
+  }
+
+  @Get('ncd-cpt/:id/icds')
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'per_page', required: false })
+  @ApiQuery({ name: 'search', required: false })
+  async listNcdIcds(
+    @Param('id') id: string,
+    @Query('page') pageRaw?: string,
+    @Query('per_page') perPageRaw?: string,
+    @Query('search') search?: string,
+  ) {
+    const ncdCptId = Number(id);
+    if (!Number.isInteger(ncdCptId) || ncdCptId <= 0) {
+      throw new BadRequestException('Invalid numeric id.');
+    }
+    const page = pageRaw ? Number(pageRaw) : 1;
+    const perPage = perPageRaw ? Number(perPageRaw) : 25;
+    const data = await this.references.listNcdIcdsForCpt(ncdCptId, {
+      page: Number.isFinite(page) ? page : 1,
+      perPage: Number.isFinite(perPage) ? perPage : 25,
+      search,
+    });
+    return { success: true, data };
   }
 
   @Get(':domain')

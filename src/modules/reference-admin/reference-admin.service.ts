@@ -18,6 +18,8 @@ import {
   ReferenceDomainDefinition,
   ReferenceOperation,
 } from './domains.registry';
+import { isArticleXReferenceSlug } from './cms-relationship.constants';
+import { CmsRelationshipService } from './cms-relationship.service';
 import { MedicaidMemberIdFormatRepository } from './medicaid/medicaid-member-id-format.repository';
 import { normalizeNdcFromImport } from './ndc.util';
 import { toCamelCaseRecord, toSnakeCase } from './snake.util';
@@ -48,7 +50,24 @@ export class ReferenceAdminService {
     private readonly prisma: PrismaService,
     private readonly lookupCache: LookupCacheService,
     private readonly medicaidFormats: MedicaidMemberIdFormatRepository,
+    private readonly cmsRelationships: CmsRelationshipService,
   ) {}
+
+  cmsIntegrityReport() {
+    return this.cmsRelationships.countOrphans();
+  }
+
+  listNcdIcdsForCpt(
+    ncdCptId: number,
+    params: { page: number; perPage: number; search?: string },
+  ) {
+    return this.cmsRelationships.listNcdIcdsForCpt(
+      ncdCptId,
+      params.page,
+      params.perPage,
+      params.search,
+    );
+  }
 
   listDomains() {
     return listReferenceDomainSummaries();
@@ -136,6 +155,7 @@ export class ReferenceAdminService {
     }
 
     const data = this.buildWritePayload(def, body, { mode: 'create' });
+    await this.assertCmsRelationshipsOnWrite(def, data);
     try {
       const created = await this.delegate(def).create({ data });
       await this.invalidateAfterMutation(def);
@@ -157,8 +177,9 @@ export class ReferenceAdminService {
     }
 
     const routeId = this.parseRouteId(def, id);
-    await this.ensureExists(def, routeId);
+    const existing = await this.ensureExists(def, routeId);
     const data = this.buildWritePayload(def, body, { mode: 'update' });
+    await this.assertCmsRelationshipsOnWrite(def, data, existing);
     try {
       const updated = await this.delegate(def).update({
         where: this.whereForRouteId(def, routeId),
@@ -182,8 +203,16 @@ export class ReferenceAdminService {
     }
 
     const routeId = this.parseRouteId(def, id);
-    await this.ensureExists(def, routeId);
+    const existing = await this.ensureExists(def, routeId);
     try {
+      if (def.slug === 'articles') {
+        const articleId = Number(existing.articleId);
+        const articleVersion = Number(existing.articleVersion);
+        if (!Number.isFinite(articleId) || !Number.isFinite(articleVersion)) {
+          throw new BadRequestException('Article row is missing article_id or article_version.');
+        }
+        await this.cmsRelationships.cascadeDeleteArticleChildren(articleId, articleVersion);
+      }
       await this.delegate(def).delete({ where: this.whereForRouteId(def, routeId) });
       await this.invalidateAfterMutation(def);
       return { id: routeId };
@@ -626,6 +655,67 @@ export class ReferenceAdminService {
       return true;
     }
     return DATE_FIELD_SUFFIXES.some((suffix) => field.endsWith(suffix));
+  }
+
+  private async assertCmsRelationshipsOnWrite(
+    def: ReferenceDomainDefinition,
+    data: PrismaRecord,
+    existing?: PrismaRecord,
+  ): Promise<void> {
+    if (isArticleXReferenceSlug(def.slug)) {
+      const articleId = this.resolveIntField(data, existing, 'articleId');
+      const articleVersion = this.resolveIntField(data, existing, 'articleVersion');
+      if (articleId === null || articleVersion === null) {
+        throw new BadRequestException('article_id and article_version are required.');
+      }
+      await this.cmsRelationships.assertArticlePairExists(articleId, articleVersion);
+      return;
+    }
+
+    if (def.slug === 'contractor-jurisdictions' || def.slug === 'contractor-oversight') {
+      const contractorId = this.resolveIntField(data, existing, 'contractorId');
+      const contractorTypeId = this.resolveIntField(data, existing, 'contractorTypeId');
+      const contractorVersion = this.resolveIntField(data, existing, 'contractorVersion');
+      if (contractorId === null || contractorTypeId === null || contractorVersion === null) {
+        throw new BadRequestException(
+          'contractor_id, contractor_type_id, and contractor_version are required.',
+        );
+      }
+      await this.cmsRelationships.assertContractorTripletExists(
+        contractorId,
+        contractorTypeId,
+        contractorVersion,
+      );
+      return;
+    }
+
+    if (def.slug === 'ncd-icd') {
+      if ('ncdCptId' in data && data.ncdCptId !== undefined && data.ncdCptId !== null) {
+        const ncdCptId = Number(data.ncdCptId);
+        if (!Number.isInteger(ncdCptId) || ncdCptId <= 0) {
+          throw new BadRequestException('Invalid ncd_cpt_id.');
+        }
+        await this.cmsRelationships.assertNcdCptExists(ncdCptId);
+      } else if (existing?.ncdCptId !== undefined && existing.ncdCptId !== null) {
+        await this.cmsRelationships.assertNcdCptExists(Number(existing.ncdCptId));
+      }
+    }
+  }
+
+  private resolveIntField(
+    data: PrismaRecord,
+    existing: PrismaRecord | undefined,
+    field: string,
+  ): number | null {
+    if (data[field] !== undefined && data[field] !== null && data[field] !== '') {
+      const value = Number(data[field]);
+      return Number.isInteger(value) ? value : null;
+    }
+    if (existing && existing[field] !== undefined && existing[field] !== null) {
+      const value = Number(existing[field]);
+      return Number.isInteger(value) ? value : null;
+    }
+    return null;
   }
 
   private async invalidateAfterMutation(def: ReferenceDomainDefinition): Promise<void> {
