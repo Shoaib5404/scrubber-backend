@@ -1,3 +1,4 @@
+import ExcelJS from 'exceljs';
 import { accessSync, constants, readFileSync } from 'fs';
 import * as path from 'path';
 import { parse } from 'csv-parse/sync';
@@ -287,6 +288,257 @@ export function mapZeroAmountProcedureColumn(headers: string[]): number | null {
 }
 
 /** Laravel ImportUhcAuthorizations::mapColumns */
+/** Laravel Import* Excel helpers — prefer Sheet1, else first worksheet. */
+export async function loadExcelRows(filePath: string): Promise<string[][]> {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(filePath);
+  const sheet = workbook.getWorksheet('Sheet1') ?? workbook.worksheets[0];
+  if (!sheet) {
+    return [];
+  }
+
+  const rows: string[][] = [];
+  sheet.eachRow((row) => {
+    const values = row.values;
+    if (!Array.isArray(values)) {
+      return;
+    }
+    const cells = values.slice(1).map((value) => excelCellToTrimmedString(value));
+    rows.push(cells);
+  });
+  return rows;
+}
+
+export function excelCellToTrimmedString(value: unknown): string {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  if (value instanceof Date) {
+    const y = value.getUTCFullYear();
+    const m = String(value.getUTCMonth() + 1).padStart(2, '0');
+    const d = String(value.getUTCDate()).padStart(2, '0');
+    return `${y}${m}${d}`;
+  }
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    if (Number.isInteger(value) && value >= 19000101 && value <= 99991231) {
+      return String(value);
+    }
+  }
+  return String(value).trim();
+}
+
+export function getMappedColumnValue(
+  row: string[],
+  columnMap: Partial<Record<string, number>>,
+  field: string,
+): string | null {
+  const index = columnMap[field];
+  if (index === undefined || index < 0 || index >= row.length) {
+    return null;
+  }
+  const value = row[index]?.trim() ?? '';
+  return value === '' ? null : value;
+}
+
+/** Laravel ImportEnmProcedures / ImportConsultationProcedures::mapExcelColumns (cpt + description). */
+export function mapCptDescriptionExcelColumns(
+  headers: string[],
+  descriptionAliases: readonly string[] = ['description', 'desc', 'name', 'procedure_description'],
+): Partial<Record<'cptCode' | 'description', number>> {
+  const map: Partial<Record<'cptCode' | 'description', number>> = {};
+  const cptNames = ['cpt', 'cpt_code', 'code', 'procedure_code', 'hcpcs'] as const;
+  for (const name of cptNames) {
+    const index = headers.indexOf(name);
+    if (index !== -1) {
+      map.cptCode = index;
+      break;
+    }
+  }
+  for (const name of descriptionAliases) {
+    const index = headers.indexOf(name);
+    if (index !== -1) {
+      map.description = index;
+      break;
+    }
+  }
+  return map;
+}
+
+/** Laravel ImportEnmSurgeryCodes::mapExcelColumns */
+export function mapEnmSurgeryCodeExcelColumns(
+  headers: string[],
+): Partial<Record<'cptCode', number>> {
+  const names = [
+    'cpt',
+    'cpt_code',
+    'code',
+    'procedure_code',
+    'hcpcs',
+    'e_mcodes',
+    'em_codes',
+    'e_m_codes',
+    'enm_codes',
+    'enm_code',
+  ] as const;
+  for (const name of names) {
+    const index = headers.indexOf(name);
+    if (index !== -1) {
+      return { cptCode: index };
+    }
+  }
+  return {};
+}
+
+/** Laravel ImportConsultationProcedures::mapExcelColumns */
+export function mapConsultationProcedureExcelColumns(
+  headers: string[],
+): Partial<Record<'cptCode' | 'description' | 'typeOfService', number>> {
+  const map: Partial<Record<'cptCode' | 'description' | 'typeOfService', number>> =
+    mapCptDescriptionExcelColumns(headers, [
+      'short_description',
+      'description',
+      'desc',
+      'name',
+      'procedure_description',
+    ]);
+  const tosNames = ['type_of_service', 'tos', 'service_type'] as const;
+  for (const name of tosNames) {
+    const index = headers.indexOf(name);
+    if (index !== -1) {
+      map.typeOfService = index;
+      break;
+    }
+  }
+  return map;
+}
+
+/** Laravel ImportLabCodes::mapExcelColumns */
+export function mapLabCodeExcelColumns(
+  headers: string[],
+): Partial<
+  Record<'hcpcs' | 'modifier' | 'effectiveDate' | 'indicator' | 'rate' | 'shortDescription', number>
+> {
+  const map: Partial<
+    Record<'hcpcs' | 'modifier' | 'effectiveDate' | 'indicator' | 'rate' | 'shortDescription', number>
+  > = {};
+  const mappings: Record<string, readonly string[]> = {
+    hcpcs: ['hcpcs', 'code', 'cpt', 'cpt_code', 'procedure_code'],
+    modifier: ['mod', 'modifier', 'modifer'],
+    effectiveDate: ['eff_date', 'effective_date', 'effdate', 'effective'],
+    indicator: ['indicator', 'ind'],
+    rate: ['rate', 'amount', 'fee'],
+    shortDescription: ['shortdesc', 'short_description', 'short_desc', 'description', 'desc'],
+  };
+  for (const [field, possibleNames] of Object.entries(mappings)) {
+    for (const name of possibleNames) {
+      const index = headers.indexOf(name);
+      if (index !== -1) {
+        map[field as keyof typeof map] = index;
+        break;
+      }
+    }
+  }
+  return map;
+}
+
+/** Laravel ImportLabCodes::nullableTrim */
+export function nullableTrim(value: string | null): string | null {
+  if (value === null) {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed === '' ? null : trimmed;
+}
+
+/** Laravel ImportLabCodes::parseModifier */
+export function parseLabModifier(value: string | null): string {
+  return (value ?? '').trim().toUpperCase();
+}
+
+/** Laravel ImportLabCodes::parseEffectiveDate */
+export function parseLabEffectiveDate(value: string | null): Date | null {
+  const trimmed = (value ?? '').trim();
+  if (trimmed === '') {
+    return null;
+  }
+  if (/^\d{8}$/.test(trimmed)) {
+    const y = Number.parseInt(trimmed.slice(0, 4), 10);
+    const m = Number.parseInt(trimmed.slice(4, 6), 10);
+    const d = Number.parseInt(trimmed.slice(6, 8), 10);
+    const date = new Date(Date.UTC(y, m - 1, d));
+    if (date.getUTCFullYear() === y && date.getUTCMonth() === m - 1 && date.getUTCDate() === d) {
+      return date;
+    }
+    return null;
+  }
+  const parsed = Date.parse(trimmed);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+  const date = new Date(parsed);
+  return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+}
+
+/** Laravel ImportLabCodes::parseRate */
+export function parseLabRate(value: string | null): string | null {
+  const trimmed = (value ?? '').trim();
+  if (trimmed === '') {
+    return null;
+  }
+  const normalized = trimmed.replace(/[$,]/g, '');
+  if (!/^-?\d+(\.\d+)?$/.test(normalized) || !Number.isFinite(Number(normalized))) {
+    return null;
+  }
+  return Number(normalized).toFixed(2);
+}
+
+/** Laravel ImportVaccineCodes::mapExcelColumns */
+export function mapVaccineCodeExcelColumns(
+  headers: string[],
+): Partial<Record<'vaccineCode' | 'description' | 'componentCount', number>> {
+  const map: Partial<Record<'vaccineCode' | 'description' | 'componentCount', number>> = {};
+  const mappings: Record<string, readonly string[]> = {
+    vaccineCode: ['vaccine_code', 'vaccine_codes', 'code', 'cpt', 'hcpcs'],
+    description: ['descriptions', 'description', 'desc', 'short_description'],
+    componentCount: [
+      'of_vaccine_components',
+      'number_of_vaccine_components',
+      'num_of_vaccine_components',
+      'vaccine_components',
+      'component_count',
+      'components',
+    ],
+  };
+  for (const [field, possibleNames] of Object.entries(mappings)) {
+    for (const name of possibleNames) {
+      const index = headers.indexOf(name);
+      if (index !== -1) {
+        map[field as keyof typeof map] = index;
+        break;
+      }
+    }
+  }
+  if (map.componentCount === undefined) {
+    for (let index = 0; index < headers.length; index += 1) {
+      const header = headers[index] ?? '';
+      if (header.endsWith('vaccine_components') || header.includes('component')) {
+        map.componentCount = index;
+        break;
+      }
+    }
+  }
+  return map;
+}
+
+/** Laravel ImportVaccineCodes::parseComponentCount */
+export function parseVaccineComponentCount(value: string | null): number | null {
+  const trimmed = (value ?? '').trim();
+  if (trimmed === '' || !/^-?\d+(\.\d+)?$/.test(trimmed)) {
+    return null;
+  }
+  return Math.max(0, Math.trunc(Number(trimmed)));
+}
+
 export function mapUhcAuthorizationColumns(headers: string[]): Partial<Record<'cptCode' | 'description' | 'diagnosis', number>> {
   const map: Partial<Record<'cptCode' | 'description' | 'diagnosis', number>> = {};
   for (let index = 0; index < headers.length; index += 1) {

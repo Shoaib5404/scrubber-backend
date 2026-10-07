@@ -28,6 +28,16 @@ import { UhcAuthorizationsImportCommand } from './uhc-authorizations.command';
 import { UhcAuthorizationsImportService } from './uhc-authorizations.import.service';
 import { ZeroAmountProceduresImportCommand } from './zero-amount-procedures.command';
 import { ZeroAmountProceduresImportService } from './zero-amount-procedures.import.service';
+import { EnmProceduresImportCommand } from './enm-procedures.command';
+import { EnmProceduresImportService } from './enm-procedures.import.service';
+import { EnmSurgeryCodesImportCommand } from './enm-surgery-codes.command';
+import { EnmSurgeryCodesImportService } from './enm-surgery-codes.import.service';
+import { ConsultationProceduresImportCommand } from './consultation-procedures.command';
+import { ConsultationProceduresImportService } from './consultation-procedures.import.service';
+import { LabCodesImportCommand } from './lab-codes.command';
+import { LabCodesImportService } from './lab-codes.import.service';
+import { VaccineCodesImportCommand } from './vaccine-codes.command';
+import { VaccineCodesImportService } from './vaccine-codes.import.service';
 import { Icd10RangeExpander } from './icd10-range.expander';
 import { UhcAuthorizationConditionValuesNormalizer } from './uhc-authorization-condition-values.normalizer';
 
@@ -48,6 +58,11 @@ import { UhcAuthorizationConditionValuesNormalizer } from './uhc-authorization-c
     Mue87726Uhc06111OxfordImportService,
     UhcAuthorizationsImportService,
     ZeroAmountProceduresImportService,
+    EnmProceduresImportService,
+    EnmSurgeryCodesImportService,
+    ConsultationProceduresImportService,
+    LabCodesImportService,
+    VaccineCodesImportService,
     Icd10RangeExpander,
     UhcAuthorizationConditionValuesNormalizer,
     RadiologyCptCodesImportCommand,
@@ -63,6 +78,11 @@ import { UhcAuthorizationConditionValuesNormalizer } from './uhc-authorization-c
     Mue87726Uhc06111OxfordImportCommand,
     UhcAuthorizationsImportCommand,
     ZeroAmountProceduresImportCommand,
+    EnmProceduresImportCommand,
+    EnmSurgeryCodesImportCommand,
+    ConsultationProceduresImportCommand,
+    LabCodesImportCommand,
+    VaccineCodesImportCommand,
   ],
   exports: [
     RadiologyCptCodesImportService,
@@ -78,6 +98,11 @@ import { UhcAuthorizationConditionValuesNormalizer } from './uhc-authorization-c
     Mue87726Uhc06111OxfordImportService,
     UhcAuthorizationsImportService,
     ZeroAmountProceduresImportService,
+    EnmProceduresImportService,
+    EnmSurgeryCodesImportService,
+    ConsultationProceduresImportService,
+    LabCodesImportService,
+    VaccineCodesImportService,
   ],
 })
 export class ImportsModule {}
