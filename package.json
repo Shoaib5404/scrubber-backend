@@ -42,6 +42,7 @@
     "@nestjs/swagger": "^7.4.0",
     "@nestjs/throttler": "^5.2.0",
     "@prisma/client": "^5.18.0",
+    "@xmldom/xmldom": "^0.9.12",
     "argon2": "^0.40.1",
     "bcryptjs": "^2.4.3",
     "bullmq": "^5.12.0",

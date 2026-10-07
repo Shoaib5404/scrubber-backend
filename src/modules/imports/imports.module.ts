@@ -99,6 +99,8 @@ import { Icd10NcdImportCommand } from './icd10-ncd.command';
 import { Icd10NcdImportService } from './icd10-ncd.import.service';
 import { ArticleImportCommand } from './article.command';
 import { ArticleImportService } from './article.import.service';
+import { Icd10TabularImportCommand } from './icd10-tabular/icd10-tabular.command';
+import { Icd10TabularImportService } from './icd10-tabular/icd10-tabular.import.service';
 
 @Module({
   imports: [PrismaModule, LookupCacheModule],
@@ -154,6 +156,7 @@ import { ArticleImportService } from './article.import.service';
     NcciImportService,
     Icd10NcdImportService,
     ArticleImportService,
+    Icd10TabularImportService,
     RadiologyCptCodesImportCommand,
     MajorSurgeryCodesImportCommand,
     InitialTreatmentCodesImportCommand,
@@ -201,6 +204,7 @@ import { ArticleImportService } from './article.import.service';
     NcciImportCommand,
     Icd10NcdImportCommand,
     ArticleImportCommand,
+    Icd10TabularImportCommand,
   ],
   exports: [
     RadiologyCptCodesImportService,
@@ -251,6 +255,7 @@ import { ArticleImportService } from './article.import.service';
     NcciImportService,
     Icd10NcdImportService,
     ArticleImportService,
+    Icd10TabularImportService,
   ],
 })
 export class ImportsModule {}
