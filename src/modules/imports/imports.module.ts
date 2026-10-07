@@ -50,6 +50,18 @@ import { TobaccoCounselingIcdRulesImportCommand } from './tobacco-counseling-icd
 import { TobaccoCounselingIcdRulesImportService } from './tobacco-counseling-icd-rules.import.service';
 import { ModifierSequencesImportCommand } from './modifier-sequences.command';
 import { ModifierSequencesImportService } from './modifier-sequences.import.service';
+import { CptCodesImportCommand } from './cpt-codes.command';
+import { CptCodesImportService } from './cpt-codes.import.service';
+import { ModifiersImportCommand } from './modifiers.command';
+import { ModifiersImportService } from './modifiers.import.service';
+import { NdcCodesImportCommand } from './ndc-codes.command';
+import { NdcCodesImportService } from './ndc-codes.import.service';
+import { NdcHcpcsCrosswalkImportCommand } from './ndc-hcpcs-crosswalk.command';
+import { NdcHcpcsCrosswalkImportService } from './ndc-hcpcs-crosswalk.import.service';
+import { UhcPosCrosswalkImportCommand } from './uhc-pos-crosswalk.command';
+import { UhcPosCrosswalkImportService } from './uhc-pos-crosswalk.import.service';
+import { TaxonomyCodesImportCommand } from './taxonomy-codes.command';
+import { TaxonomyCodesImportService } from './taxonomy-codes.import.service';
 import { Icd10RangeExpander } from './icd10-range.expander';
 import { UhcAuthorizationConditionValuesNormalizer } from './uhc-authorization-condition-values.normalizer';
 
@@ -81,6 +93,12 @@ import { UhcAuthorizationConditionValuesNormalizer } from './uhc-authorization-c
     IcdGenderSpecificRulesImportService,
     TobaccoCounselingIcdRulesImportService,
     ModifierSequencesImportService,
+    CptCodesImportService,
+    ModifiersImportService,
+    NdcCodesImportService,
+    NdcHcpcsCrosswalkImportService,
+    UhcPosCrosswalkImportService,
+    TaxonomyCodesImportService,
     Icd10RangeExpander,
     UhcAuthorizationConditionValuesNormalizer,
     RadiologyCptCodesImportCommand,
@@ -107,6 +125,12 @@ import { UhcAuthorizationConditionValuesNormalizer } from './uhc-authorization-c
     IcdGenderSpecificRulesImportCommand,
     TobaccoCounselingIcdRulesImportCommand,
     ModifierSequencesImportCommand,
+    CptCodesImportCommand,
+    ModifiersImportCommand,
+    NdcCodesImportCommand,
+    NdcHcpcsCrosswalkImportCommand,
+    UhcPosCrosswalkImportCommand,
+    TaxonomyCodesImportCommand,
   ],
   exports: [
     RadiologyCptCodesImportService,
@@ -133,6 +157,12 @@ import { UhcAuthorizationConditionValuesNormalizer } from './uhc-authorization-c
     IcdGenderSpecificRulesImportService,
     TobaccoCounselingIcdRulesImportService,
     ModifierSequencesImportService,
+    CptCodesImportService,
+    ModifiersImportService,
+    NdcCodesImportService,
+    NdcHcpcsCrosswalkImportService,
+    UhcPosCrosswalkImportService,
+    TaxonomyCodesImportService,
   ],
 })
 export class ImportsModule {}

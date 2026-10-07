@@ -15,3 +15,14 @@ export function normalizeTaxonomyCode(raw: string | null | undefined): string | 
 
   return code;
 }
+
+/** Laravel TaxonomyCodeHelper::normalizeSpecialtyName */
+export function normalizeTaxonomySpecialtyName(raw: string | null | undefined): string | null {
+  if (raw === null || raw === undefined) {
+    return null;
+  }
+  const name = String(raw)
+    .trim()
+    .replace(/\s+/g, ' ');
+  return name !== '' ? name : null;
+}

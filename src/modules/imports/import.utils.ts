@@ -778,3 +778,218 @@ export function parseModifierSequenceOrder(value: string | null): number | null 
   }
   return Math.trunc(Number(value));
 }
+
+/** Laravel ImportCptCodes::parseDelimiter */
+export function parseCptImportDelimiter(value: string | undefined): string | null {
+  if (value === undefined || value.trim() === '') {
+    return null;
+  }
+  const v = value.trim().toLowerCase();
+  if (['tab', '\\t', 't'].includes(v)) {
+    return '\t';
+  }
+  if ([',', 'comma', 'c'].includes(v)) {
+    return ',';
+  }
+  return value;
+}
+
+/** Laravel ImportCptCodes::mapExcelColumns (lowercase trim headers). */
+export function mapCptCodeExcelColumns(headers: string[]): Partial<Record<string, number>> {
+  return mapExcelColumnsByAliases(headers, {
+    name: [
+      'hcpc',
+      'hcpcs',
+      'hcpc code',
+      'hcpcs code',
+      'cpt',
+      'cpt_code',
+      'cptcode',
+      'code',
+      'name',
+      'procedure_code',
+      'procedure code',
+    ],
+    description: [
+      'description',
+      'desc',
+      'short_description',
+      'short description',
+      'long_description',
+      'long description',
+      'procedure_description',
+      'procedure description',
+    ],
+    effective_date: [
+      'effective_date',
+      'effective date',
+      'effdate',
+      'eff_date',
+      'eff date',
+      'date',
+      'start_date',
+      'start date',
+    ],
+  });
+}
+
+/** Laravel ImportCptCodes::parseDate */
+export function parseCptImportEffectiveDate(value: string | null): Date | null {
+  if (value === null || value === '') {
+    return null;
+  }
+  const trimmed = value.trim();
+  if (/^\d+(\.\d+)?$/.test(trimmed)) {
+    const serial = Number(trimmed);
+    if (Number.isFinite(serial) && serial > 0 && serial < 100000) {
+      const epoch = new Date(Date.UTC(1899, 11, 30));
+      epoch.setUTCDate(epoch.getUTCDate() + Math.floor(serial));
+      return epoch;
+    }
+  }
+  return parseLabEffectiveDate(value);
+}
+
+/** Laravel ImportModifiers::parseDate */
+export function parseModifierImportDate(value: string | null): Date | null {
+  if (value === null || value === '') {
+    return null;
+  }
+  const digits = value.replace(/\D/g, '');
+  if (digits.length === 8) {
+    const y = Number.parseInt(digits.slice(0, 4), 10);
+    const m = Number.parseInt(digits.slice(4, 6), 10);
+    const d = Number.parseInt(digits.slice(6, 8), 10);
+    const date = new Date(Date.UTC(y, m - 1, d));
+    if (date.getUTCFullYear() === y && date.getUTCMonth() === m - 1 && date.getUTCDate() === d) {
+      return date;
+    }
+  }
+  return parseLabEffectiveDate(value);
+}
+
+/** Laravel ImportNdcCodes / crosswalk — first worksheet with a non-empty header row. */
+export async function loadExcelRowsWithHeaderWorksheet(filePath: string): Promise<string[][]> {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(filePath);
+
+  for (const sheet of workbook.worksheets) {
+    const rows: string[][] = [];
+    sheet.eachRow((row) => {
+      const values = row.values;
+      if (!Array.isArray(values)) {
+        return;
+      }
+      rows.push(values.slice(1).map((value) => excelCellToTrimmedString(value)));
+    });
+    const headers = (rows[0] ?? []).filter((header) => header.trim() !== '');
+    if (headers.length > 0) {
+      return rows;
+    }
+  }
+
+  const sheet = workbook.getWorksheet('Sheet1') ?? workbook.worksheets[0];
+  if (!sheet) {
+    return [];
+  }
+  const rows: string[][] = [];
+  sheet.eachRow((row) => {
+    const values = row.values;
+    if (!Array.isArray(values)) {
+      return;
+    }
+    rows.push(values.slice(1).map((value) => excelCellToTrimmedString(value)));
+  });
+  return rows;
+}
+
+/** Laravel ImportNdcCodes::mapExcelColumns */
+export function mapNdcCodeExcelColumns(headers: string[]): Partial<Record<string, number>> {
+  const normalized = headers.map((header) => normalizeHeader(String(header ?? '')));
+  return mapExcelColumnsByAliases(normalized, {
+    ndc: ['ndc', 'ndc_code', 'ndcpackagecode', 'national_drug_code'],
+    package_description: ['package_description', 'packagedescription', 'description', 'ndc_label', 'label'],
+  });
+}
+
+/** Laravel ImportNdcHcpcsCrosswalk::mapExcelColumns */
+export function mapNdcHcpcsCrosswalkExcelColumns(headers: string[]): Partial<Record<string, number>> {
+  const normalized = headers.map((header) => normalizeHeader(String(header ?? '')));
+  return mapExcelColumnsByAliases(normalized, {
+    ndc: ['ndc', 'ndc_code', 'national_drug_code'],
+    hcpcs: ['hcpcs', 'hcpcs_code', 'hcpc', 'hcpc_code', 'code'],
+    ndc_label: ['ndc_label', 'label', 'ndc_description', 'description', 'short_description'],
+    hcpcs_amount: [
+      'hcpcs_amount_1',
+      'hcpcs_amount',
+      'hcpcs_amount_number_1',
+      'amount',
+      'dosage_amount',
+    ],
+    hcpcs_measure: ['hcpcs_measure_1', 'hcpcs_measure', 'measure', 'unit', 'dosage_measure'],
+    package_item_count: [
+      'number_of_items_in_ndc_package',
+      'package_item_count',
+      'items_in_package',
+      'ndc_package_items',
+      'pkg_qty',
+    ],
+  });
+}
+
+/** Laravel ImportUhcPosCrosswalk::mapExcelColumns */
+export function mapUhcPosCrosswalkExcelColumns(headers: string[]): Partial<Record<string, number>> {
+  const normalized = headers.map((header) => normalizeHeader(String(header ?? '')));
+  return mapExcelColumnsByAliases(normalized, {
+    cpt_code: ['cpt', 'cpt_code', 'procedure_code', 'code', 'hcpcs'],
+    pos_code: ['pos', 'pos_code', 'place_of_service', 'place_of_service_code'],
+  });
+}
+
+/** Laravel ImportUhcPosCrosswalk::findHeaderRowIndex */
+export function findUhcPosCrosswalkHeaderRowIndex(rows: string[][]): number {
+  for (let index = 0; index < rows.length; index += 1) {
+    const headers = (rows[index] ?? []).map((header) => normalizeHeader(String(header ?? '')));
+    const map = mapUhcPosCrosswalkExcelColumns(headers);
+    if (map.cpt_code !== undefined && map.pos_code !== undefined) {
+      return index;
+    }
+  }
+  return 0;
+}
+
+/** Laravel ImportUhcPosCrosswalk::normalizePosCode */
+export function normalizeUhcPosCode(posCode: string): string | null {
+  const trimmed = posCode.trim();
+  if (trimmed === '') {
+    return null;
+  }
+  return trimmed.padStart(2, '0');
+}
+
+/** Laravel ImportTaxonomyCodes::mapExcelColumns */
+export function mapTaxonomyCodeExcelColumns(headers: string[]): Partial<Record<string, number>> {
+  const normalized = headers.map((header) => normalizeHeader(String(header ?? '')));
+  return mapExcelColumnsByAliases(normalized, {
+    taxonomy_code: ['taxonomy_code', 'taxonomy_codes', 'taxonomy', 'code', 'nucc_code'],
+    specialty_name: ['specialty_name', 'speciality_name', 'specialty', 'speciality', 'name', 'description'],
+  });
+}
+
+/** Laravel ImportNdcHcpcsCrosswalk::parseNumeric */
+export function parseImportOptionalFloat(value: string | null): number | null {
+  if (value === null || value === '') {
+    return null;
+  }
+  const normalized = value.trim();
+  if (normalized === '' || !/^-?\d+(\.\d+)?$/.test(normalized)) {
+    return null;
+  }
+  return Number(normalized);
+}
+
+/** Laravel ImportNdcHcpcsCrosswalk::parseInteger */
+export function parseImportOptionalInteger(value: string | null): number | null {
+  const numeric = parseImportOptionalFloat(value);
+  return numeric === null ? null : Math.round(numeric);
+}
