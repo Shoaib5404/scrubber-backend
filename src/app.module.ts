@@ -10,6 +10,7 @@ import { EdiStructuralValidationModule } from './modules/edi-structural-validati
 import { HealthModule } from './modules/health/health.module';
 import { LookupCacheModule } from './modules/cache/lookup-cache.module';
 import { QueueModule } from './modules/queue/queue.module';
+import { ReferenceAdminModule } from './modules/reference-admin/reference-admin.module';
 import { ReferencesModule } from './modules/references/references.module';
 import { StorageModule } from './adapters/storage/storage.module';
 import { PrismaModule } from './common/prisma/prisma.module';
@@ -39,6 +40,7 @@ import { loadEnvFrom } from './config';
     BatchesModule,
     ClaimsModule,
     ReferencesModule,
+    ReferenceAdminModule,
     HealthModule,
   ],
 })

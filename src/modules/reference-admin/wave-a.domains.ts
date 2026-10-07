@@ -1,0 +1,453 @@
+export type ReferenceOperation =
+  | 'list'
+  | 'show'
+  | 'create'
+  | 'update'
+  | 'destroy'
+  | 'toggle_active';
+
+export type ActiveFilterField = 'isActive' | 'active';
+
+export type WaveADomainDefinition = {
+  slug: string;
+  title: string;
+  /** Prisma client delegate key (camelCase). */
+  prismaModel: string;
+  lookupTable: string;
+  /** Extra lookup meta keys to invalidate after mutations (Laravel rebuild paths). */
+  extraLookupTables?: string[];
+  readOnly?: boolean;
+  hasToggle?: boolean;
+  activeFilter?: ActiveFilterField;
+  searchFields: string[];
+  writableFields: string[];
+  createRequired: string[];
+};
+
+function domainOps(def: WaveADomainDefinition): ReferenceOperation[] {
+  const ops: ReferenceOperation[] = ['list', 'show'];
+  if (!def.readOnly) {
+    ops.push('create', 'update', 'destroy');
+  }
+  if (def.hasToggle) {
+    ops.push('toggle_active');
+  }
+  return ops;
+}
+
+function def(partial: WaveADomainDefinition): WaveADomainDefinition {
+  return partial;
+}
+
+/** Wave A reference domains aligned with Laravel web CRUD (SP-7 Task 17). */
+export const WAVE_A_DOMAIN_DEFINITIONS: WaveADomainDefinition[] = [
+  def({
+    slug: 'cpt-codes',
+    title: 'CPT Codes',
+    prismaModel: 'cptCode',
+    lookupTable: 'cpt_codes',
+    hasToggle: true,
+    activeFilter: 'isActive',
+    searchFields: ['name', 'description'],
+    writableFields: ['name', 'description', 'effectiveDate', 'isActive'],
+    createRequired: ['name'],
+  }),
+  def({
+    slug: 'age-specific-cpt-rules',
+    title: 'Age Specific CPT Rules',
+    prismaModel: 'ageSpecificCptRule',
+    lookupTable: 'age_specific_cpt_rules',
+    hasToggle: true,
+    activeFilter: 'isActive',
+    searchFields: ['cptCode', 'description', 'notes'],
+    writableFields: [
+      'cptCode',
+      'description',
+      'lowLimit',
+      'highLimit',
+      'unit',
+      'gender',
+      'notes',
+      'isActive',
+    ],
+    createRequired: ['cptCode'],
+  }),
+  def({
+    slug: 'age-specific-icd-rules',
+    title: 'Age Specific ICD Rules',
+    prismaModel: 'ageSpecificIcdRule',
+    lookupTable: 'age_specific_icd_rules',
+    hasToggle: true,
+    activeFilter: 'isActive',
+    searchFields: ['icdCode', 'description'],
+    writableFields: ['icdCode', 'description', 'lowLimit', 'upperLimit', 'unit', 'isActive'],
+    createRequired: ['icdCode'],
+  }),
+  def({
+    slug: 'gender-specific-cpt-rules',
+    title: 'Gender Specific CPT Rules',
+    prismaModel: 'genderSpecificCptRule',
+    lookupTable: 'gender_specific_cpt_rules',
+    hasToggle: true,
+    activeFilter: 'isActive',
+    searchFields: ['cptCode', 'description', 'notes'],
+    writableFields: ['cptCode', 'description', 'gender', 'notes', 'isActive'],
+    createRequired: ['cptCode', 'gender'],
+  }),
+  def({
+    slug: 'icd-gender-specific-rules',
+    title: 'ICD Gender Specific Rules',
+    prismaModel: 'icdGenderSpecificRule',
+    lookupTable: 'icd_gender_specific_rules',
+    hasToggle: true,
+    activeFilter: 'isActive',
+    searchFields: ['icdCode', 'description'],
+    writableFields: ['icdCode', 'description', 'gender', 'isActive'],
+    createRequired: ['icdCode', 'gender'],
+  }),
+  def({
+    slug: 'modifiers',
+    title: 'Modifiers',
+    prismaModel: 'modifier',
+    lookupTable: 'modifiers',
+    searchFields: ['modifier', 'shortDescription'],
+    writableFields: ['modifier', 'shortDescription', 'addDt', 'actEffDt', 'termDt'],
+    createRequired: ['modifier'],
+  }),
+  def({
+    slug: 'modifier-sequences',
+    title: 'Modifier Sequences',
+    prismaModel: 'modifierSequence',
+    lookupTable: 'modifier_sequences',
+    hasToggle: true,
+    activeFilter: 'isActive',
+    searchFields: ['modifier', 'modifierGroup'],
+    writableFields: ['modifier', 'modifierGroup', 'sequenceOrder', 'isActive'],
+    createRequired: ['modifier', 'modifierGroup', 'sequenceOrder'],
+  }),
+  def({
+    slug: 'cpt-modifier-rules',
+    title: 'CPT Modifier Rules',
+    prismaModel: 'cptModifierRule',
+    lookupTable: 'cpt_modifier_rules',
+    hasToggle: true,
+    activeFilter: 'isActive',
+    searchFields: ['cptCode', 'modifierCode', 'description', 'payerId'],
+    writableFields: [
+      'cptCode',
+      'modifierCode',
+      'isAllowed',
+      'payerId',
+      'description',
+      'notes',
+      'isActive',
+    ],
+    createRequired: ['cptCode', 'modifierCode'],
+  }),
+  def({
+    slug: 'cpt-pos-rules',
+    title: 'CPT POS Rules',
+    prismaModel: 'cptPosRule',
+    lookupTable: 'cpt_pos_rules',
+    extraLookupTables: ['cpt_pos_rules_by_cpt'],
+    searchFields: ['cptCode', 'posCode', 'payerId'],
+    writableFields: ['cptCode', 'posCode', 'payerId', 'isDeleted'],
+    createRequired: ['cptCode', 'posCode'],
+  }),
+  def({
+    slug: 'icd10-body-sidewise',
+    title: 'ICD-10 Body Sidewise',
+    prismaModel: 'icd10BodySidewise',
+    lookupTable: 'icd10_body_sidewise',
+    searchFields: ['code', 'longDescription', 'side'],
+    writableFields: ['code', 'longDescription', 'side'],
+    createRequired: ['code'],
+  }),
+  def({
+    slug: 'icd10-unacceptable-principal-dx-codes',
+    title: 'ICD-10 Unacceptable Principal Dx Codes',
+    prismaModel: 'icd10UnacceptablePrincipalDiagnoseCode',
+    lookupTable: 'icd10_unacceptable_principal_diagnose_codes',
+    activeFilter: 'active',
+    searchFields: ['code', 'description'],
+    writableFields: ['code', 'description', 'claimType', 'active'],
+    createRequired: ['code', 'claimType'],
+  }),
+  def({
+    slug: 'ncci',
+    title: 'NCCI',
+    prismaModel: 'ncci',
+    lookupTable: 'nccis',
+    hasToggle: true,
+    activeFilter: 'isActive',
+    searchFields: ['column1', 'column2', 'ptpEditRationale', 'sourceFile'],
+    writableFields: [
+      'column1',
+      'column2',
+      'inExistencePriorTo1996',
+      'effectiveDate',
+      'deletionDate',
+      'modifier',
+      'ptpEditRationale',
+      'sourceFile',
+      'isActive',
+    ],
+    createRequired: ['column1', 'column2', 'modifier'],
+  }),
+  def({
+    slug: 'mue-practitioners',
+    title: 'MUE Practitioners',
+    prismaModel: 'muePractitioner',
+    lookupTable: 'mue_practitioners',
+    searchFields: ['cptCode', 'lowerLimit', 'upperLimit', 'indicator'],
+    writableFields: ['cptCode', 'lowerLimit', 'upperLimit', 'indicator', 'effectiveDate'],
+    createRequired: ['cptCode'],
+  }),
+  def({
+    slug: 'add-on-codes',
+    title: 'Add-On Codes',
+    prismaModel: 'addOnCode',
+    lookupTable: 'add_on_codes',
+    searchFields: ['primaryCode', 'addOnCode', 'specialInstructionNotes'],
+    writableFields: [
+      'primaryCode',
+      'aocEditType',
+      'addOnCode',
+      'aocDeldt',
+      'primaryCodeDeldt',
+      'aocEditEffdt',
+      'aocEditDeldt',
+      'specialInstructionNotes',
+    ],
+    createRequired: ['primaryCode'],
+  }),
+  def({
+    slug: 'zero-amount-procedures',
+    title: 'Zero Amount Procedures',
+    prismaModel: 'zeroAmountProcedure',
+    lookupTable: 'zero_amount_procedures',
+    hasToggle: true,
+    activeFilter: 'isActive',
+    searchFields: ['procedureCode'],
+    writableFields: ['procedureCode', 'isActive'],
+    createRequired: ['procedureCode'],
+  }),
+  def({
+    slug: 'no-of-units-cpts',
+    title: 'No Of Units CPTs',
+    prismaModel: 'noOfUnitsCpt',
+    lookupTable: 'no_of_units_cpts',
+    hasToggle: true,
+    activeFilter: 'isActive',
+    searchFields: ['cpt'],
+    writableFields: ['cpt', 'isActive'],
+    createRequired: ['cpt'],
+  }),
+  def({
+    slug: 'global-days-surgeries',
+    title: 'Global Days Surgeries',
+    prismaModel: 'globalDaysSurgery',
+    lookupTable: 'global_days_surgeries',
+    hasToggle: true,
+    activeFilter: 'isActive',
+    searchFields: ['cptCode', 'description'],
+    writableFields: ['cptCode', 'description', 'days', 'isActive'],
+    createRequired: ['cptCode', 'days'],
+  }),
+  def({
+    slug: 'initial-treatment-codes',
+    title: 'Initial Treatment Codes',
+    prismaModel: 'initialTreatmentCode',
+    lookupTable: 'initial_treatment_codes',
+    activeFilter: 'active',
+    searchFields: ['code'],
+    writableFields: ['code', 'active'],
+    createRequired: ['code'],
+  }),
+  def({
+    slug: 'radiology-cpt-codes',
+    title: 'Radiology CPT Codes',
+    prismaModel: 'radiologyCptCode',
+    lookupTable: 'radiology_cpt_codes',
+    activeFilter: 'isActive',
+    searchFields: ['cpt'],
+    writableFields: ['cpt', 'isActive'],
+    createRequired: ['cpt'],
+  }),
+  def({
+    slug: 'major-surgery-codes',
+    title: 'Major Surgery Codes',
+    prismaModel: 'majorSurgeryCode',
+    lookupTable: 'major_surgery_codes',
+    activeFilter: 'active',
+    searchFields: ['code'],
+    writableFields: ['code', 'active'],
+    createRequired: ['code'],
+  }),
+  def({
+    slug: 'anesthesia-codes',
+    title: 'Anesthesia Codes',
+    prismaModel: 'anesthesiaCode',
+    lookupTable: 'anesthesia_codes',
+    activeFilter: 'active',
+    searchFields: ['cptCode'],
+    writableFields: ['cptCode', 'unit', 'active'],
+    createRequired: ['cptCode', 'unit'],
+  }),
+  def({
+    slug: 'anesthesia-modifiers',
+    title: 'Anesthesia Modifiers',
+    prismaModel: 'anesthesiaModifier',
+    lookupTable: 'anesthesia_modifiers',
+    activeFilter: 'active',
+    searchFields: ['modifier', 'description'],
+    writableFields: ['modifier', 'description', 'active'],
+    createRequired: ['modifier'],
+  }),
+  def({
+    slug: 'anesthesia-billable-modifiers',
+    title: 'Anesthesia Billable Modifiers',
+    prismaModel: 'anesthesiaCodeWithBillableModifier',
+    lookupTable: 'anesthesia_codes_with_billable_modifiers',
+    activeFilter: 'active',
+    searchFields: ['code', 'modifier'],
+    writableFields: ['code', 'modifier', 'active'],
+    createRequired: ['code', 'modifier'],
+  }),
+  def({
+    slug: 'tobacco-counseling-icd-rules',
+    title: 'Tobacco Counseling ICD Rules',
+    prismaModel: 'tobaccoCounselingIcdRule',
+    lookupTable: 'tobacco_counseling_icd_rules',
+    hasToggle: true,
+    activeFilter: 'isActive',
+    searchFields: ['icdCode', 'description'],
+    writableFields: ['icdCode', 'description', 'indicator', 'isActive'],
+    createRequired: ['icdCode'],
+  }),
+  def({
+    slug: 'consultation-procedures',
+    title: 'Consultation Procedures',
+    prismaModel: 'consultationProcedure',
+    lookupTable: 'consultation_procedures',
+    hasToggle: true,
+    activeFilter: 'isActive',
+    searchFields: ['cptCode', 'description', 'typeOfService'],
+    writableFields: ['cptCode', 'description', 'typeOfService', 'isActive'],
+    createRequired: ['cptCode'],
+  }),
+  def({
+    slug: 'enm-procedures',
+    title: 'E/M Procedures',
+    prismaModel: 'enmProcedure',
+    lookupTable: 'enm_procedures',
+    hasToggle: true,
+    activeFilter: 'isActive',
+    searchFields: ['cptCode', 'description'],
+    writableFields: ['cptCode', 'description', 'isActive'],
+    createRequired: ['cptCode'],
+  }),
+  def({
+    slug: 'enm-surgery-codes',
+    title: 'E/M Surgery Codes',
+    prismaModel: 'enmSurgeryCode',
+    lookupTable: 'enm_surgery_codes',
+    hasToggle: true,
+    activeFilter: 'isActive',
+    searchFields: ['cptCode'],
+    writableFields: ['cptCode', 'isActive'],
+    createRequired: ['cptCode'],
+  }),
+  def({
+    slug: 'lab-codes',
+    title: 'Lab Codes',
+    prismaModel: 'labCode',
+    lookupTable: 'lab_codes',
+    hasToggle: true,
+    activeFilter: 'isActive',
+    searchFields: ['hcpcs', 'modifier', 'shortDescription'],
+    writableFields: [
+      'hcpcs',
+      'modifier',
+      'effectiveDate',
+      'indicator',
+      'rate',
+      'shortDescription',
+      'isActive',
+    ],
+    createRequired: ['hcpcs'],
+  }),
+  def({
+    slug: 'mcr-vaccine-codes',
+    title: 'MCR Vaccine Codes',
+    prismaModel: 'mcrVaccineCode',
+    lookupTable: 'mcr_vaccine_codes',
+    hasToggle: true,
+    activeFilter: 'isActive',
+    searchFields: ['type', 'vaccineCode', 'icd10Code', 'administrationCode'],
+    writableFields: [
+      'type',
+      'vaccineCode',
+      'icd10Code',
+      'administrationCode',
+      'isActive',
+    ],
+    createRequired: ['type', 'vaccineCode'],
+  }),
+  def({
+    slug: 'vaccine-codes',
+    title: 'Vaccine Codes',
+    prismaModel: 'vaccineCode',
+    lookupTable: 'vaccine_codes',
+    hasToggle: true,
+    activeFilter: 'isActive',
+    searchFields: ['vaccineCode', 'description'],
+    writableFields: ['vaccineCode', 'description', 'componentCount', 'isActive'],
+    createRequired: ['vaccineCode'],
+  }),
+  def({
+    slug: 'i-codes',
+    title: 'I Codes',
+    prismaModel: 'iCode',
+    lookupTable: 'i_codes',
+    activeFilter: 'active',
+    searchFields: ['hcpcs', 'description'],
+    writableFields: ['hcpcs', 'description', 'active'],
+    createRequired: ['hcpcs'],
+  }),
+  def({
+    slug: 'icd10-codes',
+    title: 'ICD-10 Tabular Codes',
+    prismaModel: 'icd10TabularCode',
+    lookupTable: 'icd10_tabular_codes',
+    readOnly: true,
+    searchFields: ['code'],
+    writableFields: [],
+    createRequired: [],
+  }),
+];
+
+const DOMAIN_BY_SLUG = new Map(WAVE_A_DOMAIN_DEFINITIONS.map((d) => [d.slug, d]));
+
+export function getWaveADomain(slug: string): WaveADomainDefinition | undefined {
+  return DOMAIN_BY_SLUG.get(slug);
+}
+
+export function listWaveADomainSummaries(): Array<{
+  slug: string;
+  title: string;
+  ops: ReferenceOperation[];
+}> {
+  return WAVE_A_DOMAIN_DEFINITIONS.map((d) => ({
+    slug: d.slug,
+    title: d.title,
+    ops: domainOps(d),
+  }));
+}
+
+export function domainSupportsOp(
+  def: WaveADomainDefinition,
+  op: ReferenceOperation,
+): boolean {
+  return domainOps(def).includes(op);
+}
