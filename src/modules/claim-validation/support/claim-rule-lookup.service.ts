@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { LookupCacheService } from '../../cache/lookup-cache.service';
+import { NcciRulesCacheService } from '../../cache/ncci-rules-cache.service';
 import { CptCoreRuleRow, CptModifierRuleRow, CptPosRuleRow } from '../rules/cpt.rules';
 import { AgeSpecificCptRuleRow, GenderSpecificCptRuleRow } from './cpt-age-gender.validation';
 import { MuePractitionerLookupRow } from '../rules/mue-practitioner.rules';
@@ -12,12 +13,13 @@ import {
   NdcCrosswalkContext,
 } from './ndc-crosswalk.context';
 
-/** Loads claim-rule reference rows (Laravel LookupCache DB path; Redis = SP-5). */
+/** Loads claim-rule reference rows (Laravel LookupCache + NCCI Redis path). */
 @Injectable()
 export class ClaimRuleLookupService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly config: ConfigService,
+    private readonly lookupCache: LookupCacheService,
+    private readonly ncciCache: NcciRulesCacheService,
   ) {}
 
   uniqueCodes(codes: Array<string | null | undefined>): string[] {
@@ -187,11 +189,13 @@ export class ClaimRuleLookupService {
   }
 
   async modifierSequences(): Promise<Array<{ id: number; modifier: string }>> {
-    return this.prisma.modifierSequence.findMany({
-      where: { isActive: true },
-      select: { id: true, modifier: true },
-      orderBy: { id: 'asc' },
-    });
+    return this.lookupCache.getOrLoad('modifier_sequences:active', () =>
+      this.prisma.modifierSequence.findMany({
+        where: { isActive: true },
+        select: { id: true, modifier: true },
+        orderBy: { id: 'asc' },
+      }),
+    );
   }
 
   async primariesByAddon(codes: string[]): Promise<Record<string, string[]>> {
@@ -271,19 +275,23 @@ export class ClaimRuleLookupService {
   }
 
   async enmProcedureSet(): Promise<Record<string, true>> {
-    const rows = await this.prisma.enmProcedure.findMany({
-      where: { isActive: true },
-      select: { cptCode: true },
+    return this.lookupCache.getOrLoad('enm_procedures:active_set', async () => {
+      const rows = await this.prisma.enmProcedure.findMany({
+        where: { isActive: true },
+        select: { cptCode: true },
+      });
+      return Object.fromEntries(rows.map((r) => [r.cptCode.toUpperCase(), true as const]));
     });
-    return Object.fromEntries(rows.map((r) => [r.cptCode.toUpperCase(), true as const]));
   }
 
   async enmSurgerySet(): Promise<Record<string, true>> {
-    const rows = await this.prisma.enmSurgeryCode.findMany({
-      where: { isActive: true },
-      select: { cptCode: true },
+    return this.lookupCache.getOrLoad('enm_surgery_codes:active_set', async () => {
+      const rows = await this.prisma.enmSurgeryCode.findMany({
+        where: { isActive: true },
+        select: { cptCode: true },
+      });
+      return Object.fromEntries(rows.map((r) => [r.cptCode.toUpperCase(), true as const]));
     });
-    return Object.fromEntries(rows.map((r) => [r.cptCode.toUpperCase(), true as const]));
   }
 
   async majorSurgerySet(codes: string[]): Promise<Record<string, true>> {
@@ -332,27 +340,7 @@ export class ClaimRuleLookupService {
   }
 
   async ncciPairsByColumnKey(codes: string[]): Promise<Record<string, NcciPairLookupRow[]>> {
-    if (codes.length < 2) return {};
-    const threshold = this.config.get<number>('NCCI_CLAIM_CPT_DB_THRESHOLD', 48);
-    if (codes.length > threshold) return {};
-    const rows = await this.prisma.ncci.findMany({
-      where: {
-        isActive: true,
-        column1: { in: codes },
-        column2: { in: codes },
-      },
-    });
-    const out: Record<string, NcciPairLookupRow[]> = {};
-    for (const r of rows) {
-      const key = `${r.column1}|${r.column2}`;
-      (out[key] ??= []).push({
-        id: r.id,
-        column1: r.column1,
-        column2: r.column2,
-        modifier: r.modifier,
-      });
-    }
-    return out;
+    return this.ncciCache.pairsByColumnKey(codes);
   }
 
   async aetnaFetalCpts(): Promise<string[]> {

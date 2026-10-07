@@ -20,6 +20,16 @@ export const envSchema = z.object({
 
   REDIS_URL: z.string().min(1).default('redis://localhost:6381'),
   REDIS_TLS: booleanFromString.default(false),
+  /** Optional dedicated URL for lookup cache; falls back to REDIS_URL. */
+  REDIS_LOOKUP_URL: z.string().optional(),
+  /** Laravel redis.lookups DB index (default 2). */
+  REDIS_LOOKUP_DB: z.coerce.number().int().min(0).default(2),
+  /** Laravel LOOKUP_CACHE_ENABLED — when false, always hit DB. */
+  LOOKUP_CACHE_ENABLED: booleanFromString.default(true),
+  /** Laravel LOOKUP_CACHE_TTL seconds; <=0 means no expiry. Default 1 year. */
+  LOOKUP_CACHE_TTL: z.coerce.number().int().default(31_536_000),
+  /** Laravel lookup_cache.key_prefix (actual SoT is `lookup`, not ns_prod). */
+  LOOKUP_CACHE_KEY_PREFIX: z.string().default('lookup'),
 
   BULLMQ_CONCURRENCY: z.coerce.number().int().positive().default(5),
   QUEUE_MODE: z.string().default('bullmq'),
