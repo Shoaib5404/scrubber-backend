@@ -24,20 +24,24 @@ export type ValidateBatchJobData = { batchId: number; force: boolean };
 export type FinalizeBatchJobData = { batchId: number };
 export type ProcessBatchFileJobData = { batchId: number; force: boolean };
 
+// Job IDs use `-` (not `:`) as the segment separator. BullMQ 5.x rejects custom
+// job IDs containing `:` unless they split into exactly 3 segments (reserved for
+// its internal repeatable-job id format `repeat:<id>:<next>`), so a 2-segment
+// `name:id` id throws "Custom Id cannot contain :" at enqueue time.
 export function validateClaimJobId(claimId: number): string {
-  return `validate-claim:${claimId}`;
+  return `validate-claim-${claimId}`;
 }
 
 export function validateBatchJobId(batchId: number, force: boolean): string {
-  return force ? `validate-batch:${batchId}-force` : `validate-batch:${batchId}`;
+  return force ? `validate-batch-${batchId}-force` : `validate-batch-${batchId}`;
 }
 
 export function finalizeBatchJobId(batchId: number): string {
-  return `finalize-batch:${batchId}`;
+  return `finalize-batch-${batchId}`;
 }
 
 export function processBatchFileJobId(batchId: number, force: boolean): string {
-  return force ? `process-batch:${batchId}-force` : `process-batch:${batchId}`;
+  return force ? `process-batch-${batchId}-force` : `process-batch-${batchId}`;
 }
 
 /** Laravel ClaimStatus::isTerminal */
