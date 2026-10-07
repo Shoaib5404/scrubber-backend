@@ -20,6 +20,16 @@ import { NoOfUnitsCptsImportCommand } from './no-of-units-cpts.command';
 import { NoOfUnitsCptsImportService } from './no-of-units-cpts.import.service';
 import { RadiologyCptCodesImportCommand } from './radiology-cpt-codes.command';
 import { RadiologyCptCodesImportService } from './radiology-cpt-codes.import.service';
+import { BcbsClaimRoutingsImportCommand } from './bcbs-claim-routings.command';
+import { BcbsClaimRoutingsImportService } from './bcbs-claim-routings.import.service';
+import { Mue87726Uhc06111OxfordImportCommand } from './mue-87726-uhc-06111-oxford.command';
+import { Mue87726Uhc06111OxfordImportService } from './mue-87726-uhc-06111-oxford.import.service';
+import { UhcAuthorizationsImportCommand } from './uhc-authorizations.command';
+import { UhcAuthorizationsImportService } from './uhc-authorizations.import.service';
+import { ZeroAmountProceduresImportCommand } from './zero-amount-procedures.command';
+import { ZeroAmountProceduresImportService } from './zero-amount-procedures.import.service';
+import { Icd10RangeExpander } from './icd10-range.expander';
+import { UhcAuthorizationConditionValuesNormalizer } from './uhc-authorization-condition-values.normalizer';
 
 @Module({
   imports: [PrismaModule, LookupCacheModule],
@@ -34,6 +44,12 @@ import { RadiologyCptCodesImportService } from './radiology-cpt-codes.import.ser
     AnesthesiaCodesWithBillableModifiersImportService,
     ICodesImportService,
     GlobalDaysSurgeriesImportService,
+    BcbsClaimRoutingsImportService,
+    Mue87726Uhc06111OxfordImportService,
+    UhcAuthorizationsImportService,
+    ZeroAmountProceduresImportService,
+    Icd10RangeExpander,
+    UhcAuthorizationConditionValuesNormalizer,
     RadiologyCptCodesImportCommand,
     MajorSurgeryCodesImportCommand,
     InitialTreatmentCodesImportCommand,
@@ -43,6 +59,10 @@ import { RadiologyCptCodesImportService } from './radiology-cpt-codes.import.ser
     AnesthesiaCodesWithBillableModifiersImportCommand,
     ICodesImportCommand,
     GlobalDaysSurgeriesImportCommand,
+    BcbsClaimRoutingsImportCommand,
+    Mue87726Uhc06111OxfordImportCommand,
+    UhcAuthorizationsImportCommand,
+    ZeroAmountProceduresImportCommand,
   ],
   exports: [
     RadiologyCptCodesImportService,
@@ -54,6 +74,10 @@ import { RadiologyCptCodesImportService } from './radiology-cpt-codes.import.ser
     AnesthesiaCodesWithBillableModifiersImportService,
     ICodesImportService,
     GlobalDaysSurgeriesImportService,
+    BcbsClaimRoutingsImportService,
+    Mue87726Uhc06111OxfordImportService,
+    UhcAuthorizationsImportService,
+    ZeroAmountProceduresImportService,
   ],
 })
 export class ImportsModule {}

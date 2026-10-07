@@ -197,3 +197,109 @@ export function dedupeBatchByCompositeKey<T extends Record<string, string>>(
   }
   return [...unique.values()];
 }
+
+/** Laravel ImportMue87726Uhc06111Oxford::parseInteger (ctype_digit) */
+export function parseCtypeDigitInteger(value: string | null): number | null {
+  if (value === null || value === '') {
+    return null;
+  }
+  const trimmed = value.trim();
+  if (!/^\d+$/.test(trimmed)) {
+    return null;
+  }
+  return Number.parseInt(trimmed, 10);
+}
+
+const MUE_87726_COLUMN_ALIASES = {
+  cptCode: ['code', 'cpt', 'cpt_code', 'hcpcs'] as const,
+  min: ['minimun', 'minimum', 'min'] as const,
+  max: ['maximun', 'maximum', 'max'] as const,
+};
+
+/** Laravel ImportMue87726Uhc06111Oxford::mapCsvColumns */
+export function mapMue87726UhcOxfordColumns(
+  headers: string[],
+): Partial<Record<'cptCode' | 'min' | 'max', number>> {
+  const map: Partial<Record<'cptCode' | 'min' | 'max', number>> = {};
+  for (let index = 0; index < headers.length; index += 1) {
+    const normalized = normalizeHeader(String(headers[index] ?? ''));
+    for (const [field, possibleNames] of Object.entries(MUE_87726_COLUMN_ALIASES) as [
+      keyof typeof MUE_87726_COLUMN_ALIASES,
+      readonly string[],
+    ][]) {
+      if (possibleNames.includes(normalized)) {
+        map[field] = index;
+      }
+    }
+  }
+  return map;
+}
+
+/** Laravel ImportBcbsClaimRoutings::buildColumns */
+export function buildBcbsClaimRoutingColumns(
+  descriptions: string[],
+  payerIds: string[],
+): Array<{ index: number; description: string; payerId: string }> {
+  const columns: Array<{ index: number; description: string; payerId: string }> = [];
+  const columnCount = Math.max(descriptions.length, payerIds.length);
+  for (let index = 0; index < columnCount; index += 1) {
+    const description = (descriptions[index] ?? '').trim();
+    const payerId = (payerIds[index] ?? '').trim();
+    if (description === '' || payerId === '') {
+      continue;
+    }
+    columns.push({ index, description, payerId });
+  }
+  return columns;
+}
+
+/** Laravel ImportZeroAmountProcedures::parseProcedureCode */
+export function parseZeroAmountProcedureCode(value: string | null): string | null {
+  let normalized = (value ?? '').trim().toUpperCase();
+  if (normalized === '' || !/^[A-Z0-9]+$/.test(normalized)) {
+    return null;
+  }
+  if (normalized.length < 5) {
+    normalized = normalized.padStart(5, '0');
+  }
+  return normalized;
+}
+
+const ZERO_AMOUNT_PROCEDURE_COLUMN_NAMES = [
+  'procedure_code',
+  'procedurecode',
+  'code',
+  'cpt',
+  'cpt_code',
+  'hcpcs',
+] as const;
+
+/** Laravel ImportZeroAmountProcedures::mapExcelColumns */
+export function mapZeroAmountProcedureColumn(headers: string[]): number | null {
+  const normalizedHeaders = headers.map((header) => normalizeHeader(String(header ?? '')));
+  for (const name of ZERO_AMOUNT_PROCEDURE_COLUMN_NAMES) {
+    const index = normalizedHeaders.indexOf(name);
+    if (index !== -1) {
+      return index;
+    }
+  }
+  return null;
+}
+
+/** Laravel ImportUhcAuthorizations::mapColumns */
+export function mapUhcAuthorizationColumns(headers: string[]): Partial<Record<'cptCode' | 'description' | 'diagnosis', number>> {
+  const map: Partial<Record<'cptCode' | 'description' | 'diagnosis', number>> = {};
+  for (let index = 0; index < headers.length; index += 1) {
+    const normalized = normalizeHeader(String(headers[index] ?? ''));
+    if (['procedure_codes', 'procedure_code', 'cpt', 'cpt_code', 'hcpcs', 'code'].includes(normalized)) {
+      map.cptCode = index;
+    }
+    if (['description', 'condition'].includes(normalized)) {
+      map.description = index;
+    }
+    if (['diagnosis', 'diagnosis_icd', 'icd', 'icds', 'condition_values'].includes(normalized)) {
+      map.diagnosis = index;
+    }
+  }
+  return map;
+}
