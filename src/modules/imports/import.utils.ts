@@ -98,3 +98,102 @@ export function dedupeBatchByKey<T extends Record<string, string>>(
   }
   return [...unique.values()];
 }
+
+/** Laravel Import*::normalizeHeaders — header row to normalized name → column index. */
+export function normalizeHeaders(headers: string[]): Record<string, number> {
+  const normalized: Record<string, number> = {};
+  for (let index = 0; index < headers.length; index += 1) {
+    const key = normalizeHeader(String(headers[index] ?? ''));
+    if (key !== '') {
+      normalized[key] = index;
+    }
+  }
+  return normalized;
+}
+
+export function resolveColumnIndex(
+  columns: Record<string, number>,
+  names: readonly string[],
+  fallback: number,
+): number {
+  for (const name of names) {
+    if (Object.prototype.hasOwnProperty.call(columns, name)) {
+      return columns[name];
+    }
+  }
+  return fallback;
+}
+
+/** Laravel ImportAnesthesiaCodes::parseActive (and siblings). */
+export function parseImportActive(value: string | null): boolean {
+  const normalized = (value ?? '').trim().toLowerCase();
+  switch (normalized) {
+    case '0':
+    case 'false':
+    case 'inactive':
+    case 'no':
+    case 'n':
+      return false;
+    default:
+      return true;
+  }
+}
+
+/** Laravel ImportAnesthesiaCodes::parseUnit */
+export function parseImportUnit(value: string | null): number | null {
+  if (value === null || value === '') {
+    return null;
+  }
+  if (!/^-?\d+(\.\d+)?$/.test(value.trim()) || !Number.isFinite(Number(value))) {
+    return null;
+  }
+  return Math.trunc(Number(value));
+}
+
+/** Laravel ImportGlobalDaysSurgeries::parseDays (ctype_digit) */
+export function parseGlobalDaysDigits(value: string | null): number | null {
+  if (value === null || value === '') {
+    return null;
+  }
+  const trimmed = value.trim();
+  if (!/^\d+$/.test(trimmed)) {
+    return null;
+  }
+  return Number.parseInt(trimmed, 10);
+}
+
+const GLOBAL_DAYS_COLUMN_ALIASES = {
+  cptCode: ['hcpcs', 'cpt', 'cpt_code', 'code'] as const,
+  description: ['description', 'desc'] as const,
+  days: ['global_days', 'golbal_days', 'days'] as const,
+};
+
+/** Laravel ImportGlobalDaysSurgeries::mapCsvColumns */
+export function mapGlobalDaysSurgeryColumns(
+  headers: string[],
+): Partial<Record<'cptCode' | 'description' | 'days', number>> {
+  const map: Partial<Record<'cptCode' | 'description' | 'days', number>> = {};
+  for (let index = 0; index < headers.length; index += 1) {
+    const normalized = normalizeHeader(String(headers[index] ?? ''));
+    for (const [field, possibleNames] of Object.entries(GLOBAL_DAYS_COLUMN_ALIASES) as [
+      keyof typeof GLOBAL_DAYS_COLUMN_ALIASES,
+      readonly string[],
+    ][]) {
+      if (possibleNames.includes(normalized)) {
+        map[field] = index;
+      }
+    }
+  }
+  return map;
+}
+
+export function dedupeBatchByCompositeKey<T extends Record<string, string>>(
+  batch: T[],
+  keys: (keyof T & string)[],
+): T[] {
+  const unique = new Map<string, T>();
+  for (const row of batch) {
+    unique.set(keys.map((key) => row[key]).join('|'), row);
+  }
+  return [...unique.values()];
+}
