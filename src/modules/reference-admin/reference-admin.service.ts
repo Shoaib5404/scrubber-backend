@@ -8,14 +8,17 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { LookupCacheService } from '../cache/lookup-cache.service';
-import { toCamelCaseRecord, toSnakeCase } from './snake.util';
 import {
   domainSupportsOp,
-  getWaveADomain,
-  listWaveADomainSummaries,
+  getReferenceDomain,
+  isJsonStorageDomain,
+  listReferenceDomainSummaries,
+  ReferenceDomainDefinition,
   ReferenceOperation,
-  WaveADomainDefinition,
-} from './wave-a.domains';
+} from './domains.registry';
+import { MedicaidMemberIdFormatRepository } from './medicaid/medicaid-member-id-format.repository';
+import { normalizeNdcFromImport } from './ndc.util';
+import { toCamelCaseRecord, toSnakeCase } from './snake.util';
 
 type PrismaRecord = Record<string, unknown>;
 
@@ -42,15 +45,20 @@ export class ReferenceAdminService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly lookupCache: LookupCacheService,
+    private readonly medicaidFormats: MedicaidMemberIdFormatRepository,
   ) {}
 
   listDomains() {
-    return listWaveADomainSummaries();
+    return listReferenceDomainSummaries();
   }
 
   async listDomain(slug: string, params: PaginatedListParams) {
     const def = this.requireDomain(slug);
     this.assertOp(def, 'list');
+
+    if (isJsonStorageDomain(def)) {
+      return this.listMedicaidDomain(params);
+    }
 
     const page = Math.max(1, params.page);
     const perPage = Math.min(100, Math.max(1, params.perPage));
@@ -85,12 +93,18 @@ export class ReferenceAdminService {
     };
   }
 
-  async showDomain(slug: string, id: number) {
+  async showDomain(slug: string, id: string) {
     const def = this.requireDomain(slug);
     this.assertOp(def, 'show');
 
+    if (isJsonStorageDomain(def)) {
+      const record = await this.medicaidFormats.findOrFail(id);
+      return this.medicaidFormats.flatRecordToApi(record);
+    }
+
+    const numericId = this.parsePrismaId(id);
     const row = await this.delegate(def).findUnique({
-      where: { id },
+      where: { id: numericId },
       ...(def.slug === 'icd10-codes'
         ? { include: { descriptions: { orderBy: { id: 'asc' } } } }
         : {}),
@@ -105,6 +119,12 @@ export class ReferenceAdminService {
     const def = this.requireDomain(slug);
     this.assertWritable(def, 'create');
 
+    if (isJsonStorageDomain(def)) {
+      const data = this.buildMedicaidWritePayload(def, body, 'create');
+      const created = await this.medicaidFormats.create(data);
+      return this.medicaidFormats.flatRecordToApi(created);
+    }
+
     const data = this.buildWritePayload(def, body, { mode: 'create' });
     try {
       const created = await this.delegate(def).create({ data });
@@ -115,14 +135,22 @@ export class ReferenceAdminService {
     }
   }
 
-  async updateDomain(slug: string, id: number, body: Record<string, unknown>) {
+  async updateDomain(slug: string, id: string, body: Record<string, unknown>) {
     const def = this.requireDomain(slug);
     this.assertWritable(def, 'update');
 
-    await this.ensureExists(def, id);
+    if (isJsonStorageDomain(def)) {
+      await this.medicaidFormats.findOrFail(id);
+      const data = this.buildMedicaidWritePayload(def, body, 'update');
+      const updated = await this.medicaidFormats.update(id, data);
+      return this.medicaidFormats.flatRecordToApi(updated);
+    }
+
+    const numericId = this.parsePrismaId(id);
+    await this.ensureExists(def, numericId);
     const data = this.buildWritePayload(def, body, { mode: 'update' });
     try {
-      const updated = await this.delegate(def).update({ where: { id }, data });
+      const updated = await this.delegate(def).update({ where: { id: numericId }, data });
       await this.invalidateAfterMutation(def);
       return toSnakeCase(updated);
     } catch (e) {
@@ -130,60 +158,141 @@ export class ReferenceAdminService {
     }
   }
 
-  async destroyDomain(slug: string, id: number) {
+  async destroyDomain(slug: string, id: string) {
     const def = this.requireDomain(slug);
     this.assertWritable(def, 'destroy');
 
-    await this.ensureExists(def, id);
-    try {
-      await this.delegate(def).delete({ where: { id } });
-      await this.invalidateAfterMutation(def);
+    if (isJsonStorageDomain(def)) {
+      await this.medicaidFormats.findOrFail(id);
+      await this.medicaidFormats.delete(id);
       return { id };
+    }
+
+    const numericId = this.parsePrismaId(id);
+    await this.ensureExists(def, numericId);
+    try {
+      await this.delegate(def).delete({ where: { id: numericId } });
+      await this.invalidateAfterMutation(def);
+      return { id: numericId };
     } catch (e) {
       throw this.mapPrismaError(e);
     }
   }
 
-  async toggleActiveDomain(slug: string, id: number) {
+  async toggleActiveDomain(slug: string, id: string) {
     const def = this.requireDomain(slug);
     if (!def.hasToggle || !def.activeFilter) {
       throw new NotFoundException('Toggle is not available for this domain.');
     }
     this.assertOp(def, 'toggle_active');
 
-    const existing = await this.ensureExists(def, id);
+    if (isJsonStorageDomain(def)) {
+      const updated = await this.medicaidFormats.toggleActive(id);
+      return this.medicaidFormats.flatRecordToApi(updated);
+    }
+
+    const numericId = this.parsePrismaId(id);
+    const existing = await this.ensureExists(def, numericId);
     const field = def.activeFilter;
     const current = Boolean(existing[field]);
     const updated = await this.delegate(def).update({
-      where: { id },
+      where: { id: numericId },
       data: { [field]: !current },
     });
     await this.invalidateAfterMutation(def);
     return toSnakeCase(updated);
   }
 
-  private requireDomain(slug: string): WaveADomainDefinition {
-    const def = getWaveADomain(slug);
+  private async listMedicaidDomain(params: PaginatedListParams) {
+    const page = Math.max(1, params.page);
+    const perPage = Math.min(100, Math.max(1, params.perPage));
+    if (params.isActive !== undefined && params.isActive !== '') {
+      const parsed = this.parseBooleanQuery(params.isActive);
+      if (parsed === null) {
+        throw new BadRequestException('is_active must be 0, 1, true, or false.');
+      }
+    }
+    const { items, total } = await this.medicaidFormats.listPage({
+      page,
+      perPage,
+      search: params.search,
+      isActive: params.isActive,
+    });
+    const lastPage = Math.max(1, Math.ceil(total / perPage));
+    return {
+      items: items.map((row) => this.medicaidFormats.flatRecordToApi(row)),
+      meta: {
+        page,
+        per_page: perPage,
+        total,
+        last_page: lastPage,
+      },
+    };
+  }
+
+  private buildMedicaidWritePayload(
+    def: ReferenceDomainDefinition,
+    body: Record<string, unknown>,
+    mode: 'create' | 'update',
+  ): Record<string, unknown> {
+    const camel = toCamelCaseRecord(body);
+    const data: Record<string, unknown> = {};
+
+    for (const field of def.writableFields) {
+      if (!(field in camel)) {
+        continue;
+      }
+      data[field] = this.coerceField(field, camel[field]);
+    }
+
+    const flatInput = this.medicaidFormats.camelInputToFlat(data);
+
+    if (mode === 'create') {
+      for (const required of def.createRequired) {
+        const value = data[required];
+        if (value === undefined || value === null || value === '') {
+          throw new BadRequestException(`${required} is required.`);
+        }
+      }
+    }
+
+    if (mode === 'update' && Object.keys(flatInput).length === 0) {
+      throw new BadRequestException('No valid fields to update.');
+    }
+
+    return flatInput;
+  }
+
+  private parsePrismaId(id: string): number {
+    const numericId = Number(id);
+    if (!Number.isInteger(numericId) || numericId <= 0) {
+      throw new BadRequestException('Invalid numeric id.');
+    }
+    return numericId;
+  }
+
+  private requireDomain(slug: string): ReferenceDomainDefinition {
+    const def = getReferenceDomain(slug);
     if (!def) {
       throw new NotFoundException('Unknown reference domain.');
     }
     return def;
   }
 
-  private assertOp(def: WaveADomainDefinition, op: ReferenceOperation): void {
+  private assertOp(def: ReferenceDomainDefinition, op: ReferenceOperation): void {
     if (!domainSupportsOp(def, op)) {
       throw new MethodNotAllowedException(`Operation not allowed for ${def.slug}.`);
     }
   }
 
-  private assertWritable(def: WaveADomainDefinition, op: ReferenceOperation): void {
+  private assertWritable(def: ReferenceDomainDefinition, op: ReferenceOperation): void {
     if (def.readOnly) {
       throw new MethodNotAllowedException(`${def.title} is read-only.`);
     }
     this.assertOp(def, op);
   }
 
-  private delegate(def: WaveADomainDefinition): PrismaDelegate {
+  private delegate(def: ReferenceDomainDefinition): PrismaDelegate {
     const client = this.prisma as unknown as Record<string, PrismaDelegate>;
     const model = client[def.prismaModel];
     if (!model) {
@@ -192,7 +301,7 @@ export class ReferenceAdminService {
     return model;
   }
 
-  private async ensureExists(def: WaveADomainDefinition, id: number): Promise<PrismaRecord> {
+  private async ensureExists(def: ReferenceDomainDefinition, id: number): Promise<PrismaRecord> {
     const row = await this.delegate(def).findUnique({ where: { id } });
     if (!row) {
       throw new NotFoundException('Reference record not found.');
@@ -201,7 +310,7 @@ export class ReferenceAdminService {
   }
 
   private buildListWhere(
-    def: WaveADomainDefinition,
+    def: ReferenceDomainDefinition,
     search?: string,
     isActiveRaw?: string,
   ): PrismaRecord {
@@ -244,8 +353,50 @@ export class ReferenceAdminService {
     return null;
   }
 
+  private applyNdcNormalization(
+    def: ReferenceDomainDefinition,
+    data: PrismaRecord,
+    camel: Record<string, unknown>,
+  ): void {
+    if (def.slug !== 'ndc-codes') {
+      return;
+    }
+
+    const rawNdc =
+      typeof camel.ndc === 'string'
+        ? camel.ndc
+        : typeof data.ndc === 'string'
+          ? data.ndc
+          : null;
+
+    if (rawNdc === null) {
+      return;
+    }
+
+    const hasDigits =
+      data.ndcDigits !== undefined &&
+      data.ndcDigits !== null &&
+      String(data.ndcDigits).trim() !== '';
+
+    if (!hasDigits) {
+      const normalized = normalizeNdcFromImport(rawNdc);
+      if (normalized === null) {
+        throw new BadRequestException(
+          'Invalid NDC format. Use 00000-0000-00 or an 11-digit code.',
+        );
+      }
+      data.ndc = normalized.ndc;
+      data.ndcDigits = normalized.ndcDigits;
+    } else if (typeof data.ndc === 'string') {
+      const normalized = normalizeNdcFromImport(String(data.ndc));
+      if (normalized !== null) {
+        data.ndc = normalized.ndc;
+      }
+    }
+  }
+
   private buildWritePayload(
-    def: WaveADomainDefinition,
+    def: ReferenceDomainDefinition,
     body: Record<string, unknown>,
     opts: { mode: 'create' | 'update' },
   ): PrismaRecord {
@@ -258,6 +409,8 @@ export class ReferenceAdminService {
       }
       data[field] = this.coerceField(field, camel[field]);
     }
+
+    this.applyNdcNormalization(def, data, camel);
 
     if (opts.mode === 'create') {
       for (const required of def.createRequired) {
@@ -280,7 +433,14 @@ export class ReferenceAdminService {
       return null;
     }
 
-    if (field === 'isActive' || field === 'active' || field === 'isDeleted' || field === 'indicator' || field === 'inExistencePriorTo1996' || field === 'isAllowed') {
+    if (
+      field === 'isActive' ||
+      field === 'active' ||
+      field === 'isDeleted' ||
+      field === 'indicator' ||
+      field === 'inExistencePriorTo1996' ||
+      field === 'isAllowed'
+    ) {
       if (typeof value === 'boolean') {
         return value;
       }
@@ -305,7 +465,11 @@ export class ReferenceAdminService {
       field === 'aocEditType' ||
       field === 'componentCount' ||
       field === 'sequenceOrder' ||
-      field === 'descriptionType'
+      field === 'descriptionType' ||
+      field === 'min' ||
+      field === 'max' ||
+      field === 'packageItemCount' ||
+      field === 'length'
     ) {
       if (typeof value === 'number') {
         return value;
@@ -327,7 +491,7 @@ export class ReferenceAdminService {
       }
     }
 
-    if (field === 'rate') {
+    if (field === 'rate' || field === 'hcpcsAmount') {
       if (typeof value === 'number' || typeof value === 'string') {
         return new Prisma.Decimal(value);
       }
@@ -351,7 +515,10 @@ export class ReferenceAdminService {
     return DATE_FIELD_SUFFIXES.some((suffix) => field.endsWith(suffix));
   }
 
-  private async invalidateAfterMutation(def: WaveADomainDefinition): Promise<void> {
+  private async invalidateAfterMutation(def: ReferenceDomainDefinition): Promise<void> {
+    if (!def.lookupTable) {
+      return;
+    }
     const tables = [def.lookupTable, ...(def.extraLookupTables ?? [])];
     for (const table of tables) {
       await this.lookupCache.invalidateTable(table);

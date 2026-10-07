@@ -6,7 +6,6 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  ParseIntPipe,
   Post,
   Put,
   Query,
@@ -54,7 +53,7 @@ export class ReferenceAdminController {
   }
 
   @Get(':domain/:id')
-  async showDomain(@Param('domain') domain: string, @Param('id', ParseIntPipe) id: number) {
+  async showDomain(@Param('domain') domain: string, @Param('id') id: string) {
     const data = await this.references.showDomain(domain, id);
     return { success: true, data };
   }
@@ -69,7 +68,7 @@ export class ReferenceAdminController {
   @Put(':domain/:id')
   async updateDomain(
     @Param('domain') domain: string,
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id') id: string,
     @Body() body: Record<string, unknown>,
   ) {
     const data = await this.references.updateDomain(domain, id, body);
@@ -77,7 +76,7 @@ export class ReferenceAdminController {
   }
 
   @Delete(':domain/:id')
-  async destroyDomain(@Param('domain') domain: string, @Param('id', ParseIntPipe) id: number) {
+  async destroyDomain(@Param('domain') domain: string, @Param('id') id: string) {
     const data = await this.references.destroyDomain(domain, id);
     return { success: true, data };
   }
@@ -86,7 +85,7 @@ export class ReferenceAdminController {
   @HttpCode(200)
   async toggleActive(
     @Param('domain') domain: string,
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id') id: string,
   ) {
     const data = await this.references.toggleActiveDomain(domain, id);
     return { success: true, data };

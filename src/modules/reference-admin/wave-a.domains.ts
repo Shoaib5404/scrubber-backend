@@ -1,46 +1,22 @@
-export type ReferenceOperation =
-  | 'list'
-  | 'show'
-  | 'create'
-  | 'update'
-  | 'destroy'
-  | 'toggle_active';
+import {
+  domainOps,
+  ReferenceDomainDefinition,
+  ReferenceOperation,
+} from './reference-domain.types';
 
-export type ActiveFilterField = 'isActive' | 'active';
+export type {
+  ActiveFilterField,
+  ReferenceOperation,
+  ReferenceDomainDefinition as WaveADomainDefinition,
+} from './reference-domain.types';
+export { domainSupportsOp } from './reference-domain.types';
 
-export type WaveADomainDefinition = {
-  slug: string;
-  title: string;
-  /** Prisma client delegate key (camelCase). */
-  prismaModel: string;
-  lookupTable: string;
-  /** Extra lookup meta keys to invalidate after mutations (Laravel rebuild paths). */
-  extraLookupTables?: string[];
-  readOnly?: boolean;
-  hasToggle?: boolean;
-  activeFilter?: ActiveFilterField;
-  searchFields: string[];
-  writableFields: string[];
-  createRequired: string[];
-};
-
-function domainOps(def: WaveADomainDefinition): ReferenceOperation[] {
-  const ops: ReferenceOperation[] = ['list', 'show'];
-  if (!def.readOnly) {
-    ops.push('create', 'update', 'destroy');
-  }
-  if (def.hasToggle) {
-    ops.push('toggle_active');
-  }
-  return ops;
-}
-
-function def(partial: WaveADomainDefinition): WaveADomainDefinition {
+function def(partial: ReferenceDomainDefinition): ReferenceDomainDefinition {
   return partial;
 }
 
 /** Wave A reference domains aligned with Laravel web CRUD (SP-7 Task 17). */
-export const WAVE_A_DOMAIN_DEFINITIONS: WaveADomainDefinition[] = [
+export const WAVE_A_DOMAIN_DEFINITIONS: ReferenceDomainDefinition[] = [
   def({
     slug: 'cpt-codes',
     title: 'CPT Codes',
@@ -429,7 +405,7 @@ export const WAVE_A_DOMAIN_DEFINITIONS: WaveADomainDefinition[] = [
 
 const DOMAIN_BY_SLUG = new Map(WAVE_A_DOMAIN_DEFINITIONS.map((d) => [d.slug, d]));
 
-export function getWaveADomain(slug: string): WaveADomainDefinition | undefined {
+export function getWaveADomain(slug: string): ReferenceDomainDefinition | undefined {
   return DOMAIN_BY_SLUG.get(slug);
 }
 
@@ -443,11 +419,4 @@ export function listWaveADomainSummaries(): Array<{
     title: d.title,
     ops: domainOps(d),
   }));
-}
-
-export function domainSupportsOp(
-  def: WaveADomainDefinition,
-  op: ReferenceOperation,
-): boolean {
-  return domainOps(def).includes(op);
 }
