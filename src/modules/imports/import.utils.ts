@@ -555,3 +555,226 @@ export function mapUhcAuthorizationColumns(headers: string[]): Partial<Record<'c
   }
   return map;
 }
+
+/** Laravel ImportAgeSpecificCptRules / ImportGenderSpecificCptRules — lowercase trim headers only. */
+export function excelHeadersLowerTrim(row: string[]): string[] {
+  return row.map((header) => String(header ?? '').trim().toLowerCase());
+}
+
+export function mapExcelColumnsByAliases(
+  headers: string[],
+  mappings: Record<string, readonly string[]>,
+): Partial<Record<string, number>> {
+  const map: Partial<Record<string, number>> = {};
+  for (const [field, possibleNames] of Object.entries(mappings)) {
+    for (const name of possibleNames) {
+      const index = headers.indexOf(name);
+      if (index !== -1) {
+        map[field] = index;
+        break;
+      }
+    }
+  }
+  return map;
+}
+
+/** Laravel ImportAgeSpecificCptRules::mapExcelColumns */
+export function mapAgeSpecificCptExcelColumns(headers: string[]): Partial<Record<string, number>> {
+  return mapExcelColumnsByAliases(headers, {
+    cpt_code: ['cpt_code', 'cpt', 'code', 'cptcode', 'procedure_code', 'procedure code', 'hcpcs'],
+    description: ['description', 'desc', 'name', 'procedure_description', 'procedure description'],
+    low_limit: [
+      'low_limit',
+      'low',
+      'min',
+      'min_age',
+      'minimum',
+      'minimum_age',
+      'low limit',
+      'min age',
+      'age_low',
+      'from_age',
+      'from age',
+    ],
+    high_limit: [
+      'high_limit',
+      'high',
+      'max',
+      'max_age',
+      'maximum',
+      'maximum_age',
+      'high limit',
+      'max age',
+      'age_high',
+      'to_age',
+      'to age',
+    ],
+    unit: ['unit', 'units', 'age_unit', 'age unit', 'type'],
+    gender: ['gender', 'sex', 'gender_restriction'],
+    notes: ['notes', 'note', 'comments', 'comment', 'remarks'],
+  });
+}
+
+/** Laravel ImportGenderSpecificCptRules::mapExcelColumns */
+export function mapGenderSpecificCptExcelColumns(headers: string[]): Partial<Record<string, number>> {
+  return mapExcelColumnsByAliases(headers, {
+    cpt_code: ['cpt', 'cpt_code', 'cptcode', 'code', 'hcpc', 'hcpcs', 'procedure_code', 'procedure code'],
+    description: [
+      'description',
+      'desc',
+      'short_description',
+      'short description',
+      'long_description',
+      'long description',
+    ],
+    gender: ['gender', 'sex', 'gender_restriction', 'applicable_gender', 'applicable gender'],
+  });
+}
+
+/** Laravel ImportAgeSpecificIcdRules::mapExcelColumns (normalized headers). */
+export function mapAgeSpecificIcdExcelColumns(headers: string[]): Partial<Record<string, number>> {
+  return mapExcelColumnsByAliases(headers, {
+    icd_code: ['icd_code', 'icd', 'code', 'icd10', 'icd_10', 'dx', 'diagnosis_code', 'dx_code'],
+    description: ['description', 'desciption', 'desc', 'name', 'diagnosis_description'],
+    low_limit: [
+      'low_limit',
+      'low',
+      'lower_limit',
+      'min',
+      'min_age',
+      'minimum',
+      'minimum_age',
+      'age_low',
+      'from_age',
+    ],
+    upper_limit: [
+      'upper_limit',
+      'upper',
+      'high_limit',
+      'high',
+      'max',
+      'max_age',
+      'maximum',
+      'maximum_age',
+      'age_high',
+      'to_age',
+    ],
+    unit: ['unit', 'units', 'age_unit', 'type'],
+  });
+}
+
+/** Laravel ImportTobaccoCounselingIcdRules::mapExcelColumns */
+export function mapTobaccoCounselingIcdExcelColumns(headers: string[]): Partial<Record<string, number>> {
+  return mapExcelColumnsByAliases(headers, {
+    icd_code: ['icd_code', 'icd', 'icd_list', 'code', 'icd10', 'icd_10', 'dx', 'diagnosis_code'],
+    description: ['description', 'desciption', 'desc', 'name', 'diagnosis_description'],
+    indicator: ['indicator', 'indicater', 'ind', 'flag', 'counseling_indicator'],
+  });
+}
+
+/** Laravel ImportModifierSequences::mapExcelColumns */
+export function mapModifierSequenceExcelColumns(headers: string[]): Partial<Record<string, number>> {
+  return mapExcelColumnsByAliases(headers, {
+    sequence_order: ['order', 'sequence_order', 'seq', 'sequence', 'sort_order'],
+    modifier: ['modifier', 'mod', 'modifier_code'],
+    modifier_group: [
+      'applied_to_the_group_of',
+      'modifier_group',
+      'group',
+      'applied_group',
+      'applied_to_group',
+    ],
+  });
+}
+
+/** Laravel ImportAgeSpecificCptRules::parseNumeric */
+export function parseImportAgeNumeric(value: string | null): number | null {
+  if (value === null || value === '') {
+    return null;
+  }
+  const numeric = value.replace(/[^0-9.]/g, '');
+  return numeric !== '' ? Math.trunc(Number(numeric)) : null;
+}
+
+/** Laravel age ICD / CPT unit parsers */
+export function parseImportAgeUnit(value: string | null): string {
+  if (value === null || value === '') {
+    return 'years';
+  }
+  const normalized = value.trim().toLowerCase();
+  if (['year', 'years', 'y', 'yr', 'yrs'].includes(normalized)) {
+    return 'years';
+  }
+  if (['month', 'months', 'm', 'mo', 'mos'].includes(normalized)) {
+    return 'months';
+  }
+  if (['day', 'days', 'd'].includes(normalized)) {
+    return 'days';
+  }
+  return 'years';
+}
+
+/** Laravel ImportAgeSpecificCptRules::parseGender (default B). */
+export function parseAgeSpecificCptGender(value: string | null): string {
+  if (value === null || value === '') {
+    return 'B';
+  }
+  const upper = value.trim().toUpperCase();
+  if (['M', 'MALE', 'MAN', 'BOY'].includes(upper)) {
+    return 'M';
+  }
+  if (['F', 'FEMALE', 'WOMAN', 'GIRL'].includes(upper)) {
+    return 'F';
+  }
+  return 'B';
+}
+
+/** Laravel ImportGenderSpecificCptRules::parseGender (default M). */
+export function parseGenderSpecificCptGender(value: string | null): string {
+  if (value === null || value === '') {
+    return 'M';
+  }
+  const upper = value.trim().toUpperCase();
+  if (['M', 'MALE', 'MAN', 'BOY', '1'].includes(upper)) {
+    return 'M';
+  }
+  if (['F', 'FEMALE', 'WOMAN', 'GIRL', '2'].includes(upper)) {
+    return 'F';
+  }
+  return 'M';
+}
+
+/** Laravel ImportIcdGenderSpecificRules::parseGender */
+export function parseIcdGenderSpecificGender(value: string | null): string {
+  const upper = (value ?? '').trim().toUpperCase();
+  if (['F', 'FEMALE', '2'].includes(upper)) {
+    return 'F';
+  }
+  return 'M';
+}
+
+/** Laravel ImportTobaccoCounselingIcdRules::parseIndicator */
+export function parseTobaccoCounselingIndicator(value: string | null): boolean {
+  if (value === null || value === '') {
+    return true;
+  }
+  const normalized = value.trim().toLowerCase();
+  if (['0', 'false', 'no', 'n', 'off', '#n/a', 'n/a', 'na'].includes(normalized)) {
+    return false;
+  }
+  if (['1', 'true', 'yes', 'y', 'on'].includes(normalized)) {
+    return true;
+  }
+  return /^-?\d+(\.\d+)?$/.test(normalized);
+}
+
+/** Laravel ImportModifierSequences::parseInteger */
+export function parseModifierSequenceOrder(value: string | null): number | null {
+  if (value === null || value === '') {
+    return null;
+  }
+  if (!/^-?\d+(\.\d+)?$/.test(value.trim())) {
+    return null;
+  }
+  return Math.trunc(Number(value));
+}

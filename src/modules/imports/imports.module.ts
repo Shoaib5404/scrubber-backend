@@ -38,6 +38,18 @@ import { LabCodesImportCommand } from './lab-codes.command';
 import { LabCodesImportService } from './lab-codes.import.service';
 import { VaccineCodesImportCommand } from './vaccine-codes.command';
 import { VaccineCodesImportService } from './vaccine-codes.import.service';
+import { AgeSpecificCptRulesImportCommand } from './age-specific-cpt-rules.command';
+import { AgeSpecificCptRulesImportService } from './age-specific-cpt-rules.import.service';
+import { GenderSpecificCptRulesImportCommand } from './gender-specific-cpt-rules.command';
+import { GenderSpecificCptRulesImportService } from './gender-specific-cpt-rules.import.service';
+import { AgeSpecificIcdRulesImportCommand } from './age-specific-icd-rules.command';
+import { AgeSpecificIcdRulesImportService } from './age-specific-icd-rules.import.service';
+import { IcdGenderSpecificRulesImportCommand } from './icd-gender-specific-rules.command';
+import { IcdGenderSpecificRulesImportService } from './icd-gender-specific-rules.import.service';
+import { TobaccoCounselingIcdRulesImportCommand } from './tobacco-counseling-icd-rules.command';
+import { TobaccoCounselingIcdRulesImportService } from './tobacco-counseling-icd-rules.import.service';
+import { ModifierSequencesImportCommand } from './modifier-sequences.command';
+import { ModifierSequencesImportService } from './modifier-sequences.import.service';
 import { Icd10RangeExpander } from './icd10-range.expander';
 import { UhcAuthorizationConditionValuesNormalizer } from './uhc-authorization-condition-values.normalizer';
 
@@ -63,6 +75,12 @@ import { UhcAuthorizationConditionValuesNormalizer } from './uhc-authorization-c
     ConsultationProceduresImportService,
     LabCodesImportService,
     VaccineCodesImportService,
+    AgeSpecificCptRulesImportService,
+    GenderSpecificCptRulesImportService,
+    AgeSpecificIcdRulesImportService,
+    IcdGenderSpecificRulesImportService,
+    TobaccoCounselingIcdRulesImportService,
+    ModifierSequencesImportService,
     Icd10RangeExpander,
     UhcAuthorizationConditionValuesNormalizer,
     RadiologyCptCodesImportCommand,
@@ -83,6 +101,12 @@ import { UhcAuthorizationConditionValuesNormalizer } from './uhc-authorization-c
     ConsultationProceduresImportCommand,
     LabCodesImportCommand,
     VaccineCodesImportCommand,
+    AgeSpecificCptRulesImportCommand,
+    GenderSpecificCptRulesImportCommand,
+    AgeSpecificIcdRulesImportCommand,
+    IcdGenderSpecificRulesImportCommand,
+    TobaccoCounselingIcdRulesImportCommand,
+    ModifierSequencesImportCommand,
   ],
   exports: [
     RadiologyCptCodesImportService,
@@ -103,6 +127,12 @@ import { UhcAuthorizationConditionValuesNormalizer } from './uhc-authorization-c
     ConsultationProceduresImportService,
     LabCodesImportService,
     VaccineCodesImportService,
+    AgeSpecificCptRulesImportService,
+    GenderSpecificCptRulesImportService,
+    AgeSpecificIcdRulesImportService,
+    IcdGenderSpecificRulesImportService,
+    TobaccoCounselingIcdRulesImportService,
+    ModifierSequencesImportService,
   ],
 })
 export class ImportsModule {}
