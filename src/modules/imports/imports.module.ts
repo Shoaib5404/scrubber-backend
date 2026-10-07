@@ -64,6 +64,20 @@ import { TaxonomyCodesImportCommand } from './taxonomy-codes.command';
 import { TaxonomyCodesImportService } from './taxonomy-codes.import.service';
 import { Icd10RangeExpander } from './icd10-range.expander';
 import { UhcAuthorizationConditionValuesNormalizer } from './uhc-authorization-condition-values.normalizer';
+import { CptPosRulesImportCommand } from './cpt-pos-rules.command';
+import { CptPosRulesImportService } from './cpt-pos-rules.import.service';
+import { CptModifierRulesImportCommand } from './cpt-modifier-rules.command';
+import { CptModifierRulesImportService } from './cpt-modifier-rules.import.service';
+import { MuePractitionersImportCommand } from './mue-practitioners.command';
+import { MuePractitionersImportService } from './mue-practitioners.import.service';
+import { ZipCodesImportCommand } from './zip-codes.command';
+import { ZipCodesImportService } from './zip-codes.import.service';
+import { AetnaB12LcdImportCommand } from './aetna-b12-lcd.command';
+import { AetnaB12LcdImportService } from './aetna-b12-lcd.import.service';
+import { AetnaFetalLcdImportCommand } from './aetna-fetal-lcd.command';
+import { AetnaFetalLcdImportService } from './aetna-fetal-lcd.import.service';
+import { CignaCptIcdCrosswalkImportCommand } from './cigna-cpt-icd-crosswalk.command';
+import { CignaCptIcdCrosswalkImportService } from './cigna-cpt-icd-crosswalk.import.service';
 
 @Module({
   imports: [PrismaModule, LookupCacheModule],
@@ -101,6 +115,13 @@ import { UhcAuthorizationConditionValuesNormalizer } from './uhc-authorization-c
     TaxonomyCodesImportService,
     Icd10RangeExpander,
     UhcAuthorizationConditionValuesNormalizer,
+    CptPosRulesImportService,
+    CptModifierRulesImportService,
+    MuePractitionersImportService,
+    ZipCodesImportService,
+    AetnaB12LcdImportService,
+    AetnaFetalLcdImportService,
+    CignaCptIcdCrosswalkImportService,
     RadiologyCptCodesImportCommand,
     MajorSurgeryCodesImportCommand,
     InitialTreatmentCodesImportCommand,
@@ -131,6 +152,13 @@ import { UhcAuthorizationConditionValuesNormalizer } from './uhc-authorization-c
     NdcHcpcsCrosswalkImportCommand,
     UhcPosCrosswalkImportCommand,
     TaxonomyCodesImportCommand,
+    CptPosRulesImportCommand,
+    CptModifierRulesImportCommand,
+    MuePractitionersImportCommand,
+    ZipCodesImportCommand,
+    AetnaB12LcdImportCommand,
+    AetnaFetalLcdImportCommand,
+    CignaCptIcdCrosswalkImportCommand,
   ],
   exports: [
     RadiologyCptCodesImportService,
@@ -163,6 +191,13 @@ import { UhcAuthorizationConditionValuesNormalizer } from './uhc-authorization-c
     NdcHcpcsCrosswalkImportService,
     UhcPosCrosswalkImportService,
     TaxonomyCodesImportService,
+    CptPosRulesImportService,
+    CptModifierRulesImportService,
+    MuePractitionersImportService,
+    ZipCodesImportService,
+    AetnaB12LcdImportService,
+    AetnaFetalLcdImportService,
+    CignaCptIcdCrosswalkImportService,
   ],
 })
 export class ImportsModule {}

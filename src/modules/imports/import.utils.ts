@@ -993,3 +993,335 @@ export function parseImportOptionalInteger(value: string | null): number | null 
   const numeric = parseImportOptionalFloat(value);
   return numeric === null ? null : Math.round(numeric);
 }
+
+/** PHP ctype_digit — non-empty string of ASCII digits only. */
+export function isDigitsOnly(value: string): boolean {
+  return value.length > 0 && /^\d+$/.test(value);
+}
+
+/** Laravel ImportCptPosRules::handle — pad CPT to 5 only when numeric-only. */
+export function padCptPosCptCode(value: string): string {
+  return isDigitsOnly(value) ? value.padStart(5, '0') : value;
+}
+
+/** Laravel ImportCptPosRules::handle — POS is always left-padded to 2 chars. */
+export function padCptPosPosCode(value: string): string {
+  return value.padStart(2, '0');
+}
+
+/** Laravel ImportCptPosRules::handle::payerId normalization. */
+export function parseCptPosPayerId(value: string | null): string | null {
+  const trimmed = (value ?? '').trim();
+  if (trimmed === '' || trimmed === 'NULL') {
+    return null;
+  }
+  if (isDigitsOnly(trimmed) && trimmed.length < 5) {
+    return trimmed.padStart(5, '0');
+  }
+  return trimmed;
+}
+
+/** Laravel ImportCptPosRules::handle::isDeleted — (int) cell === 1. */
+export function parseCptPosIsDeleted(value: string | null): boolean {
+  if (value === null || value.trim() === '') {
+    return false;
+  }
+  return Number(value) === 1;
+}
+
+/** Laravel ImportCptModifierRules::handle — modifier code is always left-padded to 2 chars. */
+export function padCptModifierCode(value: string): string {
+  return value.padStart(2, '0');
+}
+
+/** Laravel ImportCptModifierRules::handle::isAllowed — defaults true when cell absent. */
+export function parseCptModifierIsAllowed(value: string | null): boolean {
+  if (value === null || value.trim() === '') {
+    return true;
+  }
+  return Number(value) === 1;
+}
+
+/** Laravel ImportCptModifierRules::handle::payerId normalization (no padding, unlike POS). */
+export function parseCptModifierPayerId(value: string | null): string | null {
+  const trimmed = (value ?? '').trim();
+  if (trimmed === '' || trimmed === 'NULL') {
+    return null;
+  }
+  return trimmed;
+}
+
+/** Laravel ImportZipCodes::mapColumns */
+export function mapZipCodeExcelColumns(
+  headers: string[],
+): Partial<Record<'zip_code' | 'zip_code_type' | 'city' | 'state_name' | 'state', number>> {
+  return mapExcelColumnsByAliases(headers, {
+    zip_code: ['vzipcode', 'zip_code', 'zipcode', 'zip'],
+    zip_code_type: ['zipcodetype', 'zip_code_type', 'ziptype', 'type'],
+    city: ['vcity', 'city'],
+    state_name: ['vstatename', 'state_name', 'statename'],
+    state: ['vstate', 'state', 'state_code', 'statecode'],
+  }) as Partial<Record<'zip_code' | 'zip_code_type' | 'city' | 'state_name' | 'state', number>>;
+}
+
+/** Laravel ImportZipCodes::normalizeZip — ZIP-5, left-padded, non-digits stripped. */
+export function normalizeZip(value: string | null): string | null {
+  if (value === null || value.trim() === '') {
+    return null;
+  }
+  const digits = value.replace(/\D+/g, '');
+  if (digits === '') {
+    return null;
+  }
+  return digits.slice(0, 5).padStart(5, '0');
+}
+
+/** Laravel ImportZipCodes::normalizeZipCodeType */
+export function normalizeZipCodeType(value: string | null): string | null {
+  if (value === null || value.trim() === '') {
+    return null;
+  }
+  const type = value.trim().toUpperCase();
+  return type === '' ? null : type.slice(0, 5);
+}
+
+/** Laravel ImportZipCodes::normalizeState — only accepted when exactly 2 chars. */
+export function normalizeZipState(value: string | null): string | null {
+  if (value === null || value.trim() === '') {
+    return null;
+  }
+  const state = value.trim().toUpperCase();
+  return state.length === 2 ? state : null;
+}
+
+/** Excel serial date (epoch 1899-12-30, matches Laravel's Carbon::create(1899, 12, 30)). */
+export function excelSerialToDate(serial: number): Date {
+  const epoch = new Date(Date.UTC(1899, 11, 30));
+  epoch.setUTCDate(epoch.getUTCDate() + Math.trunc(serial));
+  return epoch;
+}
+
+/** Laravel ImportMuePractitioners::normalizeNumericCell */
+export function parseMueNumericCell(value: string | number | null): string | null {
+  if (value === null) {
+    return null;
+  }
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) {
+      return null;
+    }
+    const asString = String(value);
+    if (/^\d+\.0+$/.test(asString)) {
+      return String(Math.trunc(value));
+    }
+    return asString.trim();
+  }
+  const trimmed = value.trim();
+  if (trimmed !== '' && /^\d+(\.\d+)?$/.test(trimmed)) {
+    if (/^\d+\.0+$/.test(trimmed)) {
+      return String(Math.trunc(Number(trimmed)));
+    }
+    return trimmed;
+  }
+  return trimmed === '' ? null : trimmed;
+}
+
+/** Laravel ImportMuePractitioners::parseEffectiveDate */
+export function parseMueEffectiveDate(value: string | number | Date | null): Date | null {
+  if (value === null) {
+    return null;
+  }
+  if (value instanceof Date) {
+    return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()));
+  }
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? excelSerialToDate(value) : null;
+  }
+  const trimmed = value.trim();
+  if (trimmed === '') {
+    return null;
+  }
+  // Laravel's is_numeric() check runs before the 8-digit guard, but real Excel date cells
+  // arrive as DateTimeInterface there (short-circuited above) rather than literal YYYYMMDD
+  // strings. loadExcelRows already stringifies Date cells to "YYYYMMDD" (see
+  // excelCellToTrimmedString), so bound the serial-number branch like
+  // parseCptImportEffectiveDate does to avoid misreading those 8-digit strings as serials.
+  if (/^\d+(\.\d+)?$/.test(trimmed) && Number(trimmed) < 100000) {
+    return excelSerialToDate(Number(trimmed));
+  }
+  if (/^\d{8}$/.test(trimmed)) {
+    const y = Number.parseInt(trimmed.slice(0, 4), 10);
+    const m = Number.parseInt(trimmed.slice(4, 6), 10);
+    const d = Number.parseInt(trimmed.slice(6, 8), 10);
+    const date = new Date(Date.UTC(y, m - 1, d));
+    return date.getUTCFullYear() === y && date.getUTCMonth() === m - 1 && date.getUTCDate() === d
+      ? date
+      : null;
+  }
+  const parsed = Date.parse(trimmed);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+  const date = new Date(parsed);
+  return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+}
+
+/**
+ * Load one worksheet by preferred name (exact match first, then substring match),
+ * falling back to the active/first worksheet. Mirrors Laravel Aetna/Cigna resolveWorksheet.
+ */
+export async function loadExcelWorkbook(filePath: string): Promise<ExcelJS.Workbook> {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(filePath);
+  return workbook;
+}
+
+export function resolveWorksheetByPreferredNames(
+  workbook: ExcelJS.Workbook,
+  preferredNames: readonly string[],
+): ExcelJS.Worksheet {
+  for (const name of preferredNames) {
+    const sheet = workbook.getWorksheet(name);
+    if (sheet) {
+      return sheet;
+    }
+  }
+  for (const sheet of workbook.worksheets) {
+    for (const name of preferredNames) {
+      if (sheet.name.toLowerCase().includes(name.toLowerCase())) {
+        return sheet;
+      }
+    }
+  }
+  return workbook.worksheets[0] as ExcelJS.Worksheet;
+}
+
+export function worksheetToRows(sheet: ExcelJS.Worksheet): string[][] {
+  const rows: string[][] = [];
+  sheet.eachRow((row) => {
+    const values = row.values;
+    if (!Array.isArray(values)) {
+      return;
+    }
+    rows.push(values.slice(1).map((value) => excelCellToTrimmedString(value)));
+  });
+  return rows;
+}
+
+/** Shared Laravel Aetna/Cigna findHeaderRowIndex — matches the first column against aliases. */
+export function findHeaderRowIndexByFirstColumn(rows: string[][], headerAliases: readonly string[]): number {
+  const normalizedAliases = headerAliases.map((alias) => normalizeHeader(alias));
+  for (let index = 0; index < rows.length; index += 1) {
+    const header = normalizeHeader(String(rows[index]?.[0] ?? ''));
+    if (normalizedAliases.includes(header)) {
+      return index;
+    }
+  }
+  return 0;
+}
+
+/** Laravel ImportAetnaB12Lcd/ImportAetnaFetalLcd::extractCptCodesFromSheet (also used by Cigna HCPCS sheet). */
+export function extractSingleColumnCodes(
+  rows: string[][],
+  headerRowIndex: number,
+  uppercase: boolean,
+): string[] {
+  const seen = new Set<string>();
+  const codes: string[] = [];
+  for (let i = headerRowIndex + 1; i < rows.length; i += 1) {
+    const raw = (rows[i]?.[0] ?? '').trim();
+    const value = uppercase ? raw.toUpperCase() : raw;
+    if (value !== '' && !seen.has(value)) {
+      seen.add(value);
+      codes.push(value);
+    }
+  }
+  return codes;
+}
+
+/**
+ * Laravel ImportAetnaB12Lcd/ImportAetnaFetalLcd::normalizeIcdSource — spreadsheet ICD cells may
+ * use commas as decimal separators; placeholder-only cells (·, ., -) are blanked.
+ */
+export function normalizeIcdSource(source: string): string {
+  const normalized = source.replace(/,/g, '.').trim();
+  if (normalized === '' || /^[\s.\-·•]+$/u.test(normalized)) {
+    return '';
+  }
+  return normalized;
+}
+
+/** Laravel ImportAetnaB12Lcd/ImportAetnaFetalLcd/ImportCignaCptIcdCrosswalk::formatStoredIcd. */
+export function formatStoredIcd(icd: string): string {
+  return icd.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+/** Laravel ImportAetnaB12Lcd/ImportAetnaFetalLcd::isValidStoredIcd */
+export function isValidStoredIcd(icd: string): boolean {
+  return /^[A-TV-Z][0-9][0-9A-Z]/i.test(icd);
+}
+
+/** Laravel ImportAetnaB12Lcd/ImportAetnaFetalLcd::parseIcdRange */
+export function parseIcdRange(source: string): { start: string; end: string } | null {
+  const parts = source.trim().split(/\s*[-–—]\s*/u);
+  if (parts.length !== 2) {
+    return null;
+  }
+  const start = (parts[0] ?? '').trim();
+  const end = (parts[1] ?? '').trim();
+  return start === '' || end === '' ? null : { start, end };
+}
+
+/** Laravel ImportAetnaB12Lcd/ImportAetnaFetalLcd::normalizeIcdCode (for tabular range bounds). */
+export function normalizeIcdCodeForRange(code: string): string {
+  return code.trim().toUpperCase().replace(/\./g, '');
+}
+
+/**
+ * Laravel ImportCignaCptIcdCrosswalk::expandIcdCodesFromCell — splits on newlines/commas/
+ * semicolons, then on bare dashes, validating each resulting token (no tabular range expansion).
+ */
+export function expandCignaIcdCell(cell: string): string[] {
+  const pattern = /^[A-TV-Z][0-9][0-9A-Z](?:\.[0-9A-ZxX]{1,4})?[A-Z]?$/i;
+  const codes: string[] = [];
+  for (const part of cell.split(/[\r\n,;]+/)) {
+    const trimmedPart = part.trim();
+    if (trimmedPart === '') {
+      continue;
+    }
+    for (const codeCandidate of trimmedPart.split(/\s*-\s*/)) {
+      const code = codeCandidate.trim().toUpperCase();
+      if (code !== '' && pattern.test(code)) {
+        codes.push(code);
+      }
+    }
+  }
+  return codes;
+}
+
+/** Laravel ImportCignaCptIcdCrosswalk::extractCodesFromSheet header aliases. */
+export const CIGNA_HCPCS_HEADER_ALIASES = ['hcpcs', 'cpt', 'cpt_code', 'code', 'procedure_code'] as const;
+
+/** Laravel ImportCignaCptIcdCrosswalk::extractIcdCodesFromSheet header aliases. */
+export const CIGNA_ICD_HEADER_ALIASES = [
+  'icd',
+  'icd_code',
+  'icd10',
+  'icd_10',
+  'diagnosis',
+  'covered_icd_10_codes',
+] as const;
+
+/** Laravel ImportAetnaB12Lcd/ImportAetnaFetalLcd::extractCptCodesFromSheet header aliases. */
+export const AETNA_CPT_HEADER_ALIASES = ['cpt', 'cpt_code', 'hcpcs', 'hcpc', 'code', 'procedure_code'] as const;
+
+/** Laravel ImportAetnaB12Lcd/ImportAetnaFetalLcd::extractIcdRowsFromSheet header aliases. */
+export const AETNA_ICD_HEADER_ALIASES = ['code', 'icd', 'icd_code', 'icd10'] as const;
+
+/** Laravel Aetna B12/Fetal preferred worksheet names. */
+export const AETNA_CPT_SHEET_NAMES = ['CPT', 'HCPCS', 'HCPC', 'Procedure'] as const;
+export const AETNA_ICD_SHEET_NAMES = ['ICDs', 'ICD', 'ICD10', 'ICD-10', 'Diagnosis'] as const;
+
+/** Laravel ImportCignaCptIcdCrosswalk preferred worksheet names. */
+export const CIGNA_CPT_SHEET_NAMES = ['HCPCS', 'CPT', 'HCPC'] as const;
+export const CIGNA_ICD_SHEET_NAMES = ['ICD', 'ICD10', 'ICD-10'] as const;
