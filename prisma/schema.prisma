@@ -934,6 +934,22 @@ model Mue87726Uhc06111Oxford {
   @@map("mue_87726_uhc_06111_oxford")
 }
 
+// Laravel NpiOrderingReferring — CMS Order and Referring NPI registry for Medicare NPI rules.
+model NpiOrderingReferring {
+  id         Int       @id @default(autoincrement())
+  npi        String    @unique @db.VarChar(20)
+  firstName  String?   @map("first_name")
+  lastName   String?   @map("last_name")
+  active     Boolean   @default(true)
+  lastSeenAt DateTime? @map("last_seen_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  @@index([npi])
+  @@index([lastName])
+  @@map("npi_ordering_referrings")
+}
+
 
 // ---------------------------------------------------------------------------
 // SP-2 Task 7 â€” Wave C: geographic / taxonomy / misc
