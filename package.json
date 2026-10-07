@@ -19,6 +19,7 @@
     "test": "jest --config jest.config.ts",
     "test:cov": "jest --config jest.config.ts --coverage",
     "test:integration": "jest --config jest.integration.config.ts --runInBand",
+    "test:contract": "jest --config jest.contract.config.ts --runInBand --forceExit",
     "test:e2e": "jest --config jest.e2e.config.ts --runInBand",
     "test:golden": "jest --config jest.golden.config.ts --runInBand",
     "prisma:generate": "prisma generate",

@@ -222,7 +222,8 @@ describe('auth ownership (integration)', () => {
       .set('Authorization', `Bearer ${session.accessToken}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.id).toBe(ids.batchA);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.batch.id).toBe(ids.batchA);
   });
 
   it('admin can GET any customer batch', async () => {
@@ -234,7 +235,8 @@ describe('auth ownership (integration)', () => {
       .set('Authorization', `Bearer ${session.accessToken}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.id).toBe(ids.batchB);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.batch.id).toBe(ids.batchB);
   });
 
   it('login rejects bad password', async () => {

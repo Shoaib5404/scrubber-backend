@@ -5,7 +5,8 @@ import { EdiParserModule } from '../edi-parser/edi-parser.module';
 import { EdiStructuralValidationModule } from '../edi-structural-validation/edi-structural.module';
 import { QueueModule } from '../queue/queue.module';
 import { BatchIngestService } from './batch-ingest.service';
-import { BatchesController, ClaimsController } from './batches.controller';
+import { BatchesController } from './batches.controller';
+import { BatchesService } from './batches.service';
 
 @Module({
   imports: [
@@ -14,8 +15,8 @@ import { BatchesController, ClaimsController } from './batches.controller';
     ClaimValidationModule,
     forwardRef(() => QueueModule),
   ],
-  controllers: [BatchesController, ClaimsController],
-  providers: [BatchOwnershipGuard, BatchIngestService],
-  exports: [BatchIngestService],
+  controllers: [BatchesController],
+  providers: [BatchOwnershipGuard, BatchIngestService, BatchesService],
+  exports: [BatchIngestService, BatchesService],
 })
 export class BatchesModule {}

@@ -5,12 +5,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { isStaffRole } from '../../modules/auth/auth.constants';
 import { AuthPrincipal } from '../../modules/auth/auth.types';
 
 /**
- * Ensures the authenticated principal may access the batch identified by `:id`.
+ * Ensures the authenticated principal may access the batch identified by `:id` or `:batchId`.
  * Customers / API clients are limited to batches where `uploaded_by` matches owner user id.
  */
 @Injectable()
@@ -20,14 +20,15 @@ export class BatchOwnershipGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<{
       user?: AuthPrincipal;
-      params: { id: string };
+      params: { id?: string; batchId?: string };
     }>();
     const auth = request.user;
     if (!auth) {
       throw new ForbiddenException('Missing authentication.');
     }
 
-    const batchId = Number(request.params.id);
+    const raw = request.params.batchId ?? request.params.id;
+    const batchId = Number(raw);
     if (!Number.isFinite(batchId)) {
       throw new NotFoundException('Batch not found.');
     }
@@ -41,16 +42,12 @@ export class BatchOwnershipGuard implements CanActivate {
       return true;
     }
 
-    const ownerId =
-      auth.typ === 'api_client' ? auth.userId : auth.userId;
-
+    const ownerId = auth.userId;
     if (ownerId == null) {
-      // Service API clients without a customer owner cannot read customer batches.
       throw new ForbiddenException('Not allowed to access this batch.');
     }
 
     if (batch.uploadedById !== ownerId) {
-      // Match common API style: hide existence from other tenants.
       throw new NotFoundException('Batch not found.');
     }
 
