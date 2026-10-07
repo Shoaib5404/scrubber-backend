@@ -8,7 +8,7 @@ export type ReferenceOperation =
 
 export type ActiveFilterField = 'isActive' | 'active';
 
-export type ReferenceStorage = 'prisma' | 'json';
+export type ReferenceStorage = 'prisma' | 'json' | 'config';
 
 export type ReferenceDomainDefinition = {
   slug: string;
@@ -16,6 +16,8 @@ export type ReferenceDomainDefinition = {
   /** Prisma client delegate key (camelCase); empty for JSON-backed domains. */
   prismaModel: string;
   lookupTable: string;
+  /** Primary key field on the Prisma model (default `id`). */
+  idField?: string;
   /** Extra lookup meta keys to invalidate after mutations (Laravel rebuild paths). */
   extraLookupTables?: string[];
   storage?: ReferenceStorage;

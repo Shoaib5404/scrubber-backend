@@ -30,6 +30,10 @@ export const envSchema = z.object({
   LOOKUP_CACHE_TTL: z.coerce.number().int().default(31_536_000),
   /** Laravel lookup_cache.key_prefix (actual SoT is `lookup`, not ns_prod). */
   LOOKUP_CACHE_KEY_PREFIX: z.string().default('lookup'),
+  /** Laravel storage/app/data/medicaid-member-id-formats.json (local Nest path). */
+  MEDICAID_MEMBER_ID_FORMATS_PATH: z
+    .string()
+    .default('storage/data/medicaid-member-id-formats.json'),
 
   BULLMQ_CONCURRENCY: z.coerce.number().int().positive().default(5),
   QUEUE_MODE: z.string().default('bullmq'),

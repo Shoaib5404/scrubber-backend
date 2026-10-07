@@ -8,9 +8,11 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { LookupCacheService } from '../cache/lookup-cache.service';
+import { CLAIM_FILING_INDICATORS } from '../claim-validation/config/claim-filing-indicators';
 import {
   domainSupportsOp,
   getReferenceDomain,
+  isConfigStorageDomain,
   isJsonStorageDomain,
   listReferenceDomainSummaries,
   ReferenceDomainDefinition,
@@ -60,6 +62,10 @@ export class ReferenceAdminService {
       return this.listMedicaidDomain(params);
     }
 
+    if (isConfigStorageDomain(def)) {
+      return this.listConfigDomain(def, params);
+    }
+
     const page = Math.max(1, params.page);
     const perPage = Math.min(100, Math.max(1, params.perPage));
     const skip = (page - 1) * perPage;
@@ -72,7 +78,7 @@ export class ReferenceAdminService {
         where,
         skip,
         take: perPage,
-        orderBy: { id: 'desc' },
+        orderBy: { [def.idField ?? 'id']: 'desc' },
         ...(def.slug === 'icd10-codes'
           ? { include: { descriptions: { orderBy: { id: 'asc' } } } }
           : {}),
@@ -83,7 +89,7 @@ export class ReferenceAdminService {
     const lastPage = Math.max(1, Math.ceil(total / perPage));
 
     return {
-      items: rows.map((row) => toSnakeCase(row)),
+      items: rows.map((row) => this.serializeReferenceRow(def, row)),
       meta: {
         page,
         per_page: perPage,
@@ -102,9 +108,13 @@ export class ReferenceAdminService {
       return this.medicaidFormats.flatRecordToApi(record);
     }
 
-    const numericId = this.parsePrismaId(id);
+    if (isConfigStorageDomain(def)) {
+      return this.showConfigDomain(def, id);
+    }
+
+    const routeId = this.parseRouteId(def, id);
     const row = await this.delegate(def).findUnique({
-      where: { id: numericId },
+      where: this.whereForRouteId(def, routeId),
       ...(def.slug === 'icd10-codes'
         ? { include: { descriptions: { orderBy: { id: 'asc' } } } }
         : {}),
@@ -112,7 +122,7 @@ export class ReferenceAdminService {
     if (!row) {
       throw new NotFoundException('Reference record not found.');
     }
-    return toSnakeCase(row);
+    return this.serializeReferenceRow(def, row);
   }
 
   async createDomain(slug: string, body: Record<string, unknown>) {
@@ -129,7 +139,7 @@ export class ReferenceAdminService {
     try {
       const created = await this.delegate(def).create({ data });
       await this.invalidateAfterMutation(def);
-      return toSnakeCase(created);
+      return this.serializeReferenceRow(def, created);
     } catch (e) {
       throw this.mapPrismaError(e);
     }
@@ -146,13 +156,16 @@ export class ReferenceAdminService {
       return this.medicaidFormats.flatRecordToApi(updated);
     }
 
-    const numericId = this.parsePrismaId(id);
-    await this.ensureExists(def, numericId);
+    const routeId = this.parseRouteId(def, id);
+    await this.ensureExists(def, routeId);
     const data = this.buildWritePayload(def, body, { mode: 'update' });
     try {
-      const updated = await this.delegate(def).update({ where: { id: numericId }, data });
+      const updated = await this.delegate(def).update({
+        where: this.whereForRouteId(def, routeId),
+        data,
+      });
       await this.invalidateAfterMutation(def);
-      return toSnakeCase(updated);
+      return this.serializeReferenceRow(def, updated);
     } catch (e) {
       throw this.mapPrismaError(e);
     }
@@ -168,12 +181,12 @@ export class ReferenceAdminService {
       return { id };
     }
 
-    const numericId = this.parsePrismaId(id);
-    await this.ensureExists(def, numericId);
+    const routeId = this.parseRouteId(def, id);
+    await this.ensureExists(def, routeId);
     try {
-      await this.delegate(def).delete({ where: { id: numericId } });
+      await this.delegate(def).delete({ where: this.whereForRouteId(def, routeId) });
       await this.invalidateAfterMutation(def);
-      return { id: numericId };
+      return { id: routeId };
     } catch (e) {
       throw this.mapPrismaError(e);
     }
@@ -191,16 +204,16 @@ export class ReferenceAdminService {
       return this.medicaidFormats.flatRecordToApi(updated);
     }
 
-    const numericId = this.parsePrismaId(id);
-    const existing = await this.ensureExists(def, numericId);
+    const routeId = this.parseRouteId(def, id);
+    const existing = await this.ensureExists(def, routeId);
     const field = def.activeFilter;
     const current = Boolean(existing[field]);
     const updated = await this.delegate(def).update({
-      where: { id: numericId },
+      where: this.whereForRouteId(def, routeId),
       data: { [field]: !current },
     });
     await this.invalidateAfterMutation(def);
-    return toSnakeCase(updated);
+    return this.serializeReferenceRow(def, updated);
   }
 
   private async listMedicaidDomain(params: PaginatedListParams) {
@@ -271,6 +284,89 @@ export class ReferenceAdminService {
     return numericId;
   }
 
+  private parseRouteId(def: ReferenceDomainDefinition, id: string): number | string {
+    if (isConfigStorageDomain(def) || isJsonStorageDomain(def)) {
+      return id;
+    }
+    return this.parsePrismaId(id);
+  }
+
+  private whereForRouteId(
+    def: ReferenceDomainDefinition,
+    routeId: number | string,
+  ): PrismaRecord {
+    const idField = def.idField ?? 'id';
+    return { [idField]: routeId };
+  }
+
+  private serializeReferenceRow(
+    def: ReferenceDomainDefinition,
+    row: PrismaRecord,
+  ): Record<string, unknown> {
+    const snake = toSnakeCase(row) as Record<string, unknown>;
+    const idField = def.idField ?? 'id';
+    if (idField !== 'id') {
+      const pk = row[idField];
+      if (pk !== undefined && pk !== null) {
+        snake.id = pk;
+      }
+    }
+    return snake;
+  }
+
+  private listConfigDomain(def: ReferenceDomainDefinition, params: PaginatedListParams) {
+    if (def.slug === 'claim-filing-indicators') {
+      return this.listClaimFilingIndicators(params);
+    }
+    throw new NotFoundException('Config reference domain is not configured.');
+  }
+
+  private showConfigDomain(def: ReferenceDomainDefinition, id: string) {
+    if (def.slug === 'claim-filing-indicators') {
+      const description = CLAIM_FILING_INDICATORS[id];
+      if (description === undefined) {
+        throw new NotFoundException('Reference record not found.');
+      }
+      return { id, code: id, description };
+    }
+    throw new NotFoundException('Config reference domain is not configured.');
+  }
+
+  private listClaimFilingIndicators(params: PaginatedListParams) {
+    const page = Math.max(1, params.page);
+    const perPage = Math.min(100, Math.max(1, params.perPage));
+    const needle = params.search?.trim().toLowerCase();
+
+    let items = Object.entries(CLAIM_FILING_INDICATORS).map(([code, description]) => ({
+      id: code,
+      code,
+      description,
+    }));
+
+    if (needle) {
+      items = items.filter(
+        (row) =>
+          row.code.toLowerCase().includes(needle) ||
+          row.description.toLowerCase().includes(needle),
+      );
+    }
+
+    const total = items.length;
+    const skip = (page - 1) * perPage;
+    const pageItems = items.slice(skip, skip + perPage);
+    const lastPage = Math.max(1, Math.ceil(total / perPage));
+
+    return {
+      items: pageItems,
+      meta: {
+        page,
+        per_page: perPage,
+        total,
+        last_page: lastPage,
+      },
+    };
+  }
+
   private requireDomain(slug: string): ReferenceDomainDefinition {
     const def = getReferenceDomain(slug);
     if (!def) {
@@ -301,8 +397,13 @@ export class ReferenceAdminService {
     return model;
   }
 
-  private async ensureExists(def: ReferenceDomainDefinition, id: number): Promise<PrismaRecord> {
-    const row = await this.delegate(def).findUnique({ where: { id } });
+  private async ensureExists(
+    def: ReferenceDomainDefinition,
+    routeId: number | string,
+  ): Promise<PrismaRecord> {
+    const row = await this.delegate(def).findUnique({
+      where: this.whereForRouteId(def, routeId),
+    });
     if (!row) {
       throw new NotFoundException('Reference record not found.');
     }
@@ -319,9 +420,7 @@ export class ReferenceAdminService {
     const needle = search?.trim();
     if (needle) {
       and.push({
-        OR: def.searchFields.map((field) => ({
-          [field]: { contains: needle, mode: 'insensitive' },
-        })),
+        OR: def.searchFields.map((field) => this.searchCondition(def, field, needle)),
       });
     }
 
@@ -340,6 +439,18 @@ export class ReferenceAdminService {
       return and[0]!;
     }
     return { AND: and };
+  }
+
+  private searchCondition(
+    def: ReferenceDomainDefinition,
+    field: string,
+    needle: string,
+  ): PrismaRecord {
+    const idField = def.idField ?? 'id';
+    if (/^\d+$/.test(needle) && (field === idField || field.endsWith('Id'))) {
+      return { [field]: Number(needle) };
+    }
+    return { [field]: { contains: needle, mode: 'insensitive' } };
   }
 
   private parseBooleanQuery(raw: string): boolean | null {
@@ -469,7 +580,9 @@ export class ReferenceAdminService {
       field === 'min' ||
       field === 'max' ||
       field === 'packageItemCount' ||
-      field === 'length'
+      field === 'length' ||
+      field === 'regionId' ||
+      field === 'stateId'
     ) {
       if (typeof value === 'number') {
         return value;
