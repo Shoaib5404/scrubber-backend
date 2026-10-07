@@ -1,14 +1,14 @@
 import { Logger } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+import { QueueWorkerHost } from './modules/queue/queue-worker.host';
 
-/**
- * BullMQ worker entrypoint (Phase 6).
- * Scaffold stub — do not process jobs until queue modules are implemented.
- */
 async function bootstrap() {
   const logger = new Logger('Worker');
-  logger.log('Worker process started (stub). Implement BullMQ consumers in Phase 6.');
-  // Keep process alive for local docker health checks during scaffold.
-  setInterval(() => undefined, 60_000);
+  const app = await NestFactory.createApplicationContext(AppModule, { bufferLogs: true });
+  const host = app.get(QueueWorkerHost);
+  await host.start();
+  logger.log('BullMQ worker process ready');
 }
 
 void bootstrap();

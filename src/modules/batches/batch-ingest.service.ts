@@ -1,8 +1,10 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
+  forwardRef,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
@@ -14,6 +16,7 @@ import { ModelDrivenEdiParser } from '../edi-parser/model-driven-edi.parser';
 import { ParsedBatch } from '../edi-parser/types';
 import { Edi837ValidationService } from '../edi-structural-validation/edi837-validation.service';
 import { Edi837ValidationResultDto } from '../edi-structural-validation/types';
+import { QueueProducerService } from '../queue/queue-producer.service';
 
 @Injectable()
 export class BatchIngestService {
@@ -23,6 +26,8 @@ export class BatchIngestService {
     private readonly structural: Edi837ValidationService,
     private readonly parser: ModelDrivenEdiParser,
     private readonly claimValidation: ClaimValidationService,
+    @Inject(forwardRef(() => QueueProducerService))
+    private readonly queue: QueueProducerService,
   ) {}
 
   /** Laravel BatchService::ingestUpload — structural + parse/store; no claim rules. */
@@ -130,27 +135,47 @@ export class BatchIngestService {
     return this.storeParsedData(batchId, parsed, ediValidation);
   }
 
-  /** Sync process: parse path + claim validation (queue fan-out = SP-5). */
+  /**
+   * Laravel BatchService::process — parse/store then validate.
+   * When USE_QUEUE + PARALLEL_VALIDATE, fans out ValidateBatchJob (async).
+   */
   async process(batchId: number, force = false) {
     const existing = await this.prisma.batchFile.findUnique({ where: { id: batchId } });
     if (!existing) throw new NotFoundException('Batch not found.');
 
-    if (!force && existing.status === 'parsed' && existing.totalClaims > 0) {
-      await this.prisma.batchFile.update({
-        where: { id: batchId },
-        data: { status: 'validating' },
-      });
-      await this.claimValidation.validateBatch(batchId, force);
-      return this.prisma.batchFile.findUniqueOrThrow({ where: { id: batchId } });
+    if (!force && this.shouldResumeValidation(existing)) {
+      return this.dispatchOrRunValidation(batchId, force);
     }
 
     const batch = await this.ingest(batchId);
     if (batch.status === 'error') return batch;
 
+    return this.dispatchOrRunValidation(batchId, force);
+  }
+
+  private shouldResumeValidation(batch: {
+    status: string;
+    totalClaims: number;
+  }): boolean {
+    if (batch.totalClaims <= 0) return false;
+    return ['parsed', 'validating', 'error', 'validated'].includes(batch.status);
+  }
+
+  private async dispatchOrRunValidation(batchId: number, force: boolean) {
+    const useParallel =
+      this.config.get<boolean>('USE_QUEUE', false) &&
+      this.config.get<boolean>('PARALLEL_VALIDATE', true);
+
     await this.prisma.batchFile.update({
       where: { id: batchId },
       data: { status: 'validating' },
     });
+
+    if (useParallel) {
+      await this.queue.enqueueValidateBatch(batchId, force);
+      return this.prisma.batchFile.findUniqueOrThrow({ where: { id: batchId } });
+    }
+
     await this.claimValidation.validateBatch(batchId, force);
     return this.prisma.batchFile.findUniqueOrThrow({ where: { id: batchId } });
   }

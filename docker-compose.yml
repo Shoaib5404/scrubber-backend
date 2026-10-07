@@ -61,7 +61,7 @@ services:
       retries: 5
       start_period: 10s
 
-  # Uncomment after first successful local build:
+  # Uncomment after first successful local image build (SP-5 Task 12 entrypoints ready):
   # api:
   #   build:
   #     context: .
@@ -80,7 +80,6 @@ services:
   #     minio:
   #       condition: service_healthy
   #   healthcheck:
-  #     # Uses Node fetch — curl/wget are not in node:20-alpine by default.
   #     test:
   #       [
   #         'CMD',

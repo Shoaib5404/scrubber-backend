@@ -1,13 +1,14 @@
 import { Logger } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+import { SchedulerHost } from './modules/queue/scheduler.host';
 
-/**
- * Scheduler entrypoint (Phase 6).
- * Scaffold stub — do not enable recurring jobs until Laravel schedules are inventoried.
- */
 async function bootstrap() {
   const logger = new Logger('Scheduler');
-  logger.log('Scheduler process started (stub). Implement locked schedules in Phase 6.');
-  setInterval(() => undefined, 60_000);
+  const app = await NestFactory.createApplicationContext(AppModule, { bufferLogs: true });
+  const host = app.get(SchedulerHost);
+  host.start();
+  logger.log('Scheduler process ready (Redis-locked detect-stalled-queues)');
 }
 
 void bootstrap();

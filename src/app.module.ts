@@ -7,6 +7,7 @@ import { ClaimValidationModule } from './modules/claim-validation/claim-validati
 import { EdiParserModule } from './modules/edi-parser/edi-parser.module';
 import { EdiStructuralValidationModule } from './modules/edi-structural-validation/edi-structural.module';
 import { HealthModule } from './modules/health/health.module';
+import { QueueModule } from './modules/queue/queue.module';
 import { StorageModule } from './adapters/storage/storage.module';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { loadEnvFrom } from './config';
@@ -30,6 +31,7 @@ import { loadEnvFrom } from './config';
     EdiStructuralValidationModule,
     EdiParserModule,
     ClaimValidationModule,
+    QueueModule,
     BatchesModule,
     HealthModule,
   ],

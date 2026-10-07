@@ -23,6 +23,14 @@ export const envSchema = z.object({
 
   BULLMQ_CONCURRENCY: z.coerce.number().int().positive().default(5),
   QUEUE_MODE: z.string().default('bullmq'),
+  /** Laravel scrubber.use_queue — enable BullMQ fan-out for validation. */
+  USE_QUEUE: booleanFromString.default(false),
+  /** Laravel scrubber.parallel_validate — fan-out ValidateBatch when USE_QUEUE. */
+  PARALLEL_VALIDATE: booleanFromString.default(true),
+  /** Laravel scrubber.queue_stall_minutes */
+  QUEUE_STALL_MINUTES: z.coerce.number().int().positive().default(10),
+  /** Redis lock TTL for scheduler withoutOverlapping (ms). */
+  SCHEDULER_LOCK_TTL_MS: z.coerce.number().int().positive().default(290_000),
 
   JWT_SECRET: z.string().min(32),
   JWT_REFRESH_SECRET: z.string().min(32),
