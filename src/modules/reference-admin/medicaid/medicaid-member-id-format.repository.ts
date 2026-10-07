@@ -144,6 +144,44 @@ export class MedicaidMemberIdFormatRepository {
     return this.update(id, { is_active: !record.is_active });
   }
 
+  async count(): Promise<number> {
+    return (await this.allFlat()).length;
+  }
+
+  /**
+   * Laravel MedicaidMemberIdFormatRepository::replaceAll — rebuilds the entire by_payer_id
+   * store from import rows, skipping rows with an empty rt_payer_id, and writes the JSON file.
+   */
+  async replaceAll(records: Array<Record<string, unknown>>): Promise<number> {
+    const now = new Date().toISOString();
+    const byPayerId: ByPayerPayload['by_payer_id'] = {};
+
+    for (const record of records) {
+      const flat = this.normalizeFlatRecord({
+        ...record,
+        id: String(record.id ?? randomUUID()),
+        created_at: record.created_at ?? now,
+        updated_at: now,
+      });
+
+      const payerKey = this.payerKeyFromRecord(flat);
+      if (payerKey === '') {
+        continue;
+      }
+
+      if (!byPayerId[payerKey]) {
+        byPayerId[payerKey] = { payer_name: flat.payer_name, formats: [] };
+      } else {
+        byPayerId[payerKey].payer_name = flat.payer_name;
+      }
+      byPayerId[payerKey].formats.push(this.flatToFormat(flat));
+    }
+
+    await this.write({ meta: { updated_at: now }, by_payer_id: byPayerId });
+
+    return this.countFormats(byPayerId);
+  }
+
   flatRecordToApi(record: FlatRecord): Record<string, unknown> {
     return { ...record };
   }
@@ -431,6 +469,14 @@ export class MedicaidMemberIdFormatRepository {
 
   private payerKeyFromRecord(record: FlatRecord): string {
     return String(record.rt_payer_id ?? '').trim();
+  }
+
+  private countFormats(byPayerId: ByPayerPayload['by_payer_id']): number {
+    let count = 0;
+    for (const group of Object.values(byPayerId)) {
+      count += group.formats.length;
+    }
+    return count;
   }
 
   private nullableString(value: unknown): string | null {

@@ -1325,3 +1325,212 @@ export const AETNA_ICD_SHEET_NAMES = ['ICDs', 'ICD', 'ICD10', 'ICD-10', 'Diagnos
 /** Laravel ImportCignaCptIcdCrosswalk preferred worksheet names. */
 export const CIGNA_CPT_SHEET_NAMES = ['HCPCS', 'CPT', 'HCPC'] as const;
 export const CIGNA_ICD_SHEET_NAMES = ['ICD', 'ICD10', 'ICD-10'] as const;
+
+/** Generic chunk helper for array batching (Laravel array_chunk equivalent). */
+export function chunkArray<T>(items: readonly T[], size: number): T[][] {
+  if (size <= 0) {
+    return [[...items]];
+  }
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push([...items.slice(i, i + size)]);
+  }
+  return chunks;
+}
+
+/** Laravel ImportAddOnCodes::getIntCellValue (is_numeric guard, then (int) cast — truncates). */
+export function parseOptionalIntCast(value: string | null): number | null {
+  if (value === null || value === '') {
+    return null;
+  }
+  const trimmed = value.trim();
+  if (!/^-?\d+(\.\d+)?$/.test(trimmed)) {
+    return null;
+  }
+  return Math.trunc(Number(trimmed));
+}
+
+/** Laravel ImportAddOnCodes::getDateFromJulianCell — 7-digit YYYYDDD string -> date. */
+export function parseJulianDateCell(value: string | null): Date | null {
+  if (value === null || value === '') {
+    return null;
+  }
+  const digits = value.replace(/\D/g, '');
+  if (digits.length !== 7) {
+    return null;
+  }
+  const year = Number.parseInt(digits.slice(0, 4), 10);
+  const dayOfYear = Number.parseInt(digits.slice(4, 7), 10);
+  if (year < 1900 || dayOfYear < 1 || dayOfYear > 366) {
+    return null;
+  }
+  const date = new Date(Date.UTC(year, 0, 1));
+  date.setUTCDate(date.getUTCDate() + dayOfYear - 1);
+  return date;
+}
+
+/** Laravel ImportAddOnCodes — normalized AOC field keys, in fixed positional order. */
+export const ADD_ON_CODE_FIELD_ORDER = [
+  'primary_code',
+  'aoc_edit_type',
+  'add_on_code',
+  'aoc_deldt',
+  'primary_code_deldt',
+  'aoc_edit_effdt',
+  'aoc_edit_deldt',
+  'special_instruction_notes',
+] as const;
+
+/**
+ * Laravel ImportAddOnCodes::importFromExcelFile column mapping — match headers by normalized
+ * name, default primary_code to the first column, and fall back to the fixed positional AOC
+ * layout when most fields remain unmapped and the sheet has at least 8 columns.
+ */
+export function mapAddOnCodeExcelColumns(
+  headers: string[],
+): Record<(typeof ADD_ON_CODE_FIELD_ORDER)[number], number | null> {
+  const fieldColumns: Record<(typeof ADD_ON_CODE_FIELD_ORDER)[number], number | null> = {
+    primary_code: null,
+    aoc_edit_type: null,
+    add_on_code: null,
+    aoc_deldt: null,
+    primary_code_deldt: null,
+    aoc_edit_effdt: null,
+    aoc_edit_deldt: null,
+    special_instruction_notes: null,
+  };
+
+  for (let index = 0; index < headers.length; index += 1) {
+    const key = headers[index] as (typeof ADD_ON_CODE_FIELD_ORDER)[number] | string;
+    if ((ADD_ON_CODE_FIELD_ORDER as readonly string[]).includes(key)) {
+      fieldColumns[key as (typeof ADD_ON_CODE_FIELD_ORDER)[number]] = index;
+    }
+  }
+
+  if (fieldColumns.primary_code === null) {
+    fieldColumns.primary_code = 0;
+  }
+
+  const unmappedCount = ADD_ON_CODE_FIELD_ORDER.filter((key) => fieldColumns[key] === null).length;
+  if (unmappedCount > 0 && headers.length >= 8) {
+    ADD_ON_CODE_FIELD_ORDER.forEach((key, index) => {
+      fieldColumns[key] = index;
+    });
+  }
+
+  return fieldColumns;
+}
+
+/** Laravel ImportMcrVaccineCodes::mapExcelColumns */
+export function mapMcrVaccineCodeExcelColumns(
+  headers: string[],
+): Partial<Record<'vaccine_code' | 'icd10_code' | 'administration_code', number>> {
+  return mapExcelColumnsByAliases(headers, {
+    vaccine_code: ['vaccine_codes', 'vaccine_code', 'vaccine', 'code', 'cpt', 'hcpcs'],
+    icd10_code: ['icd_10_code', 'icd10_code', 'icd_10_cpde', 'icd10_cpde', 'icd10', 'icd'],
+    administration_code: ['administration', 'administration_code', 'admin_code', 'admin'],
+  }) as Partial<Record<'vaccine_code' | 'icd10_code' | 'administration_code', number>>;
+}
+
+/** Laravel ImportMcrVaccineCodes::resolveTypeFromSheet */
+export function resolveMcrVaccineCodeType(sheetTitle: string): string | null {
+  const normalized = sheetTitle.trim().toLowerCase();
+  const aliases: Record<string, string> = {
+    flu: 'Flu',
+    influenza: 'Flu',
+    pneumococcal: 'Pneumococcal',
+    pneumo: 'Pneumococcal',
+    hepatitis: 'Hepatitis',
+    hep: 'Hepatitis',
+  };
+  if (aliases[normalized] !== undefined) {
+    return aliases[normalized];
+  }
+  for (const type of ['Flu', 'Pneumococcal', 'Hepatitis']) {
+    if (type.toLowerCase() === normalized) {
+      return type;
+    }
+  }
+  return null;
+}
+
+/** Laravel ImportIcd10BodySidewise::handle column mapping (1-indexed Laravel defaults -> 0-indexed here). */
+export function mapIcd10BodySidewiseColumns(headers: string[]): {
+  code: number;
+  description: number;
+  side: number;
+} {
+  const codeIndex = headers.indexOf('code');
+  const descriptionIndex =
+    headers.indexOf('long_discription') !== -1
+      ? headers.indexOf('long_discription')
+      : headers.indexOf('long_description');
+  const sideIndex = headers.indexOf('side');
+
+  return {
+    code: codeIndex !== -1 ? codeIndex : 1,
+    description: descriptionIndex !== -1 ? descriptionIndex : 2,
+    side: sideIndex !== -1 ? sideIndex : 3,
+  };
+}
+
+/** Laravel ImportIcd10UnacceptablePrincipalDxCodes::parseClaimType */
+export function parseIcd10ClaimType(value: string | null): number | null {
+  const normalized = (value ?? '').trim().toLowerCase();
+  switch (normalized) {
+    case '1':
+    case 'professional':
+    case 'prof':
+      return 1;
+    case '2':
+    case 'institutional':
+    case 'inst':
+      return 2;
+    default:
+      return null;
+  }
+}
+
+/** Laravel ImportIcd10UnacceptablePrincipalDxCodes::parseActive */
+export function parseIcd10ActiveFlag(value: string | null): boolean {
+  const normalized = (value ?? '').trim().toLowerCase();
+  return !['0', 'false', 'inactive', 'no', 'n'].includes(normalized);
+}
+
+/** Laravel ImportNcdOtherLab/ImportNcdOtherLabCodes::normalizeCode (RichText/number handling
+ * collapses to string trimming here because loadExcelRows already stringifies every cell). */
+export function normalizeNcdLabCode(value: string | null): string | null {
+  if (value === null) {
+    return null;
+  }
+  const trimmed = value.trim();
+  if (trimmed === '') {
+    return null;
+  }
+  return trimmed.length > 20 ? trimmed.slice(0, 20) : trimmed;
+}
+
+/** Laravel ImportNcdOtherLab/ImportNcdOtherLabCodes::looksLikeHeaderLabel */
+export function looksLikeNcdLabHeaderLabel(code: string): boolean {
+  const upper = code.toUpperCase();
+  return (
+    upper === 'CPT' ||
+    upper === 'ICD' ||
+    upper === 'ICD-10 CM' ||
+    upper.includes('ICD-10') ||
+    upper.includes('ICD10')
+  );
+}
+
+/** Laravel ImportNcdOtherLab/ImportNcdOtherLabCodes::readCodesColumn (column A, skip header row). */
+export function readNcdLabCodesColumn(rows: string[][]): string[] {
+  const seen = new Set<string>();
+  for (const row of rows.slice(1)) {
+    const code = normalizeNcdLabCode(row[0] ?? null);
+    if (code === null || looksLikeNcdLabHeaderLabel(code)) {
+      continue;
+    }
+    seen.add(code);
+  }
+  return [...seen].sort();
+}

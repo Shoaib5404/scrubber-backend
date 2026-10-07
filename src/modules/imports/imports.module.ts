@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { LookupCacheModule } from '../cache/lookup-cache.module';
 import { PrismaModule } from '../../common/prisma/prisma.module';
+import { MedicaidMemberIdFormatRepository } from '../reference-admin/medicaid/medicaid-member-id-format.repository';
 import { AnesthesiaCodesImportCommand } from './anesthesia-codes.command';
 import { AnesthesiaCodesImportService } from './anesthesia-codes.import.service';
 import { AnesthesiaCodesWithBillableModifiersImportCommand } from './anesthesia-codes-with-billable-modifiers.command';
@@ -78,6 +79,20 @@ import { AetnaFetalLcdImportCommand } from './aetna-fetal-lcd.command';
 import { AetnaFetalLcdImportService } from './aetna-fetal-lcd.import.service';
 import { CignaCptIcdCrosswalkImportCommand } from './cigna-cpt-icd-crosswalk.command';
 import { CignaCptIcdCrosswalkImportService } from './cigna-cpt-icd-crosswalk.import.service';
+import { AddOnCodesImportCommand } from './add-on-codes.command';
+import { AddOnCodesImportService } from './add-on-codes.import.service';
+import { McrVaccineCodesImportCommand } from './mcr-vaccine-codes.command';
+import { McrVaccineCodesImportService } from './mcr-vaccine-codes.import.service';
+import { MedicaidMemberIdFormatsImportCommand } from './medicaid-member-id-formats.command';
+import { MedicaidMemberIdFormatsImportService } from './medicaid-member-id-formats.import.service';
+import { Icd10BodySidewiseImportCommand } from './icd10-body-sidewise.command';
+import { Icd10BodySidewiseImportService } from './icd10-body-sidewise.import.service';
+import { Icd10UnacceptablePrincipalDxCodesImportCommand } from './icd10-unacceptable-principal-dx-codes.command';
+import { Icd10UnacceptablePrincipalDxCodesImportService } from './icd10-unacceptable-principal-dx-codes.import.service';
+import { NcdOtherLabImportCommand } from './ncd-other-lab.command';
+import { NcdOtherLabImportService } from './ncd-other-lab.import.service';
+import { NcdOtherLabCodesImportCommand } from './ncd-other-lab-codes.command';
+import { NcdOtherLabCodesImportService } from './ncd-other-lab-codes.import.service';
 
 @Module({
   imports: [PrismaModule, LookupCacheModule],
@@ -122,6 +137,14 @@ import { CignaCptIcdCrosswalkImportService } from './cigna-cpt-icd-crosswalk.imp
     AetnaB12LcdImportService,
     AetnaFetalLcdImportService,
     CignaCptIcdCrosswalkImportService,
+    MedicaidMemberIdFormatRepository,
+    AddOnCodesImportService,
+    McrVaccineCodesImportService,
+    MedicaidMemberIdFormatsImportService,
+    Icd10BodySidewiseImportService,
+    Icd10UnacceptablePrincipalDxCodesImportService,
+    NcdOtherLabImportService,
+    NcdOtherLabCodesImportService,
     RadiologyCptCodesImportCommand,
     MajorSurgeryCodesImportCommand,
     InitialTreatmentCodesImportCommand,
@@ -159,6 +182,13 @@ import { CignaCptIcdCrosswalkImportService } from './cigna-cpt-icd-crosswalk.imp
     AetnaB12LcdImportCommand,
     AetnaFetalLcdImportCommand,
     CignaCptIcdCrosswalkImportCommand,
+    AddOnCodesImportCommand,
+    McrVaccineCodesImportCommand,
+    MedicaidMemberIdFormatsImportCommand,
+    Icd10BodySidewiseImportCommand,
+    Icd10UnacceptablePrincipalDxCodesImportCommand,
+    NcdOtherLabImportCommand,
+    NcdOtherLabCodesImportCommand,
   ],
   exports: [
     RadiologyCptCodesImportService,
@@ -198,6 +228,14 @@ import { CignaCptIcdCrosswalkImportService } from './cigna-cpt-icd-crosswalk.imp
     AetnaB12LcdImportService,
     AetnaFetalLcdImportService,
     CignaCptIcdCrosswalkImportService,
+    MedicaidMemberIdFormatRepository,
+    AddOnCodesImportService,
+    McrVaccineCodesImportService,
+    MedicaidMemberIdFormatsImportService,
+    Icd10BodySidewiseImportService,
+    Icd10UnacceptablePrincipalDxCodesImportService,
+    NcdOtherLabImportService,
+    NcdOtherLabCodesImportService,
   ],
 })
 export class ImportsModule {}
