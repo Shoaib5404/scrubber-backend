@@ -950,6 +950,31 @@ model NpiOrderingReferring {
   @@map("npi_ordering_referrings")
 }
 
+// Laravel NpiOrderingReferringSync — CMS Order and Referring dataset download/import audit log
+// (SP-8 Task 20). `fileSizeBytes`/`rowCount` are Laravel unsignedBigInteger columns; Int is
+// sufficient here (see schema header note on PK sizing — same reasoning applies).
+model NpiOrderingReferringSync {
+  id                 Int       @id @default(autoincrement())
+  datasetReleaseDate DateTime  @unique @map("dataset_release_date") @db.Date
+  cmsReleaseNodeId   String?   @map("cms_release_node_id") @db.Uuid
+  cmsFileId          String?   @map("cms_file_id") @db.Uuid
+  zipCacheKey        String?   @map("zip_cache_key") @db.VarChar(64)
+  zipUrl             String?   @map("zip_url")
+  sourceCsvName      String?   @map("source_csv_name")
+  storedCsvFilename  String    @map("stored_csv_filename")
+  storedCsvPath      String    @map("stored_csv_path")
+  fileSizeBytes      Int?      @map("file_size_bytes")
+  rowCount           Int?      @map("row_count")
+  status             String    @default("pending") @db.VarChar(32)
+  errorMessage       String?   @map("error_message")
+  downloadedAt       DateTime? @map("downloaded_at")
+  importedAt         DateTime? @map("imported_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@map("npi_ordering_referring_syncs")
+}
 
 // ---------------------------------------------------------------------------
 // SP-2 Task 7 â€” Wave C: geographic / taxonomy / misc

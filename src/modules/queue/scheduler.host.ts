@@ -10,6 +10,14 @@ import { DetectStalledQueuesService } from './detect-stalled-queues.service';
 /**
  * Distributed scheduler — only one replica runs detect-stalled-queues
  * (Laravel withoutOverlapping via Redis lock).
+ *
+ * NOTE (SP-8 Task 20): Laravel's `npi-ordering-referrings:sync` daily 06:00 America/New_York
+ * schedule entry is commented out in bootstrap/app.php — it was never enabled in production.
+ * Per the Task 20 ruling, this schedule stays DISABLED here too pending product re-approval.
+ * Do not add a tick for `npi-ordering-referrings:sync` to this host without that sign-off; run it
+ * manually via `npm run cli -- npi-ordering-referrings:sync` in the meantime. See
+ * NPI_SYNC_SCHEDULE_ENABLED in env.schema.ts (currently unread by any scheduler — documentation
+ * only).
  */
 @Injectable()
 export class SchedulerHost implements OnModuleDestroy {

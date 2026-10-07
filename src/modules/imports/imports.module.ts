@@ -101,6 +101,12 @@ import { ArticleImportCommand } from './article.command';
 import { ArticleImportService } from './article.import.service';
 import { Icd10TabularImportCommand } from './icd10-tabular/icd10-tabular.command';
 import { Icd10TabularImportService } from './icd10-tabular/icd10-tabular.import.service';
+import { NpiOrderingReferringFetchCommand } from './npi-ordering-referring/npi-ordering-referring-fetch.command';
+import { NpiOrderingReferringImportCommand } from './npi-ordering-referring/npi-ordering-referring-import.command';
+import { NpiOrderingReferringSyncCommand } from './npi-ordering-referring/npi-ordering-referring-sync.command';
+import { NpiOrderingReferringDownloader } from './npi-ordering-referring/npi-ordering-referring.downloader';
+import { NpiOrderingReferringImportService } from './npi-ordering-referring/npi-ordering-referring.import.service';
+import { OrderAndReferringApiClient } from './npi-ordering-referring/order-and-referring-api.client';
 
 @Module({
   imports: [PrismaModule, LookupCacheModule],
@@ -157,6 +163,9 @@ import { Icd10TabularImportService } from './icd10-tabular/icd10-tabular.import.
     Icd10NcdImportService,
     ArticleImportService,
     Icd10TabularImportService,
+    OrderAndReferringApiClient,
+    NpiOrderingReferringDownloader,
+    NpiOrderingReferringImportService,
     RadiologyCptCodesImportCommand,
     MajorSurgeryCodesImportCommand,
     InitialTreatmentCodesImportCommand,
@@ -205,6 +214,9 @@ import { Icd10TabularImportService } from './icd10-tabular/icd10-tabular.import.
     Icd10NcdImportCommand,
     ArticleImportCommand,
     Icd10TabularImportCommand,
+    NpiOrderingReferringFetchCommand,
+    NpiOrderingReferringImportCommand,
+    NpiOrderingReferringSyncCommand,
   ],
   exports: [
     RadiologyCptCodesImportService,
@@ -256,6 +268,9 @@ import { Icd10TabularImportService } from './icd10-tabular/icd10-tabular.import.
     Icd10NcdImportService,
     ArticleImportService,
     Icd10TabularImportService,
+    OrderAndReferringApiClient,
+    NpiOrderingReferringDownloader,
+    NpiOrderingReferringImportService,
   ],
 })
 export class ImportsModule {}

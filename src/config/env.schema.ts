@@ -72,6 +72,33 @@ export const envSchema = z.object({
   SCRUBBER_RULE_SWITCH_ENM_ONE_DAY_EARLIER: booleanFromString.default(true),
   SCRUBBER_RULE_SWITCH_EM_BUNDLING: booleanFromString.default(true),
 
+  // SP-8 Task 20 — Laravel config/npi_ordering_referring.php (CMS Order and Referring NPI sync).
+  /** Laravel import_directory (hardcoded there; env-configurable here). */
+  NPI_ORDERING_REFERRING_IMPORT_DIRECTORY: z.string().default('import/NPI_Ordering_Referring'),
+  /** Laravel max_local_csv_files. */
+  NPI_ORDERING_REFERRING_MAX_LOCAL_CSV_FILES: z.coerce.number().int().positive().default(2),
+  /** Laravel download_timeout_seconds (env var there: NPI_ORDERING_REFERRING_DOWNLOAD_TIMEOUT). */
+  NPI_ORDERING_REFERRING_DOWNLOAD_TIMEOUT_SECONDS: z.coerce.number().int().positive().default(600),
+  /** Laravel cms_dataset_type_id. */
+  NPI_ORDERING_REFERRING_CMS_DATASET_TYPE_ID: z
+    .string()
+    .default('c99b5865-1119-4436-bb80-c5af2773ea1f'),
+  /** Laravel download_request_max_attempts. */
+  NPI_ORDERING_REFERRING_DOWNLOAD_REQUEST_ATTEMPTS: z.coerce.number().int().positive().default(30),
+  /** Laravel download_request_poll_seconds. */
+  NPI_ORDERING_REFERRING_DOWNLOAD_REQUEST_POLL_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(2),
+  /**
+   * Reserved — the Laravel `npi-ordering-referrings:sync` daily 06:00 America/New_York schedule
+   * is commented out in bootstrap/app.php pending product re-approval (see SP-8 Task 20 ruling).
+   * No Nest scheduler currently reads this flag; it exists so the disabled state is explicit in
+   * `.env.example` rather than only in a code comment.
+   */
+  NPI_SYNC_SCHEDULE_ENABLED: booleanFromString.default(false),
+
   FRONTEND_URL: z.string().default('http://localhost:3010'),
 });
 
