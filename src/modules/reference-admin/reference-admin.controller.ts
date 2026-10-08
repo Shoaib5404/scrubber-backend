@@ -10,10 +10,23 @@ import {
   Post,
   Put,
   Query,
+  Res,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
+import { Response } from 'express';
+import { memoryStorage } from 'multer';
 import { StaffOnlyGuard } from '../../common/guards/staff-only.guard';
+import { ReferenceAdminIoService } from './reference-admin-io.service';
 import { ReferenceAdminService } from './reference-admin.service';
 
 @ApiTags('admin-references')
@@ -21,9 +34,11 @@ import { ReferenceAdminService } from './reference-admin.service';
 @UseGuards(StaffOnlyGuard)
 @Controller('admin/references')
 export class ReferenceAdminController {
-  constructor(private readonly references: ReferenceAdminService) {}
+  constructor(
+    private readonly references: ReferenceAdminService,
+    private readonly referenceIo: ReferenceAdminIoService,
+  ) {}
 
-  /** Bulk Excel import/export deferred — Task 19 / CLI. */
   @Get()
   listDomains() {
     const domains = this.references.listDomains();
@@ -80,6 +95,45 @@ export class ReferenceAdminController {
       isActive,
     });
     return { success: true, data };
+  }
+
+  /** Laravel web export — JSON download for supported domains. */
+  @Get(':domain/export')
+  async exportDomain(
+    @Param('domain') domain: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.referenceIo.exportDomain(domain);
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=${result.filename}`,
+    );
+    return result.body;
+  }
+
+  /** Laravel web import — age-specific-cpt-rules Excel/JSON only. */
+  @Post(':domain/import')
+  @HttpCode(HttpStatus.OK)
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { file: { type: 'string', format: 'binary' } },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: 10_485_760 },
+    }),
+  )
+  async importDomain(
+    @Param('domain') domain: string,
+    @UploadedFile() file: Express.Multer.File | undefined,
+  ) {
+    const data = await this.referenceIo.importDomain(domain, file);
+    return { success: true, message: data.message, data };
   }
 
   @Get(':domain/:id')

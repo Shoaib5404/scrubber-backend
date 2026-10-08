@@ -4,6 +4,10 @@ import {
   ReferenceDomainDefinition,
   ReferenceOperation,
 } from './reference-domain.types';
+import {
+  referenceDomainSupportsWebExport,
+  referenceDomainSupportsWebImport,
+} from './reference-io.registry';
 import { WAVE_A_DOMAIN_DEFINITIONS } from './wave-a.domains';
 import { WAVE_B_DOMAIN_DEFINITIONS } from './wave-b.domains';
 import { WAVE_C_DOMAIN_DEFINITIONS } from './wave-c.domains';
@@ -28,6 +32,17 @@ export function getReferenceDomain(slug: string): ReferenceDomainDefinition | un
   return DOMAIN_BY_SLUG.get(slug);
 }
 
+function domainOpsWithIo(def: ReferenceDomainDefinition): ReferenceOperation[] {
+  const ops = [...domainOps(def)];
+  if (referenceDomainSupportsWebImport(def.slug) && !ops.includes('import')) {
+    ops.push('import');
+  }
+  if (referenceDomainSupportsWebExport(def.slug) && !ops.includes('export')) {
+    ops.push('export');
+  }
+  return ops;
+}
+
 export function listReferenceDomainSummaries(): Array<{
   slug: string;
   title: string;
@@ -36,7 +51,7 @@ export function listReferenceDomainSummaries(): Array<{
   return ALL_DEFINITIONS.map((d) => ({
     slug: d.slug,
     title: d.title,
-    ops: domainOps(d),
+    ops: domainOpsWithIo(d),
   }));
 }
 
