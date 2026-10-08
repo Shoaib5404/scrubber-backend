@@ -374,7 +374,7 @@ export class ClaimValidationService {
               diagnoses: claim.diagnoses.map((d) => ({ sequence: d.sequence, code: d.code })),
             },
             validLines,
-            {},
+            await this.lookups.uhcPriorAuthRulesByCpt(validCodes),
           ).errors,
         );
 

@@ -2,7 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { LookupCacheService } from '../../cache/lookup-cache.service';
 import { NcciRulesCacheService } from '../../cache/ncci-rules-cache.service';
-import { CptCoreRuleRow, CptModifierRuleRow, CptPosRuleRow } from '../rules/cpt.rules';
+import {
+  CptCoreRuleRow,
+  CptModifierRuleRow,
+  CptPosRuleRow,
+  UhcAuthorizationParsedRule,
+} from '../rules/cpt.rules';
 import { AgeSpecificCptRuleRow, GenderSpecificCptRuleRow } from './cpt-age-gender.validation';
 import { MuePractitionerLookupRow } from '../rules/mue-practitioner.rules';
 import { NcciPairLookupRow } from '../rules/ncci.rules';
@@ -12,6 +17,7 @@ import {
   emptyNdcCrosswalkContext,
   NdcCrosswalkContext,
 } from './ndc-crosswalk.context';
+import { toUhcAuthorizationParsedRule } from './uhc-prior-auth.parse';
 
 /** Loads claim-rule reference rows (Laravel LookupCache + NCCI Redis path). */
 @Injectable()
@@ -250,6 +256,33 @@ export class ClaimRuleLookupService {
     for (const r of rows) {
       const cpt = r.cptCode.toUpperCase();
       (out[cpt] ??= []).push(String(r.posCode).trim().padStart(2, '0'));
+    }
+    return out;
+  }
+
+  /**
+   * Laravel Uhc87726PriorAuthRules::loadRulesByCpt — active uhc_authorizations by CPT
+   * (DB query; Redis by-cpt cache deferred).
+   */
+  async uhcPriorAuthRulesByCpt(
+    codes: string[],
+  ): Promise<Record<string, UhcAuthorizationParsedRule[]>> {
+    if (codes.length === 0) return {};
+    const rows = await this.prisma.uhcAuthorization.findMany({
+      where: { cptCode: { in: codes }, isActive: true },
+      orderBy: { id: 'asc' },
+    });
+    const out: Record<string, UhcAuthorizationParsedRule[]> = {};
+    for (const row of rows) {
+      const cpt = row.cptCode.trim().toUpperCase();
+      if (cpt === '') continue;
+      (out[cpt] ??= []).push(
+        toUhcAuthorizationParsedRule({
+          id: row.id,
+          condition: row.condition,
+          conditionValues: row.conditionValues,
+        }),
+      );
     }
     return out;
   }

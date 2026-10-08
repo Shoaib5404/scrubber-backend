@@ -147,4 +147,33 @@ export class UhcAuthorizationConditionValuesNormalizer {
   normalizeIcd(code: string): string {
     return code.trim().toUpperCase().replace(/\./g, '');
   }
+
+  /** Laravel UhcAuthorizationConditionValuesNormalizer::parsePosList */
+  parsePosList(conditionValues: string | null | undefined): string[] {
+    if (conditionValues === null || conditionValues === undefined || conditionValues.trim() === '') {
+      return [];
+    }
+    const codes: string[] = [];
+    for (const part of conditionValues.split(',')) {
+      const trimmed = part.trim();
+      if (trimmed === '') continue;
+      codes.push(trimmed.padStart(2, '0'));
+    }
+    return [...new Set(codes)];
+  }
+
+  /** Laravel UhcAuthorizationConditionValuesNormalizer::parseIcdLookup */
+  parseIcdLookup(conditionValues: string | null | undefined): Record<string, true> {
+    if (conditionValues === null || conditionValues === undefined || conditionValues.trim() === '') {
+      return {};
+    }
+    const lookup: Record<string, true> = {};
+    for (const part of conditionValues.split(',')) {
+      const normalized = this.normalizeIcd(part);
+      if (normalized !== '') {
+        lookup[normalized] = true;
+      }
+    }
+    return lookup;
+  }
 }
