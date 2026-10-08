@@ -2,10 +2,9 @@ import { Module } from '@nestjs/common';
 import { BatchesModule } from '../batches/batches.module';
 import { ClaimValidationModule } from '../claim-validation/claim-validation.module';
 import { EdiParserModule } from '../edi-parser/edi-parser.module';
-import { PasswordService } from '../auth/password.service';
+import { ApiClientsModule } from '../api-clients/api-clients.module';
 import { QueueModule } from '../queue/queue.module';
 import { ApiClientCreateCommand } from './api-client-create.command';
-import { ApiClientIssuerService } from './api-client-issuer.service';
 import { BatchTestCommand } from './batch-test.command';
 import { BatchValidateCommand } from './batch-validate.command';
 import { DetectStalledQueuesCommand } from './detect-stalled-queues.command';
@@ -45,15 +44,13 @@ import { StatusCheckCommand } from './status-check.command';
  * non-cyclic consumer, does not reintroduce that cycle.
  */
 @Module({
-  imports: [QueueModule, BatchesModule, ClaimValidationModule, EdiParserModule],
+  imports: [QueueModule, BatchesModule, ClaimValidationModule, EdiParserModule, ApiClientsModule],
   providers: [
     NcciRulesCacheFetchCommand,
     RedisLookupFlushCommand,
     RedisLookupStatusCommand,
     RedisSeedLookupsCommand,
     DetectStalledQueuesCommand,
-    PasswordService,
-    ApiClientIssuerService,
     ApiClientCreateCommand,
     ReferenceApiIssueCommand,
     RedisFlushCommand,

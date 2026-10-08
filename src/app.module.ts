@@ -14,6 +14,8 @@ import { ReferenceAdminModule } from './modules/reference-admin/reference-admin.
 import { ReferencesModule } from './modules/references/references.module';
 import { StorageModule } from './adapters/storage/storage.module';
 import { PrismaModule } from './common/prisma/prisma.module';
+import { UsersAdminModule } from './modules/users-admin/users-admin.module';
+import { UploadLogsModule } from './modules/upload-logs/upload-logs.module';
 import { loadEnvFrom } from './config';
 
 @Module({
@@ -41,6 +43,8 @@ import { loadEnvFrom } from './config';
     ClaimsModule,
     ReferencesModule,
     ReferenceAdminModule,
+    UsersAdminModule,
+    UploadLogsModule,
     HealthModule,
   ],
 })

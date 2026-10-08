@@ -140,6 +140,81 @@ export class ApiClientIssuerService {
     };
   }
 
+  /** Laravel ApiClient::rotateSecret — new secret only; Nest has no Sanctum tokens to delete. */
+  async rotateSecret(apiClientId: number): Promise<IssuedApiClient> {
+    const existing = await this.prisma.apiClient.findUnique({ where: { id: apiClientId } });
+    if (!existing) {
+      throw new NotFoundException('API client not found.');
+    }
+    const plainSecret = ApiClientIssuerService.generatePlainSecret();
+    const hashedSecret = await this.passwords.hashSecret(plainSecret);
+    const client = await this.prisma.apiClient.update({
+      where: { id: apiClientId },
+      data: { clientSecret: hashedSecret },
+    });
+    return this.toIssued(client, plainSecret);
+  }
+
+  /** Laravel ApiClient::reissue — new client_id + secret; reactivate. */
+  async reissue(apiClientId: number, name?: string | null): Promise<IssuedApiClient> {
+    const existing = await this.prisma.apiClient.findUnique({ where: { id: apiClientId } });
+    if (!existing) {
+      throw new NotFoundException('API client not found.');
+    }
+    const plainSecret = ApiClientIssuerService.generatePlainSecret();
+    const hashedSecret = await this.passwords.hashSecret(plainSecret);
+    const client = await this.prisma.apiClient.update({
+      where: { id: apiClientId },
+      data: {
+        name: name && name.trim() !== '' ? name.trim() : existing.name,
+        clientId: ApiClientIssuerService.generateClientId(),
+        clientSecret: hashedSecret,
+        isActive: true,
+        lastUsedAt: null,
+      },
+    });
+    return this.toIssued(client, plainSecret);
+  }
+
+  /** Laravel ApiClient::revoke */
+  async revoke(apiClientId: number): Promise<void> {
+    const existing = await this.prisma.apiClient.findUnique({ where: { id: apiClientId } });
+    if (!existing) {
+      throw new NotFoundException('API client not found.');
+    }
+    await this.prisma.apiClient.update({
+      where: { id: apiClientId },
+      data: { isActive: false },
+    });
+  }
+
+  private toIssued(
+    client: {
+      id: number;
+      clientId: string;
+      name: string;
+      userId: number | null;
+      scopes: unknown;
+    },
+    plainSecret: string,
+  ): IssuedApiClient {
+    const scopes = Array.isArray(client.scopes)
+      ? (client.scopes as string[])
+      : client.scopes && typeof client.scopes === 'object'
+        ? Object.values(client.scopes as Record<string, string>)
+        : [];
+    return {
+      client: {
+        id: client.id,
+        clientId: client.clientId,
+        name: client.name,
+        userId: client.userId,
+        scopes,
+      },
+      plainSecret,
+    };
+  }
+
   private async findUserByIdOrEmail(userKey: string) {
     if (/^\d+$/.test(userKey)) {
       return this.prisma.user.findUnique({ where: { id: Number(userKey) } });
