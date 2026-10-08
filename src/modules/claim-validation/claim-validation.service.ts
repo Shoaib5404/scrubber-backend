@@ -542,25 +542,34 @@ export class ClaimValidationService {
         warnings = warnings.concat(enmResult.warnings);
 
         if (this.config.get<boolean>('SCRUBBER_RULE_SWITCH_EM_BUNDLING', true)) {
+          const emLines = claim.serviceLines
+            .filter((l) => validLines.some((v) => v.lineNumber === l.lineNumber))
+            .map((l) => ({
+              lineNumber: l.lineNumber,
+              procedureCode: l.procedureCode,
+              serviceDateFrom: l.serviceDateFrom,
+              renderingProviderNpi: l.renderingProviderNpi,
+              modifier1: l.modifier1,
+              modifier2: l.modifier2,
+              modifier3: l.modifier3,
+              modifier4: l.modifier4,
+            }));
+          const checkInDates = emLines
+            .filter((l) => String(l.procedureCode ?? '').trim().toUpperCase() === '98016')
+            .map((l) => l.serviceDateFrom);
+          const crossClaimRelated = await this.lookups.briefCheckInRelatedOnOtherClaims({
+            claimId: claim.id,
+            subscriberMemberId: claim.subscriberMemberId,
+            checkInServiceDates: checkInDates,
+          });
           errors = errors.concat(
             validateEmBundling(
-              claim.serviceLines
-                .filter((l) => validLines.some((v) => v.lineNumber === l.lineNumber))
-                .map((l) => ({
-                  lineNumber: l.lineNumber,
-                  procedureCode: l.procedureCode,
-                  serviceDateFrom: l.serviceDateFrom,
-                  renderingProviderNpi: l.renderingProviderNpi,
-                  modifier1: l.modifier1,
-                  modifier2: l.modifier2,
-                  modifier3: l.modifier3,
-                  modifier4: l.modifier4,
-                })),
+              emLines,
               {
                 claimFilingIndicator: claim.claimFilingIndicator,
                 renderingProviderNpi: claim.renderingProviderNpi,
               },
-              [],
+              crossClaimRelated,
             ),
           );
         }

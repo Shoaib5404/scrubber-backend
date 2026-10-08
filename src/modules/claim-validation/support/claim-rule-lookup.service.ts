@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { LookupCacheService } from '../../cache/lookup-cache.service';
 import { NcciRulesCacheService } from '../../cache/ncci-rules-cache.service';
@@ -11,13 +12,30 @@ import {
 import { AgeSpecificCptRuleRow, GenderSpecificCptRuleRow } from './cpt-age-gender.validation';
 import { MuePractitionerLookupRow } from '../rules/mue-practitioner.rules';
 import { NcciPairLookupRow } from '../rules/ncci.rules';
-import { IcdDiagnosisLookups } from '../rules/icd-diagnosis.rules';
+import {
+  IcdDiagnosisLookups,
+  IcdTabularNotesByCode,
+  ICD_DESC_ADDITIONAL_CODE,
+  ICD_DESC_CODE_FIRST,
+  ICD_DESC_EXCLUDE1,
+  ICD_DESC_EXCLUDE2,
+} from '../rules/icd-diagnosis.rules';
+import {
+  EmBundlingCrossClaimRelatedLine,
+  BRIEF_CHECKIN_RELATED_EM,
+} from '../rules/em-bundling.rules';
 import {
   buildNdcCrosswalkContext,
   emptyNdcCrosswalkContext,
   NdcCrosswalkContext,
 } from './ndc-crosswalk.context';
 import { toUhcAuthorizationParsedRule } from './uhc-prior-auth.parse';
+import {
+  assembleNotesByNormalizedCode,
+  ICD_NOTE_DESCRIPTION_TYPES,
+  icdLookupCandidates,
+  normalizeIcdCode,
+} from './icd-tabular-notes';
 
 /** Loads claim-rule reference rows (Laravel LookupCache + NCCI Redis path). */
 @Injectable()
@@ -434,14 +452,10 @@ export class ClaimRuleLookupService {
     diagnosisCodes: string[],
     claimType: number,
   ): Promise<IcdDiagnosisLookups> {
-    const norms = diagnosisCodes
-      .map((c) =>
-        String(c ?? '')
-          .replace(/\./g, '')
-          .trim()
-          .toUpperCase(),
-      )
-      .filter(Boolean);
+    const candidates = icdLookupCandidates(diagnosisCodes);
+    const norms = [
+      ...new Set(diagnosisCodes.map((c) => normalizeIcdCode(c)).filter(Boolean)),
+    ];
     if (norms.length === 0) {
       return {
         billableNormalizedCodes: {},
@@ -454,18 +468,22 @@ export class ClaimRuleLookupService {
     }
 
     const tabular = await this.prisma.icd10TabularCode.findMany({
-      where: { code: { in: norms }, isBillable: true },
-      select: { code: true },
+      where: { code: { in: candidates } },
+      select: { id: true, code: true, isBillable: true },
     });
     const billableNormalizedCodes = Object.fromEntries(
-      tabular.map((r) => [r.code.replace(/\./g, '').toUpperCase(), true as const]),
+      tabular
+        .filter((r) => r.isBillable)
+        .map((r) => [normalizeIcdCode(r.code), true as const]),
     );
 
+    const notesByNormalizedCode = await this.loadNotesByDiagnosisCode(tabular);
+
     const tobacco = await this.prisma.tobaccoCounselingIcdRule.findMany({
-      where: { icdCode: { in: norms }, indicator: true, isActive: true },
+      where: { icdCode: { in: candidates }, indicator: true, isActive: true },
     });
     const tobaccoCounselingApprovedIcd = Object.fromEntries(
-      tobacco.map((r) => [r.icdCode.replace(/\./g, '').toUpperCase(), true as const]),
+      tobacco.map((r) => [normalizeIcdCode(r.icdCode), true as const]),
     );
 
     const unacceptable = await this.prisma.icd10UnacceptablePrincipalDiagnoseCode.findMany({
@@ -474,26 +492,26 @@ export class ClaimRuleLookupService {
     });
     const unacceptablePrincipalByClaimType: Record<string, Record<string, true>> = {
       [String(claimType)]: Object.fromEntries(
-        unacceptable.map((r) => [r.code.replace(/\./g, '').toUpperCase(), true as const]),
+        unacceptable.map((r) => [normalizeIcdCode(r.code), true as const]),
       ),
     };
 
     const gender = await this.prisma.icdGenderSpecificRule.findMany({
-      where: { icdCode: { in: norms }, isActive: true },
+      where: { icdCode: { in: candidates }, isActive: true },
     });
     const icdGenderRulesByNorm = Object.fromEntries(
       gender.map((r) => [
-        r.icdCode.replace(/\./g, '').toUpperCase(),
+        normalizeIcdCode(r.icdCode),
         { id: r.id, icd_code: r.icdCode, gender: r.gender },
       ]),
     );
 
     const age = await this.prisma.ageSpecificIcdRule.findMany({
-      where: { icdCode: { in: norms }, isActive: true },
+      where: { icdCode: { in: candidates }, isActive: true },
     });
     const icdAgeRulesByNorm = Object.fromEntries(
       age.map((r) => [
-        r.icdCode.replace(/\./g, '').toUpperCase(),
+        normalizeIcdCode(r.icdCode),
         {
           id: r.id,
           icd_code: r.icdCode,
@@ -506,12 +524,176 @@ export class ClaimRuleLookupService {
 
     return {
       billableNormalizedCodes,
-      notesByNormalizedCode: {},
+      notesByNormalizedCode,
       tobaccoCounselingApprovedIcd,
       unacceptablePrincipalByClaimType,
       icdGenderRulesByNorm,
       icdAgeRulesByNorm,
     };
+  }
+
+  /**
+   * Laravel EmBundlingRules::validateBriefCheckInAcrossClaims DB preload —
+   * related E&M lines on other claims for the same member within the 7-day / next-day window.
+   */
+  async briefCheckInRelatedOnOtherClaims(params: {
+    claimId: number;
+    subscriberMemberId: string | null | undefined;
+    checkInServiceDates: Array<string | Date | null | undefined>;
+  }): Promise<EmBundlingCrossClaimRelatedLine[]> {
+    const memberId = String(params.subscriberMemberId ?? '').trim();
+    if (!memberId || params.checkInServiceDates.length === 0) return [];
+
+    let minDos: string | null = null;
+    let maxDos: string | null = null;
+    for (const raw of params.checkInServiceDates) {
+      const ymd = toYmd(raw);
+      if (!ymd) continue;
+      const start = addDaysYmd(ymd, -7);
+      const end = addDaysYmd(ymd, 1);
+      if (!start || !end) continue;
+      if (minDos === null || start < minDos) minDos = start;
+      if (maxDos === null || end > maxDos) maxDos = end;
+    }
+    if (!minDos || !maxDos) return [];
+
+    const rows = await this.prisma.serviceLine.findMany({
+      where: {
+        procedureCode: { in: [...BRIEF_CHECKIN_RELATED_EM] },
+        serviceDateFrom: {
+          gte: new Date(`${minDos}T00:00:00.000Z`),
+          lte: new Date(`${maxDos}T00:00:00.000Z`),
+        },
+        claim: {
+          subscriberMemberId: memberId,
+          id: { not: params.claimId },
+        },
+      },
+      select: {
+        procedureCode: true,
+        serviceDateFrom: true,
+      },
+    });
+
+    return rows
+      .filter((r) => r.serviceDateFrom != null)
+      .map((r) => ({
+        procedureCode: r.procedureCode,
+        serviceDateFrom: r.serviceDateFrom as Date,
+      }));
+  }
+
+  /**
+   * Load instructional notes for diagnosis codes, including ancestor tabular rows
+   * (Laravel IcdDiagnosisRules::loadNotesByDiagnosisCode).
+   */
+  private async loadNotesByDiagnosisCode(
+    codeRows: Array<{ id: number; code: string; isBillable: boolean }>,
+  ): Promise<IcdDiagnosisLookups['notesByNormalizedCode']> {
+    if (codeRows.length === 0) return {};
+
+    const leafIds = [...new Set(codeRows.map((r) => r.id))];
+    const ancestorIdsByLeafId = await this.ancestorIdsByLeafId(leafIds);
+
+    const holderIds = new Set<number>();
+    for (const ids of ancestorIdsByLeafId.values()) {
+      for (const id of ids) holderIds.add(id);
+    }
+    if (holderIds.size === 0) return {};
+
+    const noteRows = await this.prisma.icd10TabularCodeDescription.findMany({
+      where: {
+        icd10TabularCodeId: { in: [...holderIds] },
+        descriptionType: { in: [...ICD_NOTE_DESCRIPTION_TYPES] },
+      },
+      orderBy: { id: 'asc' },
+      select: {
+        icd10TabularCodeId: true,
+        descriptionType: true,
+        description: true,
+      },
+    });
+
+    return assembleNotesByNormalizedCode(codeRows, ancestorIdsByLeafId, noteRows);
+  }
+
+  /** Recursive CTE ancestor walk (Laravel ancestorIdsByLeafId); iterative fallback. */
+  private async ancestorIdsByLeafId(leafIds: number[]): Promise<Map<number, number[]>> {
+    const unique = [...new Set(leafIds.filter((id) => id > 0))];
+    const out = new Map<number, number[]>();
+    for (const id of unique) out.set(id, [id]);
+    if (unique.length === 0) return out;
+
+    try {
+      const rows = await this.prisma.$queryRaw<Array<{ leaf_id: number; holder_id: number }>>`
+        WITH RECURSIVE ancestors (leaf_id, id, parent_id, depth) AS (
+          SELECT id AS leaf_id, id, parent_id, 0 AS depth
+          FROM icd10_tabular_codes
+          WHERE id IN (${Prisma.join(unique)})
+
+          UNION ALL
+
+          SELECT ancestors.leaf_id, parent.id, parent.parent_id, ancestors.depth + 1
+          FROM icd10_tabular_codes AS parent
+          INNER JOIN ancestors ON parent.id = ancestors.parent_id
+          WHERE ancestors.depth < 120
+        )
+        SELECT leaf_id, id AS holder_id
+        FROM ancestors
+        ORDER BY leaf_id, depth
+      `;
+
+      const collected = new Map<number, number[]>();
+      for (const row of rows) {
+        const leafId = Number(row.leaf_id);
+        const holderId = Number(row.holder_id);
+        const list = collected.get(leafId) ?? [];
+        if (!list.includes(holderId)) list.push(holderId);
+        collected.set(leafId, list);
+      }
+      for (const id of unique) {
+        out.set(id, collected.get(id) ?? [id]);
+      }
+      return out;
+    } catch {
+      return this.ancestorIdsByLeafIdIterative(unique);
+    }
+  }
+
+  private async ancestorIdsByLeafIdIterative(leafIds: number[]): Promise<Map<number, number[]>> {
+    const out = new Map<number, number[]>();
+    const parentById = new Map<number, number | null>();
+    let frontier = [...leafIds];
+    const seen = new Set<number>(frontier);
+
+    while (frontier.length > 0) {
+      const rows = await this.prisma.icd10TabularCode.findMany({
+        where: { id: { in: frontier } },
+        select: { id: true, parentId: true },
+      });
+      const next: number[] = [];
+      for (const row of rows) {
+        parentById.set(row.id, row.parentId);
+        if (row.parentId != null && !seen.has(row.parentId)) {
+          seen.add(row.parentId);
+          next.push(row.parentId);
+        }
+      }
+      frontier = next;
+    }
+
+    for (const leafId of leafIds) {
+      const chain: number[] = [];
+      let cur: number | null | undefined = leafId;
+      let depth = 0;
+      while (cur != null && depth < 120) {
+        chain.push(cur);
+        cur = parentById.has(cur) ? parentById.get(cur) ?? null : null;
+        depth += 1;
+      }
+      out.set(leafId, chain);
+    }
+    return out;
   }
 
   async ncdDeniedByCpt(codes: string[]): Promise<Record<string, Record<string, true>>> {
@@ -530,4 +712,32 @@ export class ClaimRuleLookupService {
     }
     return out;
   }
+}
+
+function toYmd(from: string | Date | null | undefined): string | null {
+  if (from == null) return null;
+  if (from instanceof Date) {
+    if (Number.isNaN(from.getTime())) return null;
+    return formatYmdUtc(from);
+  }
+  const s = String(from).trim();
+  if (s === '') return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const parsed = new Date(s);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return formatYmdUtc(parsed);
+}
+
+function formatYmdUtc(d: Date): string {
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function addDaysYmd(ymd: string, days: number): string | null {
+  const parts = ymd.split('-').map(Number);
+  if (parts.length !== 3 || parts.some((n) => !Number.isFinite(n))) return null;
+  const [y, mo, d] = parts;
+  return formatYmdUtc(new Date(Date.UTC(y, mo - 1, d + days)));
 }

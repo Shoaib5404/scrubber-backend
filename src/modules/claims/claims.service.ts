@@ -6,7 +6,7 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Prisma } from '@prisma/client';
+import { Prisma, UnitScale } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { ClaimValidationService } from '../claim-validation/claim-validation.service';
 import { QueueProducerService } from '../queue/queue-producer.service';
@@ -191,6 +191,11 @@ export class ClaimsService {
     const existing = await this.prisma.claim.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Claim not found.');
 
+    const diagnoses = asRecordArray(body.diagnoses);
+    const newDiagnoses = asRecordArray(body.new_diagnoses);
+    const lines = asRecordArray(body.lines);
+    const newLines = asRecordArray(body.new_lines);
+
     const data: Prisma.ClaimUpdateInput = { isModified: true };
     for (const [snake, camel] of Object.entries(CLAIM_UPDATE_MAP)) {
       if (!(snake in body)) continue;
@@ -201,7 +206,156 @@ export class ClaimsService {
       (data as Record<string, unknown>)[camel as string] = value;
     }
 
-    await this.prisma.claim.update({ where: { id }, data });
+    await this.prisma.$transaction(async (tx) => {
+      await tx.claim.update({ where: { id }, data });
+
+      for (const diagnosisData of diagnoses) {
+        const diagnosisId = Number(diagnosisData.id);
+        if (!Number.isFinite(diagnosisId) || diagnosisId <= 0) continue;
+        const diagnosis = await tx.claimDiagnosis.findFirst({
+          where: { id: diagnosisId, claimId: id },
+        });
+        if (!diagnosis) continue;
+        await tx.claimDiagnosis.update({
+          where: { id: diagnosisId },
+          data: {
+            code:
+              diagnosisData.code != null
+                ? String(diagnosisData.code)
+                : diagnosis.code,
+            sequence:
+              diagnosisData.sequence != null
+                ? Number(diagnosisData.sequence)
+                : diagnosis.sequence,
+          },
+        });
+      }
+
+      for (const newDiagnosis of newDiagnoses) {
+        const code = String(newDiagnosis.code ?? '').trim();
+        if (!code) continue;
+        const agg = await tx.claimDiagnosis.aggregate({
+          where: { claimId: id },
+          _max: { sequence: true },
+        });
+        const sequence =
+          newDiagnosis.sequence != null
+            ? Number(newDiagnosis.sequence)
+            : (agg._max.sequence ?? 0) + 1;
+        await tx.claimDiagnosis.create({
+          data: {
+            claimId: id,
+            code,
+            sequence,
+            qualifier: 'ABF',
+            type: 'other',
+          },
+        });
+      }
+
+      for (const lineData of lines) {
+        const lineId = Number(lineData.id);
+        if (!Number.isFinite(lineId) || lineId <= 0) continue;
+        const line = await tx.serviceLine.findFirst({
+          where: { id: lineId, claimId: id },
+        });
+        if (!line) continue;
+
+        const modifiers = parseModifiersField(lineData.modifiers);
+        const pointers = parseDiagnosisPointers(lineData.diagnosis_pointers, []);
+        const ndc = normalizeLineNdcFields(lineData);
+
+        await tx.serviceLine.update({
+          where: { id: lineId },
+          data: {
+            procedureCode:
+              lineData.procedure_code != null
+                ? String(lineData.procedure_code).trim().toUpperCase()
+                : line.procedureCode,
+            serviceDateFrom:
+              lineData.service_date_from != null && lineData.service_date_from !== ''
+                ? new Date(String(lineData.service_date_from))
+                : line.serviceDateFrom,
+            serviceDateTo:
+              lineData.service_date_to != null && lineData.service_date_to !== ''
+                ? new Date(String(lineData.service_date_to))
+                : line.serviceDateTo,
+            modifier1: modifiers[0] ?? null,
+            modifier2: modifiers[1] ?? null,
+            modifier3: modifiers[2] ?? null,
+            modifier4: modifiers[3] ?? null,
+            diagnosisPointers: pointers,
+            units:
+              lineData.units != null ? new Prisma.Decimal(String(lineData.units)) : line.units,
+            unitScale: normalizeLineUnitScale(lineData.unit_scale),
+            ndcCode: ndc.ndcCode,
+            ndcQuantity: ndc.ndcQuantity,
+            ndcUnit: ndc.ndcUnit,
+            referringProviderNpi: nullableTrimmed(lineData.referring_provider_npi),
+            referringProviderLastName: nullableTrimmed(lineData.referring_provider_last_name),
+            referringProviderFirstName: nullableTrimmed(lineData.referring_provider_first_name),
+            referringProviderMiddleName: nullableTrimmed(
+              lineData.referring_provider_middle_name,
+            ),
+            otherPayerPaidAmount: nullableAmount(lineData.other_payer_paid_amount),
+            isModified: true,
+          },
+        });
+      }
+
+      for (const newLine of newLines) {
+        const procedureCode = String(newLine.procedure_code ?? '')
+          .trim()
+          .toUpperCase();
+        if (!procedureCode) continue;
+
+        const agg = await tx.serviceLine.aggregate({
+          where: { claimId: id },
+          _max: { lineNumber: true },
+        });
+        const modifiers = parseModifiersField(newLine.modifiers);
+        const pointers = parseDiagnosisPointers(newLine.diagnosis_pointers, [1]);
+        const ndc = normalizeLineNdcFields(newLine);
+
+        await tx.serviceLine.create({
+          data: {
+            claimId: id,
+            lineNumber: (agg._max.lineNumber ?? 0) + 1,
+            procedureCode,
+            serviceDateFrom:
+              newLine.service_date_from != null && newLine.service_date_from !== ''
+                ? new Date(String(newLine.service_date_from))
+                : null,
+            serviceDateTo:
+              newLine.service_date_to != null && newLine.service_date_to !== ''
+                ? new Date(String(newLine.service_date_to))
+                : null,
+            modifier1: modifiers[0] ?? null,
+            modifier2: modifiers[1] ?? null,
+            modifier3: modifiers[2] ?? null,
+            modifier4: modifiers[3] ?? null,
+            diagnosisPointers: pointers,
+            units: new Prisma.Decimal(
+              newLine.units != null ? String(newLine.units) : '1',
+            ),
+            unitScale: normalizeLineUnitScale(newLine.unit_scale),
+            chargeAmount: new Prisma.Decimal(0),
+            ndcCode: ndc.ndcCode,
+            ndcQuantity: ndc.ndcQuantity,
+            ndcUnit: ndc.ndcUnit,
+            referringProviderNpi: nullableTrimmed(newLine.referring_provider_npi),
+            referringProviderLastName: nullableTrimmed(newLine.referring_provider_last_name),
+            referringProviderFirstName: nullableTrimmed(newLine.referring_provider_first_name),
+            referringProviderMiddleName: nullableTrimmed(
+              newLine.referring_provider_middle_name,
+            ),
+            otherPayerPaidAmount: nullableAmount(newLine.other_payer_paid_amount),
+            status: 'pending',
+          },
+        });
+      }
+    });
+
     return this.getById(id);
   }
 
@@ -349,4 +503,75 @@ export class ClaimsService {
       },
     };
   }
+}
+
+function asRecordArray(value: unknown): Record<string, unknown>[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((row): row is Record<string, unknown> => !!row && typeof row === 'object');
+}
+
+function parseModifiersField(raw: unknown): string[] {
+  if (Array.isArray(raw)) {
+    return raw
+      .map((m) =>
+        String(m ?? '')
+          .trim()
+          .toUpperCase(),
+      )
+      .filter(Boolean);
+  }
+  const s = String(raw ?? '').trim();
+  if (!s) return [];
+  return s
+    .split(',')
+    .map((m) => m.trim().toUpperCase())
+    .filter(Boolean);
+}
+
+function parseDiagnosisPointers(raw: unknown, defaultPointers: number[]): number[] {
+  if (Array.isArray(raw)) {
+    const nums = raw.map((p) => Number(p)).filter((n) => Number.isFinite(n));
+    return nums.length > 0 ? nums : defaultPointers;
+  }
+  const s = String(raw ?? '').trim();
+  if (!s) return defaultPointers;
+  const nums = s
+    .split(',')
+    .map((p) => Number.parseInt(p.trim(), 10))
+    .filter((n) => Number.isFinite(n));
+  return nums.length > 0 ? nums : defaultPointers;
+}
+
+function normalizeLineUnitScale(raw: unknown): UnitScale {
+  const u = String(raw ?? '')
+    .trim()
+    .toUpperCase();
+  if (u === 'UN' || u === 'MJ' || u === 'F2') return u;
+  return UnitScale.UN;
+}
+
+function nullableTrimmed(value: unknown): string | null {
+  const trimmed = String(value ?? '').trim();
+  return trimmed !== '' ? trimmed : null;
+}
+
+function nullableAmount(value: unknown): Prisma.Decimal | null {
+  const trimmed = String(value ?? '').trim();
+  if (trimmed === '' || Number.isNaN(Number(trimmed))) return null;
+  return new Prisma.Decimal(Number(trimmed).toFixed(2));
+}
+
+function normalizeLineNdcFields(lineData: Record<string, unknown>): {
+  ndcCode: string | null;
+  ndcQuantity: Prisma.Decimal | null;
+  ndcUnit: string | null;
+} {
+  const ndcCode = nullableTrimmed(lineData.ndc_code);
+  const qtyRaw = String(lineData.ndc_quantity ?? '').trim();
+  const ndcQuantity =
+    qtyRaw !== '' && !Number.isNaN(Number(qtyRaw))
+      ? new Prisma.Decimal(qtyRaw)
+      : null;
+  const ndcUnit = nullableTrimmed(lineData.ndc_unit);
+  return { ndcCode, ndcQuantity, ndcUnit };
 }

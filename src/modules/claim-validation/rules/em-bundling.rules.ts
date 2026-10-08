@@ -72,7 +72,8 @@ const PREVENTIVE: readonly string[] = [
 
 const BRIEF_CHECKIN = '98016';
 
-const BRIEF_CHECKIN_RELATED_EM: readonly string[] = [
+/** Related E&M families that conflict with brief check-in 98016 (exported for cross-claim preload). */
+export const BRIEF_CHECKIN_RELATED_EM: readonly string[] = [
   '99202', '99203', '99204', '99205',
   '99211', '99212', '99213', '99214', '99215',
   '98000', '98001', '98002', '98003', '98004', '98005', '98006', '98007',
