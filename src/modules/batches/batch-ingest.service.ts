@@ -8,8 +8,8 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
-import { promises as fsp } from 'fs';
 import * as path from 'path';
+import { StorageService } from '../../adapters/storage/storage.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { ClaimValidationService } from '../claim-validation/claim-validation.service';
 import { ModelDrivenEdiParser } from '../edi-parser/model-driven-edi.parser';
@@ -23,6 +23,7 @@ export class BatchIngestService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly storage: StorageService,
     private readonly structural: Edi837ValidationService,
     private readonly parser: ModelDrivenEdiParser,
     private readonly claimValidation: ClaimValidationService,
@@ -83,12 +84,7 @@ export class BatchIngestService {
 
     const storedName = `${Date.now()}-${randomBytes(6).toString('hex')}.edi`;
     const relPath = path.posix.join('edi_files', storedName);
-    const absDir = path.resolve(
-      this.config.get<string>('EDI_LOCAL_PATH', './storage/edi'),
-      'edi_files',
-    );
-    await fsp.mkdir(absDir, { recursive: true });
-    await fsp.writeFile(path.join(absDir, storedName), file.buffer);
+    await this.storage.putObject(relPath, file.buffer, 'application/EDI-X12');
 
     const batch = await this.prisma.batchFile.create({
       data: {
@@ -114,11 +110,7 @@ export class BatchIngestService {
     const batch = await this.prisma.batchFile.findUnique({ where: { id: batchId } });
     if (!batch) throw new NotFoundException('Batch not found.');
 
-    const fullPath = path.resolve(
-      this.config.get<string>('EDI_LOCAL_PATH', './storage/edi'),
-      batch.filePath,
-    );
-    const raw = await fsp.readFile(fullPath, 'utf8');
+    const raw = (await this.storage.getObject(batch.filePath)).toString('utf8');
     const ediValidation = this.structural.validate(raw);
     const strict = this.config.get<boolean>('EDI837_VALIDATION_STRICT', true);
     if (!ediValidation.passed && strict) {

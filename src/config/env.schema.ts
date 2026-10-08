@@ -57,6 +57,8 @@ export const envSchema = z.object({
   MINIO_ROOT_USER: z.string().optional(),
   MINIO_ROOT_PASSWORD: z.string().optional(),
   MINIO_API_CORS_ALLOW_ORIGIN: z.string().optional(),
+  /** `local` (default) or `s3` (MinIO / AWS). */
+  STORAGE_DRIVER: z.enum(['local', 's3']).default('local'),
   S3_ENDPOINT: z.string().optional(),
   S3_BUCKET: z.string().optional(),
   S3_ACCESS_KEY: z.string().optional(),

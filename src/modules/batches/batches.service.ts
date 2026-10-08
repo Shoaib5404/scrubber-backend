@@ -1,8 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { promises as fsp } from 'fs';
-import * as path from 'path';
-import { ConfigService } from '@nestjs/config';
+import { StorageService } from '../../adapters/storage/storage.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import {
   BatchStatistics,
@@ -16,7 +14,7 @@ import {
 export class BatchesService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly config: ConfigService,
+    private readonly storage: StorageService,
   ) {}
 
   async list(params: {
@@ -139,14 +137,10 @@ export class BatchesService {
     const batch = await this.prisma.batchFile.findUnique({ where: { id } });
     if (!batch) throw new NotFoundException('Batch not found.');
 
-    const abs = path.resolve(
-      this.config.get<string>('EDI_LOCAL_PATH', './storage/edi'),
-      batch.filePath,
-    );
     try {
-      await fsp.unlink(abs);
+      await this.storage.deleteObject(batch.filePath);
     } catch {
-      // File may already be gone.
+      // Object may already be gone.
     }
 
     await this.prisma.batchFile.delete({ where: { id } });
