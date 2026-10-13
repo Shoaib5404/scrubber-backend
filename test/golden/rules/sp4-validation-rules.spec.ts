@@ -89,6 +89,9 @@ describe('SP-4 validation rule golden cases', () => {
         expect.objectContaining({
           rule: 'NCD-ICD-001',
           field: 'service_lines.1.diagnosis_pointers',
+          cpt_code: '80048',
+          icd_code: 'E11.9',
+          details_url: '/dashboard/references/ncd-icd?search=80048',
         }),
       ]),
     );

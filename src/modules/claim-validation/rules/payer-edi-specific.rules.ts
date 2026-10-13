@@ -25,14 +25,19 @@ import {
   validateCityNameRules,
   validateZipCodeRules,
 } from './payer-edi-zip-city.rules';
+import {
+  dispatchExtendedClaimRule,
+  ExtendedClaimRuleLookups,
+} from './payer-edi-claim-rules';
 
 export { DOS_NOT_IN_FUTURE_RULE_CODE as DOS_FUT_001 };
 export type { ClaimLevelDates, PayerEdiClaimInput, OtherSubscriberInput } from '../types/payer-edi.types';
 
-export type PayerEdiLookups = PayerEdiZipLookups & {
-  /** Laravel MedicaidMemberIdFormatRepository::hasActiveFormatsForPayerId */
-  medicaidAlMemberIdFormatsActive?: boolean;
-};
+export type PayerEdiLookups = PayerEdiZipLookups &
+  ExtendedClaimRuleLookups & {
+    /** Laravel MedicaidMemberIdFormatRepository::hasActiveFormatsForPayerId */
+    medicaidAlMemberIdFormatsActive?: boolean;
+  };
 
 const CLAIM_LEVEL_DATE_FIELDS: Array<{ field: string; camel: keyof ClaimLevelDates }> = [
   { field: 'onset_of_illness_date', camel: 'onsetOfIllnessDate' },
@@ -120,7 +125,7 @@ export function validatePayerAndEdiSpecific(
   lookups: PayerEdiLookups = {},
   today = startOfLocalDay(new Date()),
 ): ClaimIssue[] {
-  const claimErrors = validateClaimRules(claim, today);
+  const claimErrors = validateClaimRules(claim, lookups, today);
   if (hasDosNotInFutureFailure(claimErrors)) {
     return claimErrors;
   }
@@ -137,8 +142,13 @@ function hasDosNotInFutureFailure(issues: ClaimIssue[]): boolean {
   return issues.some((issue) => issue.rule === DOS_NOT_IN_FUTURE_RULE_CODE);
 }
 
-function validateClaimRules(claim: PayerEdiClaimInput, today: Date): ClaimIssue[] {
+function validateClaimRules(
+  claim: PayerEdiClaimInput,
+  lookups: PayerEdiLookups,
+  today: Date,
+): ClaimIssue[] {
   const errors: ClaimIssue[] = [];
+  const disabledRules = new Set<string>();
 
   for (const definition of CLAIM_RULES) {
     const type = definition.type;
@@ -150,21 +160,24 @@ function validateClaimRules(claim: PayerEdiClaimInput, today: Date): ClaimIssue[
       continue;
     }
 
-    const issue = dispatchClaimRule(claim, definition, today);
+    const issue = dispatchClaimRule(claim, definition, lookups, today);
     if (issue == null) continue;
-    if (Array.isArray(issue)) {
-      errors.push(...issue);
-    } else {
-      errors.push(issue);
+    const batch = Array.isArray(issue) ? issue : [issue];
+    if (batch.length > 0) {
+      errors.push(...batch);
+      const disables = (definition.disablesRules as string[] | undefined) ?? [];
+      for (const code of disables) disabledRules.add(String(code));
     }
   }
 
-  return errors;
+  if (disabledRules.size === 0) return errors;
+  return errors.filter((e) => !disabledRules.has(e.rule));
 }
 
 function dispatchClaimRule(
   claim: PayerEdiClaimInput,
   definition: ClaimRuleDefinition,
+  lookups: PayerEdiLookups,
   today: Date,
 ): ClaimIssue | ClaimIssue[] | null {
   switch (definition.type) {
@@ -183,10 +196,9 @@ function dispatchClaimRule(
     case 'admission_date_might_not_be_required':
       return validateAdmissionDateMightNotBeRequired(claim, definition);
     default:
-      return null;
+      return dispatchExtendedClaimRule(claim, definition, lookups, today);
   }
 }
-
 function validateAdmissionDateRequired(
   claim: PayerEdiClaimInput,
   definition: ClaimRuleDefinition,

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  InternalServerErrorException,
   Inject,
   Injectable,
   NotFoundException,
@@ -11,7 +12,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { ClaimValidationService } from '../claim-validation/claim-validation.service';
 import { QueueProducerService } from '../queue/queue-producer.service';
 import {
-  laravelPaginator,
+  lengthAwarePaginator,
   serializeClaim,
   serializeServiceLine,
 } from '../batches/api-serializers';
@@ -58,10 +59,14 @@ const CLAIM_UPDATE_MAP: Record<string, string> = {
   rendering_provider_last_name: 'renderingProviderLastName',
   rendering_provider_first_name: 'renderingProviderFirstName',
   rendering_provider_middle_name: 'renderingProviderMiddleName',
+  rendering_provider_upin: 'renderingProviderUpin',
+  rendering_provider_state_license: 'renderingProviderStateLicense',
   referring_provider_npi: 'referringProviderNpi',
   referring_provider_last_name: 'referringProviderLastName',
   referring_provider_first_name: 'referringProviderFirstName',
   referring_provider_middle_name: 'referringProviderMiddleName',
+  referring_provider_upin: 'referringProviderUpin',
+  referring_provider_state_license: 'referringProviderStateLicense',
   facility_name: 'facilityName',
   facility_npi: 'facilityNpi',
   facility_address: 'facilityAddress',
@@ -76,6 +81,21 @@ const CLAIM_UPDATE_MAP: Record<string, string> = {
   clia_number: 'cliaNumber',
   mammography_certification_number: 'mammographyCertificationNumber',
   claim_note: 'claimNote',
+  onset_of_illness_date: 'onsetOfIllnessDate',
+  last_menstrual_period_date: 'lastMenstrualPeriodDate',
+  initial_treatment_date: 'initialTreatmentDate',
+  last_seen_date: 'lastSeenDate',
+  accident_date: 'accidentDate',
+  last_xray_date: 'lastXrayDate',
+  admission_date: 'admissionDate',
+  discharge_date: 'dischargeDate',
+  hearing_vision_prescription_date: 'hearingVisionPrescriptionDate',
+  disability_start_date: 'disabilityStartDate',
+  disability_end_date: 'disabilityEndDate',
+  last_worked_date: 'lastWorkedDate',
+  authorized_return_to_work_date: 'authorizedReturnToWorkDate',
+  assumed_care_date: 'assumedCareDate',
+  relinquished_care_date: 'relinquishedCareDate',
 };
 
 const LINE_UPDATE_MAP: Record<string, string> = {
@@ -109,6 +129,19 @@ const DATE_CLAIM_FIELDS = new Set([
   'patientDob',
   'admissionDate',
   'dischargeDate',
+  'onsetOfIllnessDate',
+  'lastMenstrualPeriodDate',
+  'initialTreatmentDate',
+  'lastSeenDate',
+  'accidentDate',
+  'lastXrayDate',
+  'hearingVisionPrescriptionDate',
+  'disabilityStartDate',
+  'disabilityEndDate',
+  'lastWorkedDate',
+  'authorizedReturnToWorkDate',
+  'assumedCareDate',
+  'relinquishedCareDate',
 ]);
 
 const DATE_LINE_FIELDS = new Set(['serviceDateFrom', 'serviceDateTo']);
@@ -165,7 +198,7 @@ export class ClaimsService {
       }),
     ]);
 
-    return laravelPaginator(
+    return lengthAwarePaginator(
       rows.map((c) => serializeClaim(c)),
       total,
       page,
@@ -200,8 +233,12 @@ export class ClaimsService {
     for (const [snake, camel] of Object.entries(CLAIM_UPDATE_MAP)) {
       if (!(snake in body)) continue;
       let value = body[snake];
-      if (DATE_CLAIM_FIELDS.has(String(camel)) && typeof value === 'string' && value) {
-        value = new Date(value);
+      if (DATE_CLAIM_FIELDS.has(String(camel))) {
+        if (value === '' || value === null || value === undefined) {
+          value = null;
+        } else if (typeof value === 'string') {
+          value = new Date(value);
+        }
       }
       (data as Record<string, unknown>)[camel as string] = value;
     }
@@ -400,7 +437,7 @@ export class ClaimsService {
   }
 
   /**
-   * Laravel ClaimController::validateBatch — start/check rule validation.
+   * Start/check rule validation for a batch.
    */
   async validateBatch(batchId: number, force = false) {
     const batch = await this.prisma.batchFile.findUnique({ where: { id: batchId } });
@@ -434,9 +471,12 @@ export class ClaimsService {
       try {
         await this.queue.enqueueValidateBatch(batchId, force);
       } catch (e) {
-        throw new BadRequestException(
-          `Could not queue claim validation: ${e instanceof Error ? e.message : String(e)}`,
-        );
+        // Return 500 + JSON envelope on queue dispatch failure.
+        throw new InternalServerErrorException({
+          success: false,
+          message: `Could not queue claim validation: ${e instanceof Error ? e.message : String(e)}`,
+          data: { batch_id: batchId, status: batch.status },
+        });
       }
       await this.prisma.batchFile.update({
         where: { id: batchId },

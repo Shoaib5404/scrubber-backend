@@ -19,6 +19,12 @@ export const DEFAULT_BACKOFF = { type: 'exponential' as const, delay: 2_000 };
 export const SCHEDULER_LOCK_KEY = 'scrubber:scheduler:detect-stalled-queues';
 export const SCHEDULER_INTERVAL_MS = 5 * 60_000;
 
+/** Laravel withoutOverlapping for npi-ordering-referrings:sync (long import). */
+export const NPI_SYNC_LOCK_KEY = 'scrubber:scheduler:npi-sync';
+export const NPI_SYNC_LAST_RUN_KEY = 'scrubber:scheduler:npi-sync:last-run-date';
+/** 4h — large CMS CSV download + import may take a while. */
+export const NPI_SYNC_LOCK_TTL_MS = 4 * 60 * 60_000;
+
 export type ValidateClaimJobData = { claimId: number; force: boolean };
 export type ValidateBatchJobData = { batchId: number; force: boolean };
 export type FinalizeBatchJobData = { batchId: number };

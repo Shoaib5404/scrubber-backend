@@ -2,6 +2,7 @@ import ExcelJS from 'exceljs';
 import { accessSync, constants, readFileSync } from 'fs';
 import * as path from 'path';
 import { parse } from 'csv-parse/sync';
+import * as XLSX from 'xlsx';
 
 export function resolveFilePath(fileArg: string | undefined, defaultRelative: string): string {
   if (fileArg) {
@@ -287,9 +288,42 @@ export function mapZeroAmountProcedureColumn(headers: string[]): number | null {
   return null;
 }
 
+/**
+ * Legacy BIFF `.xls` (OLE compound) — ExcelJS only reads OOXML `.xlsx`.
+ * SheetJS (`xlsx`) mirrors Laravel PhpSpreadsheet coverage for NUCC taxonomy etc.
+ */
+export function loadLegacyXlsRows(filePath: string): string[][] {
+  const workbook = XLSX.read(readFileSync(filePath), { type: 'buffer', cellDates: true });
+  const sheetName =
+    workbook.SheetNames.find((name) => name.toLowerCase() === 'sheet1') ?? workbook.SheetNames[0];
+  if (!sheetName) {
+    return [];
+  }
+  const sheet = workbook.Sheets[sheetName];
+  if (!sheet) {
+    return [];
+  }
+  const matrix = XLSX.utils.sheet_to_json<(string | number | Date | null | undefined)[]>(sheet, {
+    header: 1,
+    defval: '',
+    raw: false,
+  });
+  return matrix.map((row) =>
+    (row ?? []).map((value) => excelCellToTrimmedString(value === '' ? null : value)),
+  );
+}
+
+function isLegacyXlsPath(filePath: string): boolean {
+  return path.extname(filePath).toLowerCase() === '.xls';
+}
+
 /** Laravel ImportUhcAuthorizations::mapColumns */
 /** Laravel Import* Excel helpers — prefer Sheet1, else first worksheet. */
 export async function loadExcelRows(filePath: string): Promise<string[][]> {
+  if (isLegacyXlsPath(filePath)) {
+    return loadLegacyXlsRows(filePath);
+  }
+
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.readFile(filePath);
   const sheet = workbook.getWorksheet('Sheet1') ?? workbook.worksheets[0];
@@ -870,6 +904,27 @@ export function parseModifierImportDate(value: string | null): Date | null {
 
 /** Laravel ImportNdcCodes / crosswalk — first worksheet with a non-empty header row. */
 export async function loadExcelRowsWithHeaderWorksheet(filePath: string): Promise<string[][]> {
+  if (isLegacyXlsPath(filePath)) {
+    const workbook = XLSX.read(readFileSync(filePath), { type: 'buffer', cellDates: true });
+    for (const sheetName of workbook.SheetNames) {
+      const sheet = workbook.Sheets[sheetName];
+      if (!sheet) continue;
+      const matrix = XLSX.utils.sheet_to_json<(string | number | Date | null | undefined)[]>(sheet, {
+        header: 1,
+        defval: '',
+        raw: false,
+      });
+      const rows = matrix.map((row) =>
+        (row ?? []).map((value) => excelCellToTrimmedString(value === '' ? null : value)),
+      );
+      const headers = (rows[0] ?? []).filter((header) => header.trim() !== '');
+      if (headers.length > 0) {
+        return rows;
+      }
+    }
+    return loadLegacyXlsRows(filePath);
+  }
+
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.readFile(filePath);
 
@@ -1171,6 +1226,29 @@ export function parseMueEffectiveDate(value: string | number | Date | null): Dat
  * falling back to the active/first worksheet. Mirrors Laravel Aetna/Cigna resolveWorksheet.
  */
 export async function loadExcelWorkbook(filePath: string): Promise<ExcelJS.Workbook> {
+  if (isLegacyXlsPath(filePath)) {
+    // Materialize BIFF `.xls` into an ExcelJS workbook so callers can keep using
+    // worksheet helpers (resolveWorksheetByPreferredNames / worksheetToRows).
+    const legacy = XLSX.read(readFileSync(filePath), { type: 'buffer', cellDates: true });
+    const workbook = new ExcelJS.Workbook();
+    for (const sheetName of legacy.SheetNames) {
+      const sheet = legacy.Sheets[sheetName];
+      if (!sheet) continue;
+      const matrix = XLSX.utils.sheet_to_json<(string | number | Date | null | undefined)[]>(sheet, {
+        header: 1,
+        defval: '',
+        raw: false,
+      });
+      const ws = workbook.addWorksheet(sheetName);
+      for (const row of matrix) {
+        ws.addRow(
+          (row ?? []).map((value) => excelCellToTrimmedString(value === '' ? null : value)),
+        );
+      }
+    }
+    return workbook;
+  }
+
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.readFile(filePath);
   return workbook;

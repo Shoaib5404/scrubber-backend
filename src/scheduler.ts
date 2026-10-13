@@ -8,7 +8,9 @@ async function bootstrap() {
   const app = await NestFactory.createApplicationContext(AppModule, { bufferLogs: true });
   const host = app.get(SchedulerHost);
   host.start();
-  logger.log('Scheduler process ready (Redis-locked detect-stalled-queues)');
+  logger.log(
+    'Scheduler process ready (detect-stalled-queues; optional NPI daily sync via NPI_SYNC_SCHEDULE_ENABLED)',
+  );
 }
 
 void bootstrap();

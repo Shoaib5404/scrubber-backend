@@ -178,7 +178,7 @@ describe('ncci:rules-cache-fetch (SP-8 Task 19 group 9, Nest-adapted)', () => {
     await moduleRef.close();
   });
 
-  it('--warm loads the full active table into lookup:nest:ncci_rules:full_table_v2 and reports a sample row', async () => {
+  it('--warm loads the full active table into lookup:v1:nccis:full:active and reports a sample row', async () => {
     await ncciRulesCache.invalidateFullTable();
 
     await command.run([], { warm: true });

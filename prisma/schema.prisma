@@ -1,9 +1,9 @@
 // Neo Scrubber — core claim pipeline (SP-2 Task 6)
-// Column map sourced from Laravel migrations under neo-scrubber/database/migrations.
+// Column map sourced from legacy migrations under neo-scrubber/database/migrations.
 // Intentional diffs vs MySQL:
-// - PK type Int (Laravel BIGINT UNSIGNED) — sufficient for app scale; Nest/Prisma DX
-// - timestamps use DateTime @default(now()) / @updatedAt where Laravel used nullable timestamps()
-// - RefreshToken is Nest-only (JWT refresh); not present in Laravel
+// - PK type Int (legacy BIGINT UNSIGNED) — sufficient for app scale; Nest/Prisma DX
+// - timestamps use DateTime @default(now()) / @updatedAt where legacy used nullable timestamps()
+// - RefreshToken is Nest-only (JWT refresh); not present in the legacy schema
 
 generator client {
   provider = "prisma-client-js"
@@ -20,8 +20,71 @@ enum UnitScale {
   F2
 }
 
+/// Organization / billing tenant. Platform staff have null tenantId on User.
+model Tenant {
+  id                   Int       @id @default(autoincrement())
+  name                 String
+  slug                 String    @unique
+  status               String    @default("active") // active | suspended
+  subscriptionStatus   String    @default("inactive") @map("subscription_status")
+  subscriptionStartsAt DateTime? @map("subscription_starts_at")
+  subscriptionEndsAt   DateTime? @map("subscription_ends_at")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  users              User[]
+  apiClients         ApiClient[]
+  batchFiles         BatchFile[]
+  ediUploadErrorLogs EdiUploadErrorLog[]
+  invites            TenantInvite[]
+  features           TenantFeature[]
+
+  @@index([status])
+  @@index([subscriptionStatus])
+  @@map("tenants")
+}
+
+/// Staff-managed subscription feature flags for a tenant.
+model TenantFeature {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int      @map("tenant_id")
+  feature   String
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, feature])
+  @@index([tenantId, enabled])
+  @@map("tenant_features")
+}
+
+model TenantInvite {
+  id              Int       @id @default(autoincrement())
+  tenantId        Int       @map("tenant_id")
+  email           String
+  role            String    @default("customer") // tenant_admin | customer
+  tokenHash       String    @map("token_hash")
+  invitedByUserId Int?      @map("invited_by_user_id")
+  expiresAt       DateTime  @map("expires_at")
+  acceptedAt      DateTime? @map("accepted_at")
+  emailStatus     String    @default("pending") @map("email_status") // pending | sent | failed
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invitedBy User?  @relation("TenantInviteInviter", fields: [invitedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, email])
+  @@index([tokenHash])
+  @@index([expiresAt])
+  @@map("tenant_invites")
+}
+
 model User {
   id                   Int       @id @default(autoincrement())
+  tenantId             Int?      @map("tenant_id")
   name                 String
   email                String    @unique
   emailVerifiedAt      DateTime? @map("email_verified_at")
@@ -36,15 +99,18 @@ model User {
   createdAt            DateTime  @default(now()) @map("created_at")
   updatedAt            DateTime  @updatedAt @map("updated_at")
 
+  tenant              Tenant?              @relation(fields: [tenantId], references: [id], onDelete: Restrict)
   apiClient           ApiClient?           @relation("ApiClientOwner")
   createdApiClients   ApiClient[]          @relation("ApiClientCreator")
   uploadedBatches     BatchFile[]          @relation("BatchUploader")
   ediUploadErrorLogs  EdiUploadErrorLog[]
   refreshTokens       RefreshToken[]
+  sentInvites         TenantInvite[]       @relation("TenantInviteInviter")
 
   @@index([role])
   @@index([isActive])
   @@index([subscriptionStatus])
+  @@index([tenantId])
   @@map("users")
 }
 
@@ -63,6 +129,7 @@ model RolePermission {
 
 model ApiClient {
   id           Int       @id @default(autoincrement())
+  tenantId     Int?      @map("tenant_id")
   userId       Int?      @unique @map("user_id")
   name         String
   clientId     String    @unique @map("client_id")
@@ -74,14 +141,16 @@ model ApiClient {
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
-  user    User? @relation("ApiClientOwner", fields: [userId], references: [id], onDelete: SetNull)
-  creator User? @relation("ApiClientCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  tenant  Tenant? @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  user    User?   @relation("ApiClientOwner", fields: [userId], references: [id], onDelete: SetNull)
+  creator User?   @relation("ApiClientCreator", fields: [createdBy], references: [id], onDelete: SetNull)
 
   @@index([userId, isActive])
+  @@index([tenantId, isActive])
   @@map("api_clients")
 }
 
-/// Nest-only JWT refresh session (intentional addition vs Laravel Sanctum).
+/// Nest-only JWT refresh session.
 model RefreshToken {
   id        Int       @id @default(autoincrement())
   userId    Int       @map("user_id")
@@ -98,8 +167,18 @@ model RefreshToken {
   @@map("refresh_tokens")
 }
 
+/// password_reset_tokens — one active row per email.
+model PasswordResetToken {
+  email     String   @id @db.VarChar(255)
+  token     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("password_reset_tokens")
+}
+
 model BatchFile {
   id                   Int       @id @default(autoincrement())
+  tenantId             Int?      @map("tenant_id")
   filename             String
   originalFilename     String    @map("original_filename")
   filePath             String    @map("file_path")
@@ -127,6 +206,7 @@ model BatchFile {
   createdAt            DateTime  @default(now()) @map("created_at")
   updatedAt            DateTime  @updatedAt @map("updated_at")
 
+  tenant             Tenant?             @relation(fields: [tenantId], references: [id], onDelete: Restrict)
   uploadedBy         User?               @relation("BatchUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
   claims             Claim[]
   ediUploadErrorLogs EdiUploadErrorLog[]
@@ -134,6 +214,7 @@ model BatchFile {
   @@index([status])
   @@index([isaControlNumber])
   @@index([createdAt])
+  @@index([tenantId, createdAt])
   @@map("batch_files")
 }
 
@@ -302,6 +383,7 @@ model ServiceLine {
 
 model EdiUploadErrorLog {
   id               Int      @id @default(autoincrement())
+  tenantId         Int?     @map("tenant_id")
   userId           Int      @map("user_id")
   batchFileId      Int?     @map("batch_file_id")
   failedJobUuid    String?  @unique @map("failed_job_uuid")
@@ -315,12 +397,14 @@ model EdiUploadErrorLog {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
+  tenant    Tenant?    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   batchFile BatchFile? @relation(fields: [batchFileId], references: [id], onDelete: SetNull)
 
   @@index([userId, createdAt])
   @@index([userId, errorType])
   @@index([userId, status])
+  @@index([tenantId, createdAt])
   @@map("edi_upload_error_logs")
 }
 
@@ -934,7 +1018,7 @@ model Mue87726Uhc06111Oxford {
   @@map("mue_87726_uhc_06111_oxford")
 }
 
-// Laravel NpiOrderingReferring — CMS Order and Referring NPI registry for Medicare NPI rules.
+// CMS Order and Referring NPI registry for Medicare NPI rules.
 model NpiOrderingReferring {
   id         Int       @id @default(autoincrement())
   npi        String    @unique @db.VarChar(20)
@@ -950,9 +1034,9 @@ model NpiOrderingReferring {
   @@map("npi_ordering_referrings")
 }
 
-// Laravel NpiOrderingReferringSync — CMS Order and Referring dataset download/import audit log
-// (SP-8 Task 20). `fileSizeBytes`/`rowCount` are Laravel unsignedBigInteger columns; Int is
-// sufficient here (see schema header note on PK sizing — same reasoning applies).
+// CMS Order and Referring dataset download/import audit log (SP-8 Task 20).
+// `fileSizeBytes`/`rowCount` were legacy unsignedBigInteger columns; Int is sufficient
+// here (see schema header note on PK sizing — same reasoning applies).
 model NpiOrderingReferringSync {
   id                 Int       @id @default(autoincrement())
   datasetReleaseDate DateTime  @unique @map("dataset_release_date") @db.Date

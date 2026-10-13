@@ -10,7 +10,7 @@ import { IssueApiTokenDto } from './dto/auth.dto';
 export class ApiTokenController {
   constructor(private readonly auth: AuthService) {}
 
-  /** Laravel parity: POST /api/v1/auth/token */
+  /** POST /api/v1/auth/token */
   @Public()
   @Post('token')
   @HttpCode(200)

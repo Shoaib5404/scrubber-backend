@@ -81,7 +81,7 @@ export function parseCityFromFullAddress(address: string | null | undefined): st
     .map((p) => p.trim())
     .filter((p) => p !== '');
   if (parts.length === 0) return '';
-  let work = [...parts];
+  const work = [...parts];
   const last = work[work.length - 1] ?? '';
   const lastDigits = digitsOnly(last);
   if (lastDigits.length >= 5) {
@@ -90,4 +90,35 @@ export function parseCityFromFullAddress(address: string | null | undefined): st
     if (/^[A-Za-z]{2}$/.test(maybeState)) work.pop();
   }
   return work[work.length - 1] ?? '';
+}
+
+/** Extract trailing ZIP-5/ZIP+4 digits from a free-form address string. */
+export function extractZipDigitsFromAddress(address: string | null | undefined): string {
+  const raw = String(address ?? '').trim();
+  if (raw === '') return '';
+  const match = raw.match(/(\d{5})(\d{4})?\s*$/);
+  return match ? `${match[1]}${match[2] ?? ''}` : '';
+}
+
+/** Parse state from getFullAddress()-style "…, CITY, ST, ZIP". */
+export function extractStateFromFullAddress(address: string | null | undefined): string | null {
+  const raw = String(address ?? '').trim();
+  if (raw === '') return null;
+  const parts = raw
+    .split(',')
+    .map((p) => p.trim())
+    .filter((p) => p !== '');
+  if (parts.length < 2) return null;
+  const last = parts[parts.length - 1] ?? '';
+  const lastDigits = digitsOnly(last);
+  if (lastDigits.length < 5) return null;
+  const maybeState = parts[parts.length - 2] ?? '';
+  return /^[A-Za-z]{2}$/.test(maybeState) ? maybeState.toUpperCase() : null;
+}
+
+/** ZIP-5 key for LookupCache-style zip_codes group rows. */
+export function zip5FromDigits(digits: string): string | null {
+  const d = digitsOnly(digits);
+  if (d.length < 5) return null;
+  return d.slice(0, 5);
 }

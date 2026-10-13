@@ -2,7 +2,8 @@ import { randomInt } from 'crypto';
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { PasswordService } from '../auth/password.service';
-import { DEFAULT_CUSTOMER_SCOPES, UserRole } from '../auth/auth.constants';
+import { DEFAULT_CUSTOMER_SCOPES, isTenantRole } from '../auth/auth.constants';
+import { TenantFeaturesService } from '../tenants/tenant-features.service';
 
 const CLIENT_ID_PREFIX = 'ns_live_';
 const CLIENT_ID_RANDOM_LENGTH = 24;
@@ -50,6 +51,7 @@ export class ApiClientIssuerService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly passwords: PasswordService,
+    private readonly tenantFeatures: TenantFeaturesService,
   ) {}
 
   static generateClientId(): string {
@@ -69,8 +71,10 @@ export class ApiClientIssuerService {
     if (!user) {
       throw new NotFoundException('User not found.');
     }
-    if (user.role !== UserRole.Customer) {
-      throw new BadRequestException('API clients can only be created for Customer users.');
+    if (!isTenantRole(user.role)) {
+      throw new BadRequestException(
+        'API clients can only be created for tenant customer users.',
+      );
     }
 
     const existing = await this.prisma.apiClient.findUnique({ where: { userId: user.id } });
@@ -82,11 +86,15 @@ export class ApiClientIssuerService {
 
     const plainSecret = ApiClientIssuerService.generatePlainSecret();
     const hashedSecret = await this.passwords.hashSecret(plainSecret);
-    const scopes = [...DEFAULT_CUSTOMER_SCOPES] as string[];
+    const scopes =
+      user.tenantId != null
+        ? ((await this.tenantFeatures.allowedScopes(user.tenantId)) as string[])
+        : ([...DEFAULT_CUSTOMER_SCOPES] as string[]);
 
     const client = await this.prisma.apiClient.create({
       data: {
         userId: user.id,
+        tenantId: user.tenantId,
         name,
         clientId: ApiClientIssuerService.generateClientId(),
         clientSecret: hashedSecret,
@@ -109,9 +117,10 @@ export class ApiClientIssuerService {
   }
 
   /**
-   * Laravel `ApiClient::issueService` (IssueReferenceApiClient command) — machine-to-machine
-   * client, `user_id` null, no "one per owner" uniqueness check (service clients are
-   * many-to-none by design).
+   * Platform / machine-to-machine client for NeoMD own apps (TeleWound, etc.).
+   * `user_id` and `tenant_id` are null — not gated by tenant subscription features.
+   * Distinct from customer Integrations clients (tenant-bound).
+   * Many service clients allowed (no one-per-owner uniqueness).
    */
   async issueService(name: string, scopes: string[]): Promise<IssuedApiClient> {
     const plainSecret = ApiClientIssuerService.generatePlainSecret();
@@ -120,6 +129,7 @@ export class ApiClientIssuerService {
     const client = await this.prisma.apiClient.create({
       data: {
         userId: null,
+        tenantId: null,
         name,
         clientId: ApiClientIssuerService.generateClientId(),
         clientSecret: hashedSecret,

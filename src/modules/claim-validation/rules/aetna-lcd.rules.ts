@@ -1,3 +1,4 @@
+import { referenceDetailsUrl } from '../support/reference-details-url';
 import { ClaimIssue } from '../types';
 
 /** Laravel AetnaLcdRules::PAYER_ID */
@@ -52,10 +53,6 @@ export function isApplicableAetnaLcd(claim: AetnaLcdClaimInput): boolean {
  *   idx_map lookup (`LookupCacheService::getMaps('aetna_fetal_lcd', cptCodes)`).
  * @param allowedB12IcdsByCpt Same shape as `allowedFetalIcdsByCpt`, sourced from the
  *   active `aetna_b12_lcd` idx_map lookup, scoped to `AETNA_B12_CPT_CODES`.
- *
- * Note: Laravel attaches a `details_url` (route `aetna-fetal-lcd.index` /
- * `aetna-b12-lcd.index`) to each issue. `ClaimIssue` has no field for it, so it is
- * intentionally omitted here.
  */
 export function validateAetnaLcd(
   lines: AetnaLcdServiceLineInput[],
@@ -77,13 +74,27 @@ export function validateAetnaLcd(
 
   if (fetalLines.length > 0) {
     errors.push(
-      ...validateCrosswalk(fetalLines, diagnosesBySequence, allowedFetalIcdsByCpt, AETNA_FETAL_001, AETNA_FETAL_POLICY_URL),
+      ...validateCrosswalk(
+        fetalLines,
+        diagnosesBySequence,
+        allowedFetalIcdsByCpt,
+        AETNA_FETAL_001,
+        AETNA_FETAL_POLICY_URL,
+        'aetna-fetal-lcd',
+      ),
     );
   }
 
   if (b12Lines.length > 0) {
     errors.push(
-      ...validateCrosswalk(b12Lines, diagnosesBySequence, allowedB12IcdsByCpt, AETNA_B12_001, AETNA_B12_POLICY_URL),
+      ...validateCrosswalk(
+        b12Lines,
+        diagnosesBySequence,
+        allowedB12IcdsByCpt,
+        AETNA_B12_001,
+        AETNA_B12_POLICY_URL,
+        'aetna-b12-lcd',
+      ),
     );
   }
 
@@ -96,6 +107,7 @@ function validateCrosswalk(
   allowedIcdsByCpt: Readonly<Record<string, Readonly<Record<string, true>>>>,
   ruleCode: string,
   policyUrl: string,
+  detailsSlug: 'aetna-fetal-lcd' | 'aetna-b12-lcd',
 ): ClaimIssue[] {
   const errors: ClaimIssue[] = [];
 
@@ -120,6 +132,9 @@ function validateCrosswalk(
         field: `service_lines.${line.lineNumber}.diagnosis_pointers`,
         message: `HCPCS ${cptCode} does not meet medical necessity, please see the online policy ${policyUrl} and report supportive diagnosis code.`,
         severity: 'error',
+        cpt_code: cptCode,
+        icd_code: icdCode,
+        details_url: referenceDetailsUrl(detailsSlug, { search: cptCode, cpt: cptCode }),
       });
     }
   }

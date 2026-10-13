@@ -48,7 +48,7 @@ export class McrVaccineCodesImportService {
     const chunkSize = Math.max(1, options.chunk ?? 500);
     const workbook = await loadExcelWorkbook(filePath);
 
-    let imported = 0;
+    const imported = 0;
     let updated = 0;
     let skipped = 0;
     let errors = 0;

@@ -83,15 +83,21 @@ export class NcdOtherLabCodesImportService {
     if (batch.length === 0) {
       return 0;
     }
-    await this.prisma.$transaction(
-      batch.map((row) =>
-        this.prisma.ncdOtherLabCode.upsert({
-          where: { cpt_icd: { cpt: row.cpt, icd: row.icd } },
-          create: { cpt: row.cpt, icd: row.icd, isActive: true },
-          update: { isActive: true },
-        }),
-      ),
-    );
+
+    // Bulk upsert (Laravel NcdOtherLabCode::upsert) — one statement per chunk.
+    // Per-row Prisma upserts close the DB connection on ~2M cartesian rows.
+    const values = batch
+      .map((row) => `('${row.cpt.replace(/'/g, "''")}', '${row.icd.replace(/'/g, "''")}', true, NOW(), NOW())`)
+      .join(', ');
+
+    await this.prisma.$executeRawUnsafe(`
+      INSERT INTO "ncd_other_lab_codes" ("cpt", "icd", "is_active", "created_at", "updated_at")
+      VALUES ${values}
+      ON CONFLICT ("cpt", "icd") DO UPDATE SET
+        "is_active" = EXCLUDED."is_active",
+        "updated_at" = EXCLUDED."updated_at"
+    `);
+
     return batch.length;
   }
 }

@@ -14,18 +14,26 @@ function createStorageProvider(config: ConfigService): LocalStorageProvider | S3
     const bucket = config.get<string>('S3_BUCKET');
     const accessKey = config.get<string>('S3_ACCESS_KEY');
     const secretKey = config.get<string>('S3_SECRET_KEY');
+    const endpoint = config.get<string>('S3_ENDPOINT');
     if (!bucket || !accessKey || !secretKey) {
       throw new Error(
         'STORAGE_DRIVER=s3 requires S3_BUCKET, S3_ACCESS_KEY, and S3_SECRET_KEY.',
       );
     }
+    if (!endpoint?.trim()) {
+      throw new Error('STORAGE_DRIVER=s3 requires S3_ENDPOINT.');
+    }
+    const publicEndpoint =
+      config.get<string>('S3_PUBLIC_ENDPOINT')?.trim() || endpoint.trim();
     return new S3StorageProvider({
-      endpoint: config.get<string>('S3_ENDPOINT'),
+      endpoint: endpoint.trim(),
+      publicEndpoint,
       bucket,
       accessKey,
       secretKey,
       region: config.get<string>('S3_REGION', 'us-east-1') ?? 'us-east-1',
       forcePathStyle: config.get<boolean>('S3_FORCE_PATH_STYLE', true) ?? true,
+      presignTtlSeconds: config.get<number>('S3_PRESIGN_TTL', 900) ?? 900,
     });
   }
 
@@ -36,13 +44,23 @@ function createStorageProvider(config: ConfigService): LocalStorageProvider | S3
   return new LocalStorageProvider(config.get<string>('EDI_LOCAL_PATH', './storage/edi'));
 }
 
+async function createStorageProviderReady(
+  config: ConfigService,
+): Promise<LocalStorageProvider | S3StorageProvider> {
+  const provider = createStorageProvider(config);
+  if (provider instanceof S3StorageProvider) {
+    await provider.ensureBucket();
+  }
+  return provider;
+}
+
 @Global()
 @Module({
   providers: [
     {
       provide: STORAGE_PROVIDER,
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => createStorageProvider(config),
+      useFactory: (config: ConfigService) => createStorageProviderReady(config),
     },
     StorageService,
   ],
@@ -50,4 +68,4 @@ function createStorageProvider(config: ConfigService): LocalStorageProvider | S3
 })
 export class StorageModule {}
 
-export { createStorageProvider };
+export { createStorageProvider, createStorageProviderReady };

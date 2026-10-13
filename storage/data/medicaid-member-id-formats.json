@@ -1,0 +1,733 @@
+{
+  "meta": {
+    "updated_at": "2026-10-12T14:29:58.309Z"
+  },
+  "by_payer_id": {
+    "10198": {
+      "payer_name": "MEDICAID-VA",
+      "formats": [
+        {
+          "id": "801fa386-8289-4271-869a-143fc9ff592d",
+          "direct_indirect": "In-Direct",
+          "member_id_format": "NUMERIC",
+          "length": null,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "77027": {
+      "payer_name": "MEDICAID-FL",
+      "formats": [
+        {
+          "id": "902c8a92-a811-4d2f-8268-19c118cb99eb",
+          "direct_indirect": "In-Direct",
+          "member_id_format": "NUMERIC",
+          "length": null,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "77032": {
+      "payer_name": "MEDICAID-MS",
+      "formats": [
+        {
+          "id": "715f3a10-0290-4dcd-ab31-aaf97fb06f6b",
+          "direct_indirect": "Direct",
+          "member_id_format": "NUMERIC",
+          "length": null,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "77034": {
+      "payer_name": "MEDICAID-GA",
+      "formats": [
+        {
+          "id": "84d8d6c6-f6e8-40ed-8a9f-08126532e2e3",
+          "direct_indirect": "Direct",
+          "member_id_format": "NUMERIC",
+          "length": null,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "77045": {
+      "payer_name": "MEDICAID-WA",
+      "formats": [
+        {
+          "id": "65393c5a-124d-4c86-9447-f98cec30e88d",
+          "direct_indirect": "Direct",
+          "member_id_format": "ALPANUMERIC",
+          "length": null,
+          "format_type": "AlpaNumeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "77046": {
+      "payer_name": "MEDICAID-WY",
+      "formats": [
+        {
+          "id": "600f6dd4-3189-4434-94d7-5ffbf516b5a1",
+          "direct_indirect": "In-Direct",
+          "member_id_format": "NUMERIC",
+          "length": null,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "100065": {
+      "payer_name": "MEDICAID-CA",
+      "formats": [
+        {
+          "id": "161da60f-7806-4fea-8fda-edd59e2df2c6",
+          "direct_indirect": "In-Direct",
+          "member_id_format": "XXXXXXXXC",
+          "length": null,
+          "format_type": "Alpha Numeric",
+          "pattern": "XXXXXXXXC",
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "100121": {
+      "payer_name": "MEDICAID-DC",
+      "formats": [
+        {
+          "id": "f6cbef0a-e219-41a2-bb79-6bc2f8ba5adf",
+          "direct_indirect": "In-Direct",
+          "member_id_format": "NUMERIC",
+          "length": null,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "100171": {
+      "payer_name": "MEDICAID-IA",
+      "formats": [
+        {
+          "id": "275c1708-72fd-42ce-b432-316598721d42",
+          "direct_indirect": "In-Direct",
+          "member_id_format": "XXXXXXXC",
+          "length": null,
+          "format_type": "Alpha Numeric",
+          "pattern": "XXXXXXXC",
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "100193": {
+      "payer_name": "MEDICAID-LA",
+      "formats": [
+        {
+          "id": "d74d735b-4097-4027-87ac-20b454477b23",
+          "direct_indirect": "Direct",
+          "member_id_format": "NUMERIC",
+          "length": null,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "100228": {
+      "payer_name": "MEDICAID-NH",
+      "formats": [
+        {
+          "id": "68c06270-13dd-402c-9947-fea6aac7af5e",
+          "direct_indirect": "In-Direct",
+          "member_id_format": "NUMERIC",
+          "length": null,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "100229": {
+      "payer_name": "MEDICAID-NJ",
+      "formats": [
+        {
+          "id": "0d4eeae2-de4a-4d04-9f18-39d55b1c0817",
+          "direct_indirect": "In-Direct",
+          "member_id_format": "NUMERIC",
+          "length": null,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "100371": {
+      "payer_name": "MEDICAID-DE",
+      "formats": [
+        {
+          "id": "7f1d1c83-31b5-4a87-85ba-ebec9ddeb11c",
+          "direct_indirect": "In-Direct",
+          "member_id_format": "NUMERIC",
+          "length": null,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "141797357": {
+      "payer_name": "MEDICAID-NY",
+      "formats": [
+        {
+          "id": "50242b03-11d8-4763-9e9d-0045d35195a9",
+          "direct_indirect": "Direct",
+          "member_id_format": "CCXXXXXC",
+          "length": null,
+          "format_type": "Alpha Numeric",
+          "pattern": "CCXXXXXC",
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "236003113": {
+      "payer_name": "MEDICAID-PA",
+      "formats": [
+        {
+          "id": "c28bb502-2f51-487b-bf4b-5ea4c810abf1",
+          "direct_indirect": "Direct",
+          "member_id_format": "NUMERIC",
+          "length": null,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "271510177": {
+      "payer_name": "MEDICAID-AL",
+      "formats": [
+        {
+          "id": "e183d52b-317e-4395-98a0-7f30dffb1cc9",
+          "direct_indirect": "Direct",
+          "member_id_format": "NUMERIC",
+          "length": null,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "431754897": {
+      "payer_name": "MEDICAID-MO",
+      "formats": [
+        {
+          "id": "3d07b051-6a2d-48a5-9fe3-965f55beb81c",
+          "direct_indirect": "Direct",
+          "member_id_format": "NUMERIC",
+          "length": null,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "526002033": {
+      "payer_name": "MEDICAID-MD",
+      "formats": [
+        {
+          "id": "6240d701-f4d2-4358-ac3d-2b8d24656746",
+          "direct_indirect": "Direct",
+          "member_id_format": "NUMERIC",
+          "length": null,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "716007869": {
+      "payer_name": "MEDICAID-AR",
+      "formats": [
+        {
+          "id": "126132b3-f749-4e2a-97de-6fac89989824",
+          "direct_indirect": "Direct",
+          "member_id_format": "NUMERIC",
+          "length": null,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "00390": {
+      "payer_name": "MEDICAID-TN",
+      "formats": [
+        {
+          "id": "6d412396-5a46-4e83-824b-d37841482fa9",
+          "direct_indirect": "Direct",
+          "member_id_format": "ALPANUMERIC",
+          "length": null,
+          "format_type": "AlpaNumeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        },
+        {
+          "id": "242e3bb7-1777-40f0-925b-7474dfdc46fb",
+          "direct_indirect": "Direct",
+          "member_id_format": "ALPANUMERIC",
+          "length": 10,
+          "format_type": "AlpaNumeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "061274678": {
+      "payer_name": "MEDICAID-CT",
+      "formats": [
+        {
+          "id": "0152989a-2e31-4547-aa3f-40f563fb3078",
+          "direct_indirect": "Direct",
+          "member_id_format": "NUMERIC",
+          "length": null,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "37-1320188": {
+      "payer_name": "MEDICAID-IL",
+      "formats": [
+        {
+          "id": "d47e8780-f584-4328-926d-891c3ef0bec8",
+          "direct_indirect": "Direct",
+          "member_id_format": "NUMERIC",
+          "length": null,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "617591011C21P": {
+      "payer_name": "MEDICAID-TX",
+      "formats": [
+        {
+          "id": "af611884-527a-40e7-b61b-5a4943a5eab8",
+          "direct_indirect": "Direct",
+          "member_id_format": "NUMERIC",
+          "length": null,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "AZ": {
+      "payer_name": "MEDICAID-AZ",
+      "formats": [
+        {
+          "id": "95ad9bc4-da4e-4ac7-a644-88ca70216ed6",
+          "direct_indirect": "In-Direct",
+          "member_id_format": "CXXXXXXXX",
+          "length": null,
+          "format_type": "Alpha Numeric",
+          "pattern": "CXXXXXXXX",
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "COMEDASSISTPROG": {
+      "payer_name": "MEDICAID-CO",
+      "formats": [
+        {
+          "id": "13a43926-ea29-49aa-b7c9-2a572cf4897e",
+          "direct_indirect": "Direct",
+          "member_id_format": "CXXXXXX",
+          "length": null,
+          "format_type": "Alpha Numeric",
+          "pattern": "CXXXXXX",
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "D00111": {
+      "payer_name": "MEDICAID-MI",
+      "formats": [
+        {
+          "id": "fd18ad92-2ecb-4a08-9e3d-b35fa873ab71",
+          "direct_indirect": "Direct",
+          "member_id_format": "NUMERIC",
+          "length": null,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "DMA7384": {
+      "payer_name": "MEDICAID-MA",
+      "formats": [
+        {
+          "id": "0a89a766-00c3-4251-b0a8-55aa7bb3a62c",
+          "direct_indirect": "Direct",
+          "member_id_format": "NUMERIC",
+          "length": null,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "ID_MMIS_4_DXCMS": {
+      "payer_name": "MEDICAID-ID",
+      "formats": [
+        {
+          "id": "b586adbd-1462-413d-943e-b54325603efe",
+          "direct_indirect": "Direct",
+          "member_id_format": "NUMERIC",
+          "length": null,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "IHCP": {
+      "payer_name": "MEDICAID-IN",
+      "formats": [
+        {
+          "id": "513476fb-843f-40f2-a617-5511150cc677",
+          "direct_indirect": "Direct",
+          "member_id_format": "NUMERIC",
+          "length": null,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "KYMEDICAID": {
+      "payer_name": "MEDICAID-KY",
+      "formats": [
+        {
+          "id": "37f74a9b-3bcf-4be6-a27a-b40640b48bc1",
+          "direct_indirect": "Direct",
+          "member_id_format": "NUMERIC",
+          "length": null,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "ME_MES_4_MMS_IG": {
+      "payer_name": "MEDICAID-ME",
+      "formats": [
+        {
+          "id": "460594c6-e070-46e1-938b-c3aafc2f401c",
+          "direct_indirect": "Direct",
+          "member_id_format": "ALPANUMERIC",
+          "length": null,
+          "format_type": "AlpaNumeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "MMISODJFS": {
+      "payer_name": "MEDICAID-OH",
+      "formats": [
+        {
+          "id": "e308af73-46f4-4069-a16b-0c47feefec40",
+          "direct_indirect": "Direct",
+          "member_id_format": "NUMERIC",
+          "length": null,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "MT": {
+      "payer_name": "MEDICAID-MT",
+      "formats": [
+        {
+          "id": "cfa5c987-24de-4ed1-9105-c9ad0dd8d7ec",
+          "direct_indirect": "In-Direct",
+          "member_id_format": "NUMERIC",
+          "length": null,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "NCTRACKS": {
+      "payer_name": "MEDICAID-NC",
+      "formats": [
+        {
+          "id": "9272eefa-bdf2-482f-ae12-4f9e91df8c8e",
+          "direct_indirect": "Direct",
+          "member_id_format": "XXXXXXXXXC",
+          "length": null,
+          "format_type": "Alpha Numeric",
+          "pattern": "XXXXXXXXXC",
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "ND4697078": {
+      "payer_name": "MEDICAID-ND",
+      "formats": [
+        {
+          "id": "3d5611ec-fd32-4dfd-8f25-5f0cd05b1655",
+          "direct_indirect": "Direct",
+          "member_id_format": "ALPANUMERIC",
+          "length": null,
+          "format_type": "AlpaNumeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "NEMEDICAID": {
+      "payer_name": "MEDICAID-NE",
+      "formats": [
+        {
+          "id": "09de2c29-e1b2-400d-9db7-e536ad5ac822",
+          "direct_indirect": "Direct",
+          "member_id_format": "NUMERIC",
+          "length": null,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "NM": {
+      "payer_name": "MEDICAID-NM",
+      "formats": [
+        {
+          "id": "a9652d87-6176-4790-8f2e-3ee007d66fd3",
+          "direct_indirect": "In-Direct",
+          "member_id_format": "NUMERIC",
+          "length": null,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "NV_TXIXL": {
+      "payer_name": "MEDICAID-NV",
+      "formats": [
+        {
+          "id": "b2d42561-500b-4919-8077-851fcfa7dd8a",
+          "direct_indirect": "Direct",
+          "member_id_format": "NUMERIC",
+          "length": 11,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "OHCA1": {
+      "payer_name": "MEDICAID-OK",
+      "formats": [
+        {
+          "id": "4b323376-fc90-4e4a-bfc9-72831cddcf16",
+          "direct_indirect": "In-Direct",
+          "member_id_format": "ALPANUMERIC",
+          "length": null,
+          "format_type": "AlpaNumeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        },
+        {
+          "id": "09ac6e01-9e74-43d3-b665-b678cf8499ce",
+          "direct_indirect": "In-Direct",
+          "member_id_format": "NUMERIC",
+          "length": null,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "SCMEDICAID": {
+      "payer_name": "MEDICAID-SC",
+      "formats": [
+        {
+          "id": "28e49382-0fce-4fef-9612-3d0f0f0989f9",
+          "direct_indirect": "Direct",
+          "member_id_format": "NUMERIC",
+          "length": null,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "SKKS0": {
+      "payer_name": "MEDICAID-KS",
+      "formats": [
+        {
+          "id": "325211a7-3400-4b19-9cd6-24059a5cb89d",
+          "direct_indirect": "In-Direct",
+          "member_id_format": "NUMERIC",
+          "length": null,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "SKOR0": {
+      "payer_name": "MEDICAID-OR",
+      "formats": [
+        {
+          "id": "74152b0f-a50b-4f6d-983e-7ca23c4a86ca",
+          "direct_indirect": "In-Direct",
+          "member_id_format": "ALPANUMERIC",
+          "length": null,
+          "format_type": "AlpaNumeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "SKUT0": {
+      "payer_name": "MEDICAID-UT",
+      "formats": [
+        {
+          "id": "90d7b609-f675-4ae1-acd5-f9d7334c8973",
+          "direct_indirect": "In-Direct",
+          "member_id_format": "NUMERIC",
+          "length": null,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    },
+    "WISC_TXIX": {
+      "payer_name": "MEDICAID-WI",
+      "formats": [
+        {
+          "id": "1cfd3fd0-b922-42bb-b17f-f3a8882c6314",
+          "direct_indirect": "Direct",
+          "member_id_format": "NUMERIC",
+          "length": null,
+          "format_type": "Numeric",
+          "pattern": null,
+          "is_active": true,
+          "created_at": "2026-10-12T14:29:58.308Z",
+          "updated_at": "2026-10-12T14:29:58.308Z"
+        }
+      ]
+    }
+  }
+}

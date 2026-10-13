@@ -10,18 +10,11 @@ interface NcciRulesCacheFetchOptions {
 }
 
 /**
- * Laravel App\Console\Commands\FetchNcciRulesCache (ncci:rules-cache-fetch).
- *
- * Nest adaptation: Laravel stores the NCCI snapshot under chunked RedisHelper keys
- * (`ncci_rules:full_table_meta` + `ncci_rules:full_table_chunk_N`, tag `ncci_rules`). Nest
- * stores a single JSON blob at `lookup:nest:ncci_rules:full_table_v2` via
- * LookupCacheService.getOrLoad (see NcciRulesCacheService + docs/migration/REDIS_LOOKUP_CACHE.md).
- * There is no `--chunk` equivalent to inspect here since there's only one key.
+ * Inspect/warm Nest NCCI lookup cache (`lookup:v1:nccis:full:active`, auto-chunked).
  */
 @Command({
   name: 'ncci:rules-cache-fetch',
-  description:
-    'Inspect/warm the NCCI rules cache (lookup:nest:ncci_rules:full_table_v2, not Laravel chunked keys)',
+  description: 'Inspect/warm the NCCI rules cache (lookup:v1:nccis:full:active)',
 })
 export class NcciRulesCacheFetchCommand extends CommandRunner {
   private readonly logger = new Logger(NcciRulesCacheFetchCommand.name);
@@ -31,7 +24,7 @@ export class NcciRulesCacheFetchCommand extends CommandRunner {
   }
 
   async run(_passedParams: string[], options: NcciRulesCacheFetchOptions): Promise<void> {
-    this.logger.log('Cache key: lookup:nest:ncci_rules:full_table_v2 (LookupCacheService.getOrLoad)');
+    this.logger.log('Cache key: lookup:v1:nccis:full:active (chunked when large)');
 
     let rows;
     let hit: boolean;

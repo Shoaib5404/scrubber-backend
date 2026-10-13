@@ -1,3 +1,4 @@
+import { referenceDetailsUrl } from '../support/reference-details-url';
 import { ClaimIssue } from '../types';
 
 /** Laravel Cigna62308AllowedIcdRules::PAYER_ID */
@@ -68,9 +69,6 @@ export function isApplicableCigna62308(
  *   `true`) of normalized (uppercase, dot-stripped) allowed ICD-10 codes, from the active
  *   `cigna_cpt_icd_crosswalk` idx_map lookup
  *   (`LookupCacheService::getMaps('cigna_cpt_icd_crosswalk', cptCodes)`).
- *
- * Note: Laravel attaches a `details_url` (route `cigna-cpt-icd-crosswalk.index`) to each
- * issue. `ClaimIssue` has no field for it, so it is intentionally omitted here.
  */
 export function validateCigna62308(
   lines: Cigna62308ServiceLineInput[],
@@ -108,6 +106,12 @@ export function validateCigna62308(
         field: `service_lines.${line.lineNumber}.diagnosis_pointers`,
         message: `Cigna does not allow the use of ICD ${icdCode} with CPT ${cptCode}. Please click here to see the allowed ICD list.`,
         severity: 'error',
+        cpt_code: cptCode,
+        icd_code: icdCode,
+        details_url: referenceDetailsUrl('cigna-cpt-icd-crosswalk', {
+          search: cptCode,
+          cpt_code: cptCode,
+        }),
       });
     }
   }

@@ -148,6 +148,30 @@ export class MedicaidMemberIdFormatRepository {
     return (await this.allFlat()).length;
   }
 
+  /** Laravel MedicaidMemberIdFormatRepository::hasActiveFormatsForPayerId */
+  async hasActiveFormatsForPayerId(rtPayerId: string): Promise<boolean> {
+    const key = String(rtPayerId ?? '').trim();
+    if (key === '') return false;
+
+    const payload = await this.read();
+    let group = payload.by_payer_id[key];
+    if (group == null) {
+      const keyLower = key.toLowerCase();
+      for (const [candidateKey, candidate] of Object.entries(payload.by_payer_id)) {
+        if (candidateKey.toLowerCase() === keyLower) {
+          group = candidate;
+          break;
+        }
+      }
+    }
+    if (group == null) return false;
+
+    for (const format of group.formats) {
+      if (Boolean(format.is_active ?? true)) return true;
+    }
+    return false;
+  }
+
   /**
    * Laravel MedicaidMemberIdFormatRepository::replaceAll — rebuilds the entire by_payer_id
    * store from import rows, skipping rows with an empty rt_payer_id, and writes the JSON file.

@@ -14,6 +14,8 @@
     "start:scheduler": "node dist/scheduler",
     "start:scheduler:dev": "nest start --watch --entryFile scheduler",
     "cli": "node dist/cli",
+    "verify:lookup-cache": "ts-node --transpile-only scripts/verify-lookup-cache.ts",
+    "warm:lookup-cache": "ts-node --transpile-only scripts/warm-lookup-cache.ts",
     "lint": "eslint \"{src,test}/**/*.ts\" --fix",
     "typecheck": "tsc --noEmit",
     "test": "jest --config jest.config.ts",
@@ -28,7 +30,8 @@
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node prisma/seed.ts",
     "openapi:export": "ts-node scripts/export-openapi.ts",
-    "seed:e2e-auth": "ts-node scripts/seed-e2e-auth.ts"
+    "seed:e2e-auth": "ts-node scripts/seed-e2e-auth.ts",
+    "backfill:tenants": "ts-node scripts/backfill-tenants.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1127.0",
@@ -59,6 +62,7 @@
     "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "xlsx": "^0.18.5",
     "zod": "^3.23.8"
   },
   "devDependencies": {

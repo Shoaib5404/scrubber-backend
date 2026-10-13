@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { lookupLogicalName } from '../cache/cache.constants';
 import { LookupCacheService } from '../cache/lookup-cache.service';
 import { CLAIM_FILING_INDICATORS } from '../claim-validation/config/claim-filing-indicators';
 import {
@@ -89,33 +90,51 @@ export class ReferenceAdminService {
     const perPage = Math.min(100, Math.max(1, params.perPage));
     const skip = (page - 1) * perPage;
 
-    const where = this.buildListWhere(def, params.search, params.isActive);
-    const delegate = this.delegate(def);
+    const loadList = async () => {
+      const where = this.buildListWhere(def, params.search, params.isActive);
+      const delegate = this.delegate(def);
 
-    const [rows, total] = await Promise.all([
-      delegate.findMany({
-        where,
-        skip,
-        take: perPage,
-        orderBy: { [def.idField ?? 'id']: 'desc' },
-        ...(def.slug === 'icd10-codes'
-          ? { include: { descriptions: { orderBy: { id: 'asc' } } } }
-          : {}),
-      }),
-      delegate.count({ where }),
-    ]);
+      const [rows, total] = await Promise.all([
+        delegate.findMany({
+          where,
+          skip,
+          take: perPage,
+          orderBy: { [def.idField ?? 'id']: 'desc' },
+          ...(def.slug === 'icd10-codes'
+            ? { include: { descriptions: { orderBy: { id: 'asc' } } } }
+            : {}),
+        }),
+        delegate.count({ where }),
+      ]);
 
-    const lastPage = Math.max(1, Math.ceil(total / perPage));
+      const lastPage = Math.max(1, Math.ceil(total / perPage));
 
-    return {
-      items: rows.map((row) => this.serializeReferenceRow(def, row)),
-      meta: {
-        page,
-        per_page: perPage,
-        total,
-        last_page: lastPage,
-      },
+      return {
+        items: rows.map((row) => this.serializeReferenceRow(def, row)),
+        meta: {
+          page,
+          per_page: perPage,
+          total,
+          last_page: lastPage,
+        },
+      };
     };
+
+    if (!def.lookupTable) {
+      return loadList();
+    }
+
+    const disc = this.lookupCache.hashCodes([
+      def.slug,
+      String(page),
+      String(perPage),
+      params.search ?? '',
+      params.isActive ?? '',
+    ]);
+    return this.lookupCache.getOrLoad(
+      lookupLogicalName(def.lookupTable, 'admin_list', disc),
+      loadList,
+    );
   }
 
   async showDomain(slug: string, id: string) {
@@ -132,16 +151,27 @@ export class ReferenceAdminService {
     }
 
     const routeId = this.parseRouteId(def, id);
-    const row = await this.delegate(def).findUnique({
-      where: this.whereForRouteId(def, routeId),
-      ...(def.slug === 'icd10-codes'
-        ? { include: { descriptions: { orderBy: { id: 'asc' } } } }
-        : {}),
-    });
-    if (!row) {
-      throw new NotFoundException('Reference record not found.');
+    const loadShow = async () => {
+      const row = await this.delegate(def).findUnique({
+        where: this.whereForRouteId(def, routeId),
+        ...(def.slug === 'icd10-codes'
+          ? { include: { descriptions: { orderBy: { id: 'asc' } } } }
+          : {}),
+      });
+      if (!row) {
+        throw new NotFoundException('Reference record not found.');
+      }
+      return this.serializeReferenceRow(def, row);
+    };
+
+    if (!def.lookupTable) {
+      return loadShow();
     }
-    return this.serializeReferenceRow(def, row);
+
+    return this.lookupCache.getOrLoad(
+      lookupLogicalName(def.lookupTable, 'admin_show', String(id)),
+      loadShow,
+    );
   }
 
   async createDomain(slug: string, body: Record<string, unknown>) {

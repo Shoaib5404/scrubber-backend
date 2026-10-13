@@ -4,7 +4,16 @@ coverage
 .env
 .env.local
 *.log
+full-test-output.log
+tmp/
+tmp-*
+test-results/
 storage/edi/**
 !storage/edi/.gitkeep
 prisma/*.db
 .DS_Store
+Requirements.md
+Requirement.md
+neo-scrubber.code-workspace
+# Local junction/symlink to library CSVs/XLSX — do not commit
+import/

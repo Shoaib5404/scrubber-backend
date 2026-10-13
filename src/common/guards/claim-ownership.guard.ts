@@ -6,16 +6,19 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { isStaffRole } from '../../modules/auth/auth.constants';
+import { TenantContext } from '../tenant/tenant-context';
 import { AuthPrincipal } from '../../modules/auth/auth.types';
 
 /**
- * Ensures principal may access claim `:id` or `:claimId` via owning batch.
+ * Ensures principal may access claim `:id` or `:claimId` via owning batch tenant.
  * Cross-tenant → 404 Claim not found.
  */
 @Injectable()
 export class ClaimOwnershipGuard implements CanActivate {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly tenants: TenantContext,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<{
@@ -35,22 +38,21 @@ export class ClaimOwnershipGuard implements CanActivate {
 
     const claim = await this.prisma.claim.findUnique({
       where: { id: claimId },
-      include: { batchFile: { select: { uploadedById: true } } },
+      include: { batchFile: { select: { tenantId: true } } },
     });
     if (!claim) {
       throw new NotFoundException('Claim not found.');
     }
 
-    if (auth.typ === 'user' && auth.role && isStaffRole(auth.role)) {
+    if (this.tenants.isStaff(auth)) {
       return true;
     }
 
-    const ownerId = auth.userId;
-    if (ownerId == null) {
+    if (auth.tenantId == null) {
       throw new ForbiddenException('Not allowed to access this claim.');
     }
 
-    if (claim.batchFile.uploadedById !== ownerId) {
+    if (claim.batchFile.tenantId !== auth.tenantId) {
       throw new NotFoundException('Claim not found.');
     }
 

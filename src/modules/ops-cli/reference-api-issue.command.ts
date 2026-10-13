@@ -8,7 +8,8 @@ interface ReferenceApiIssueOptions {
 }
 
 /**
- * Laravel `App\Console\Commands\IssueReferenceApiClient` (`reference-api:issue`).
+ * Issue a platform service client (user_id/tenant_id null) for NeoMD own apps.
+ * Prefer staff UI at /dashboard/service-clients when available; CLI remains for ops.
  *
  * Nest deviation: same hashed-secret requirement as `api-client:create` — see
  * `ApiClientIssuerService` docblock.

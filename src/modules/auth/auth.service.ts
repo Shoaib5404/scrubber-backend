@@ -6,12 +6,16 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { TenantFeaturesService } from '../tenants/tenant-features.service';
 import {
+  ACCOUNT_DEACTIVATED_MESSAGE,
   DEFAULT_CUSTOMER_SCOPES,
+  TENANT_SUSPENDED_MESSAGE,
   isStaffRole,
-  UserRole,
+  isTenantRole,
 } from './auth.constants';
 import { PasswordService } from './password.service';
+import { RolePermissionService } from './role-permission.service';
 
 export type AuthSession = {
   accessToken: string;
@@ -23,7 +27,15 @@ export type AuthSession = {
     email: string;
     name: string;
     role: string;
+    tenant_id: number | null;
+    email_verified: boolean;
+    permissions: string[];
+    subscription_status: string;
+    subscription_active: boolean;
+    features: string[];
   };
+  /** Present for inactive customers (login warning). */
+  warning?: string;
 };
 
 export type AccessTokenResponse = {
@@ -41,15 +53,23 @@ export class AuthService {
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
     private readonly passwords: PasswordService,
+    private readonly rolePermissions: RolePermissionService,
+    private readonly tenantFeatures: TenantFeaturesService,
   ) {}
 
   async login(email: string, password: string): Promise<AuthSession> {
-    const user = await this.prisma.user.findUnique({ where: { email } });
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+      include: { tenant: true },
+    });
     if (!user || !(await this.passwords.verifyPassword(password, user.password))) {
       throw new UnauthorizedException('Invalid credentials.');
     }
     if (!user.isActive) {
-      throw new UnauthorizedException('This account is inactive.');
+      throw new UnauthorizedException(ACCOUNT_DEACTIVATED_MESSAGE);
+    }
+    if (user.tenant?.status === 'suspended' && !isStaffRole(user.role)) {
+      throw new UnauthorizedException(TENANT_SUSPENDED_MESSAGE);
     }
 
     return this.issueUserSession(user);
@@ -59,13 +79,16 @@ export class AuthService {
     const tokenHash = this.passwords.hashToken(refreshToken);
     const stored = await this.prisma.refreshToken.findUnique({
       where: { tokenHash },
-      include: { user: true },
+      include: { user: { include: { tenant: true } } },
     });
     if (!stored || stored.revokedAt || stored.expiresAt.getTime() < Date.now()) {
       throw new UnauthorizedException('Invalid refresh token.');
     }
     if (!stored.user.isActive) {
-      throw new UnauthorizedException('This account is inactive.');
+      throw new UnauthorizedException(ACCOUNT_DEACTIVATED_MESSAGE);
+    }
+    if (stored.user.tenant?.status === 'suspended' && !isStaffRole(stored.user.role)) {
+      throw new UnauthorizedException(TENANT_SUSPENDED_MESSAGE);
     }
 
     await this.prisma.refreshToken.update({
@@ -90,7 +113,7 @@ export class AuthService {
   ): Promise<AccessTokenResponse> {
     const client = await this.prisma.apiClient.findUnique({
       where: { clientId },
-      include: { user: true },
+      include: { user: { include: { tenant: true } }, tenant: true },
     });
 
     if (!client || !(await this.passwords.verifySecret(clientSecret, client.clientSecret))) {
@@ -106,15 +129,25 @@ export class AuthService {
       });
     }
 
-    const isServiceClient = client.userId === null;
+    const tenant = client.tenant ?? client.user?.tenant ?? null;
+    if (tenant?.status === 'suspended') {
+      throw new UnprocessableEntityException({
+        message: 'Validation failed',
+        errors: { client_id: [TENANT_SUSPENDED_MESSAGE] },
+      });
+    }
+
+    // Platform service clients (NeoMD own apps): unbound from tenant subscription/features.
+    // Tenant-bound customers still require active subscription + feature-derived scopes below.
+    const isServiceClient = client.userId === null && client.tenantId == null;
     if (!isServiceClient) {
-      if (!client.user || !client.user.isActive) {
+      if (client.userId != null && (!client.user || !client.user.isActive)) {
         throw new UnprocessableEntityException({
           message: 'Validation failed',
           errors: { client_id: ['The customer account is inactive.'] },
         });
       }
-      if (!this.ownerHasActiveSubscription(client.user)) {
+      if (!this.tenantHasActiveSubscription(tenant ?? client.user)) {
         throw new UnprocessableEntityException({
           message: 'Validation failed',
           errors: { client_id: ['The customer subscription is not active.'] },
@@ -122,10 +155,18 @@ export class AuthService {
       }
     }
 
-    const scopes =
+    let scopes =
       Array.isArray(client.scopes) && (client.scopes as string[]).length > 0
         ? (client.scopes as string[])
         : [...DEFAULT_CUSTOMER_SCOPES];
+
+    // Tenant-bound clients: intersect stored scopes with current feature entitlements.
+    const boundTenantId = client.tenantId ?? client.user?.tenantId ?? null;
+    if (!isServiceClient && boundTenantId != null) {
+      const allowed = await this.tenantFeatures.allowedScopes(boundTenantId);
+      const allowedSet = new Set(allowed);
+      scopes = scopes.filter((s) => allowedSet.has(s as (typeof allowed)[number]));
+    }
 
     const expiresInMinutes = this.config.get<number>('API_TOKEN_EXPIRATION_MINUTES', 60);
     const expiresAt = new Date(Date.now() + expiresInMinutes * 60_000);
@@ -135,6 +176,7 @@ export class AuthService {
         sub: `client:${client.id}`,
         clientId: client.clientId,
         userId: client.userId,
+        tenantId: client.tenantId ?? client.user?.tenantId ?? null,
         scopes,
       },
       {
@@ -159,16 +201,17 @@ export class AuthService {
     };
   }
 
+  /** @deprecated Prefer tenantHasActiveSubscription for tenant-scoped principals. */
   ownerHasActiveSubscription(user: {
-    role: string;
-    isActive: boolean;
+    role?: string;
+    isActive?: boolean;
     subscriptionStatus: string;
     subscriptionEndsAt: Date | null;
   }): boolean {
-    if (isStaffRole(user.role) || user.role === UserRole.SuperAdmin) {
+    if (user.role && isStaffRole(user.role)) {
       return true;
     }
-    if (!user.isActive) {
+    if (user.isActive === false) {
       return false;
     }
     if (user.subscriptionStatus !== 'active') {
@@ -180,13 +223,52 @@ export class AuthService {
     return true;
   }
 
+  tenantHasActiveSubscription(
+    source:
+      | {
+          role?: string;
+          isActive?: boolean;
+          status?: string;
+          subscriptionStatus: string;
+          subscriptionEndsAt: Date | null;
+        }
+      | null
+      | undefined,
+  ): boolean {
+    if (!source) {
+      return false;
+    }
+    if (source.role && isStaffRole(source.role)) {
+      return true;
+    }
+    if (source.status === 'suspended') {
+      return false;
+    }
+    return this.ownerHasActiveSubscription({
+      role: source.role,
+      isActive: source.isActive,
+      subscriptionStatus: source.subscriptionStatus,
+      subscriptionEndsAt: source.subscriptionEndsAt,
+    });
+  }
+
   private async issueUserSession(user: {
     id: number;
     email: string;
     name: string;
     role: string;
+    tenantId?: number | null;
+    emailVerifiedAt?: Date | null;
+    isActive: boolean;
+    subscriptionStatus: string;
+    subscriptionEndsAt: Date | null;
+    tenant?: {
+      status: string;
+      subscriptionStatus: string;
+      subscriptionEndsAt: Date | null;
+    } | null;
   }): Promise<AuthSession> {
-    const accessTtlMin = this.config.get<number>('JWT_ACCESS_TTL', 15);
+    const accessTtlMin = this.config.get<number>('JWT_ACCESS_TTL', 60);
     const refreshTtlDays = this.config.get<number>('JWT_REFRESH_TTL', 30);
 
     const accessToken = await this.jwt.signAsync(
@@ -194,6 +276,7 @@ export class AuthService {
         typ: 'user',
         sub: `user:${user.id}`,
         userId: user.id,
+        tenantId: user.tenantId ?? null,
         email: user.email,
         role: user.role,
         scopes: [],
@@ -215,7 +298,22 @@ export class AuthService {
       },
     });
 
-    return {
+    const permissions = await this.rolePermissions.permissionValuesForRole(user.role);
+    const subscriptionSource = user.tenant
+      ? {
+          role: user.role,
+          isActive: user.isActive,
+          status: user.tenant.status,
+          subscriptionStatus: user.tenant.subscriptionStatus,
+          subscriptionEndsAt: user.tenant.subscriptionEndsAt,
+        }
+      : user;
+    const subscriptionActive = this.tenantHasActiveSubscription(subscriptionSource);
+    const features =
+      user.tenantId != null && isTenantRole(user.role)
+        ? await this.tenantFeatures.list(user.tenantId)
+        : [];
+    const session: AuthSession = {
       accessToken,
       refreshToken,
       tokenType: 'Bearer',
@@ -225,7 +323,20 @@ export class AuthService {
         email: user.email,
         name: user.name,
         role: user.role,
+        tenant_id: user.tenantId ?? null,
+        email_verified: !!user.emailVerifiedAt,
+        permissions,
+        subscription_status: user.tenant?.subscriptionStatus ?? user.subscriptionStatus,
+        subscription_active: subscriptionActive,
+        features,
       },
     };
+
+    if (isTenantRole(user.role) && !subscriptionActive) {
+      session.warning =
+        'Your subscription is not active. You can view existing batches, but upload and validation are unavailable until it is renewed.';
+    }
+
+    return session;
   }
 }

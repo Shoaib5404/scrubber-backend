@@ -58,6 +58,7 @@ export class DetectStalledQueuesService {
       await this.prisma.ediUploadErrorLog.create({
         data: {
           userId: batch.uploadedById,
+          tenantId: batch.tenantId,
           batchFileId: batch.id,
           originalFilename: batch.originalFilename,
           fileSize: batch.fileSize,

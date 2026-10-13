@@ -17,7 +17,13 @@ export async function forEachNpiCsvRow(
   onRow: (row: string[], dataRowIndex: number) => Promise<void> | void,
 ): Promise<CsvScanResult> {
   const parser = createReadStream(filePath).pipe(
-    parse({ bom: true, relax_column_count: true, skip_empty_lines: false }),
+    // relax_quotes: PHP fgetcsv accepts unescaped quotes inside fields (e.g. JOY (DBA ").
+    parse({
+      bom: true,
+      relax_column_count: true,
+      relax_quotes: true,
+      skip_empty_lines: false,
+    }),
   );
 
   let headers: string[] | null = null;
@@ -44,7 +50,13 @@ export async function countNpiCsvDataRows(filePath: string): Promise<number> {
 /** Reads only the header row, without scanning the rest of the file. */
 export async function readNpiCsvHeaderRow(filePath: string): Promise<string[]> {
   const parser = createReadStream(filePath).pipe(
-    parse({ bom: true, relax_column_count: true, skip_empty_lines: false, to: 1 }),
+    parse({
+      bom: true,
+      relax_column_count: true,
+      relax_quotes: true,
+      skip_empty_lines: false,
+      to: 1,
+    }),
   );
   for await (const record of parser as AsyncIterable<string[]>) {
     return record;

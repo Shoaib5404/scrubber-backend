@@ -1,31 +1,51 @@
-import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import IORedis from 'ioredis';
 
 /**
- * Laravel RedisLookupStore — Redis DB for lookups (default logical DB 2),
- * circuit breaker, optional TTL.
+ * Nest lookup-cache Redis client (logical DB REDIS_LOOKUP_DB, default 1).
+ * Fail-open: Redis errors return fallbacks and trip a short circuit breaker.
+ * BullMQ / scheduler locks stay on REDIS_URL DB 0 via a separate connection.
  */
 @Injectable()
-export class RedisLookupStore implements OnModuleDestroy {
+export class RedisLookupStore implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RedisLookupStore.name);
   private readonly connection: IORedis;
+  private readonly lookupDb: number;
   private failureCount = 0;
   private circuitOpenUntil: number | null = null;
 
   constructor(private readonly config: ConfigService) {
-    const baseUrl = config.get<string>('REDIS_LOOKUP_URL') ?? config.get<string>('REDIS_URL', 'redis://localhost:6381');
-    const db = config.get<number>('REDIS_LOOKUP_DB', 2);
-    const url = withRedisDb(baseUrl, db);
+    const baseUrl =
+      config.get<string>('REDIS_LOOKUP_URL') ??
+      config.get<string>('REDIS_URL', 'redis://localhost:6381');
+    this.lookupDb = config.get<number>('REDIS_LOOKUP_DB', 1);
+    const url = withRedisDb(baseUrl, this.lookupDb);
     this.connection = new IORedis(url, {
       maxRetriesPerRequest: null,
       enableReadyCheck: true,
+      connectTimeout: 5_000,
+      commandTimeout: 5_000,
       ...(config.get<boolean>('REDIS_TLS', false) ? { tls: {} } : {}),
+      lazyConnect: false,
     });
+    this.connection.on('error', (err) => {
+      this.logger.warn(`Lookup Redis error event: ${err.message}`);
+    });
+  }
+
+  onModuleInit() {
+    this.logger.log(
+      `Lookup cache Redis client ready (db=${this.lookupDb}, enabled=${this.enabled()})`,
+    );
   }
 
   async onModuleDestroy() {
     this.connection.disconnect();
+  }
+
+  dbIndex(): number {
+    return this.lookupDb;
   }
 
   enabled(): boolean {
@@ -42,6 +62,10 @@ export class RedisLookupStore implements OnModuleDestroy {
     return ttl;
   }
 
+  chunkBytes(): number {
+    return this.config.get<number>('LOOKUP_CACHE_CHUNK_BYTES', 1_048_576);
+  }
+
   isCircuitOpen(): boolean {
     if (this.circuitOpenUntil == null) return false;
     if (Date.now() >= this.circuitOpenUntil) {
@@ -56,6 +80,11 @@ export class RedisLookupStore implements OnModuleDestroy {
     return this.safe(async () => this.connection.get(key), null);
   }
 
+  async mget(keys: string[]): Promise<Array<string | null>> {
+    if (keys.length === 0) return [];
+    return this.safe(async () => this.connection.mget(...keys), keys.map(() => null));
+  }
+
   async set(key: string, value: string): Promise<boolean> {
     return (await this.safe(async () => {
       const ttl = this.ttlSeconds();
@@ -68,11 +97,56 @@ export class RedisLookupStore implements OnModuleDestroy {
     }, false)) as boolean;
   }
 
+  /** SET multiple keys with the same TTL in one pipeline. */
+  async setMany(entries: Array<{ key: string; value: string }>): Promise<boolean> {
+    if (entries.length === 0) return true;
+    return (await this.safe(async () => {
+      const ttl = this.ttlSeconds();
+      const pipeline = this.connection.pipeline();
+      for (const { key, value } of entries) {
+        if (ttl != null) {
+          pipeline.setex(key, ttl, value);
+        } else {
+          pipeline.set(key, value);
+        }
+      }
+      await pipeline.exec();
+      return true;
+    }, false)) as boolean;
+  }
+
   async del(key: string): Promise<boolean> {
     return (await this.safe(async () => {
       await this.connection.del(key);
       return true;
     }, false)) as boolean;
+  }
+
+  async delMany(keys: string[]): Promise<number> {
+    if (keys.length === 0) return 0;
+    return this.safe(async () => this.connection.del(...keys), 0);
+  }
+
+  /** SCAN + DEL keys matching pattern. Prefer over KEYS / FLUSHDB. */
+  async scanDelete(pattern: string): Promise<number> {
+    return this.safe(async () => {
+      let cursor = '0';
+      let deleted = 0;
+      do {
+        const [nextCursor, keys] = await this.connection.scan(
+          cursor,
+          'MATCH',
+          pattern,
+          'COUNT',
+          500,
+        );
+        cursor = nextCursor;
+        if (keys.length > 0) {
+          deleted += await this.connection.del(...keys);
+        }
+      } while (cursor !== '0');
+      return deleted;
+    }, 0);
   }
 
   /** Test helper — raw client for integration assertions. */
@@ -101,7 +175,6 @@ export class RedisLookupStore implements OnModuleDestroy {
 function withRedisDb(url: string, db: number): string {
   try {
     const u = new URL(url);
-    // redis://host:port/db
     u.pathname = `/${db}`;
     return u.toString();
   } catch {

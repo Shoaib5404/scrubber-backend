@@ -6,7 +6,7 @@ import {
   BatchStatistics,
   decimalToNumber,
   isoDate,
-  laravelPaginator,
+  lengthAwarePaginator,
   serializeBatch,
 } from './api-serializers';
 
@@ -19,6 +19,7 @@ export class BatchesService {
 
   async list(params: {
     ownerUserId: number | null;
+    tenantId: number | null;
     staff: boolean;
     status?: string;
     search?: string;
@@ -32,10 +33,14 @@ export class BatchesService {
     const where: Prisma.BatchFileWhereInput = {};
 
     if (!params.staff) {
-      if (params.ownerUserId == null) {
-        return laravelPaginator([], 0, page, perPage);
+      if (params.tenantId != null) {
+        where.tenantId = params.tenantId;
+      } else if (params.ownerUserId != null) {
+        // Legacy fallback while tenant_id is backfilled.
+        where.uploadedById = params.ownerUserId;
+      } else {
+        return lengthAwarePaginator([], 0, page, perPage);
       }
-      where.uploadedById = params.ownerUserId;
     }
 
     if (params.status) where.status = params.status;
@@ -62,7 +67,7 @@ export class BatchesService {
       }),
     ]);
 
-    return laravelPaginator(
+    return lengthAwarePaginator(
       rows.map((b) => serializeBatch(b)),
       total,
       page,
@@ -86,6 +91,36 @@ export class BatchesService {
       ...batch,
       _count: { claims: batch.claims.length },
     });
+  }
+
+  /** Lightweight poll payload for rule-validation status. */
+  async getStatusPoll(id: number) {
+    const batch = await this.prisma.batchFile.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        status: true,
+        totalClaims: true,
+        validClaims: true,
+        errorClaims: true,
+        warningClaims: true,
+      },
+    });
+    if (!batch) throw new NotFoundException('Batch not found.');
+
+    const pendingClaims = await this.prisma.claim.count({
+      where: { batchFileId: id, status: 'pending' },
+    });
+
+    return {
+      status: batch.status,
+      label: batchStatusLabel(batch.status),
+      total_claims: batch.totalClaims,
+      valid_claims: batch.validClaims,
+      error_claims: batch.errorClaims,
+      warning_claims: batch.warningClaims,
+      pending_claims: pendingClaims,
+    };
   }
 
   async getStatistics(id: number): Promise<BatchStatistics> {
@@ -144,5 +179,64 @@ export class BatchesService {
     }
 
     await this.prisma.batchFile.delete({ where: { id } });
+  }
+
+  /** Raw uploaded EDI bytes for inline display. */
+  async getEdiViewerPayload(id: number): Promise<{
+    buffer: Buffer;
+    downloadName: string;
+  }> {
+    const batch = await this.prisma.batchFile.findUnique({ where: { id } });
+    if (!batch) {
+      throw new NotFoundException('Batch not found.');
+    }
+    if (!batch.filePath) {
+      throw new NotFoundException('EDI file not found.');
+    }
+
+    let buffer: Buffer;
+    try {
+      buffer = await this.storage.getObject(batch.filePath);
+    } catch {
+      throw new NotFoundException('EDI file not found.');
+    }
+
+    const downloadName =
+      batch.originalFilename || batch.filename || `batch-${batch.id}.edi`;
+    return { buffer, downloadName };
+  }
+
+  /** Short-lived MinIO GET URL after ownership is confirmed by the guard. */
+  async getEdiDownloadUrl(id: number): Promise<{ url: string; expiresIn: number }> {
+    const batch = await this.prisma.batchFile.findUnique({ where: { id } });
+    if (!batch) {
+      throw new NotFoundException('Batch not found.');
+    }
+    if (!batch.filePath) {
+      throw new NotFoundException('EDI file not found.');
+    }
+    return this.storage.getPresignedDownloadUrl({ objectKey: batch.filePath });
+  }
+}
+
+/** Human-readable batch status label. */
+function batchStatusLabel(status: string): string {
+  switch (status) {
+    case 'pending':
+      return 'Pending';
+    case 'processing':
+      return 'Processing';
+    case 'parsed':
+      return 'Parsed';
+    case 'validating':
+      return 'Validating';
+    case 'validated':
+      return 'Validated';
+    case 'exported':
+      return 'Exported';
+    case 'error':
+      return 'Error';
+    default:
+      return status;
   }
 }

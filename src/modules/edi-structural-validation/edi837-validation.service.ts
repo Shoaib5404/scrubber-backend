@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { resolve } from 'path';
 import { EdiDocumentBuilder } from './document.builder';
+import { Edi837Spec } from './edi837-spec';
 import { Edi837ValidationPipeline } from './pipeline';
 import { IsaPreValidator } from './support/isa-pre.validator';
 import { Edi837ValidationResultDto, issue, toResult, isBlocking } from './types';
@@ -10,9 +12,15 @@ export class Edi837ValidationService {
   private readonly pre = new IsaPreValidator();
   private readonly builder = new EdiDocumentBuilder();
   private readonly pipeline: Edi837ValidationPipeline;
+  private readonly spec: Edi837Spec;
 
   constructor(private readonly config: ConfigService) {
     this.pipeline = new Edi837ValidationPipeline(config);
+    const specPath = resolve(
+      process.cwd(),
+      this.config.get<string>('EDI837_SPEC_PATH', './edi/837p/models'),
+    );
+    this.spec = Edi837Spec.fromPath(specPath);
   }
 
   validate(ediContent: string): Edi837ValidationResultDto {
@@ -20,7 +28,7 @@ export class Edi837ValidationService {
       return toResult([]);
     }
 
-    const issues = this.pre.validate(ediContent);
+    const issues = this.pre.validate(ediContent, this.spec);
     if (issues.some(isBlocking)) {
       return toResult(issues);
     }

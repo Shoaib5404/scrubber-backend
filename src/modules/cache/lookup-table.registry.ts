@@ -1,9 +1,8 @@
 /**
- * Laravel `config/lookup_cache.php` `tables` registry — enabled table names only, copied
- * from docs/migration/REDIS_LOOKUP_CACHE.md "Table registry inventory (59)".
+ * Lookup-cache table registry — enabled table names only (see migration docs inventory).
  *
- * `nccis` is intentionally excluded: it is disabled in Laravel's registry and served
- * instead by `NcciRulesCacheService` (separate cache shape — see ncci-rules-cache.service.ts).
+ * `nccis` is intentionally excluded: it uses `NcciRulesCacheService` (separate cache shape —
+ * see ncci-rules-cache.service.ts).
  *
  * Nest has no `LookupTableRegistry` service (profile/enabled metadata) yet; this static
  * list is the stand-in for CLI commands (redis:lookup-flush, redis:lookup-status,

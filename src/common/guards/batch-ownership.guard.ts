@@ -6,16 +6,19 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { isStaffRole } from '../../modules/auth/auth.constants';
+import { TenantContext } from '../tenant/tenant-context';
 import { AuthPrincipal } from '../../modules/auth/auth.types';
 
 /**
  * Ensures the authenticated principal may access the batch identified by `:id` or `:batchId`.
- * Customers / API clients are limited to batches where `uploaded_by` matches owner user id.
+ * Customers / API clients are limited to batches in their tenant.
  */
 @Injectable()
 export class BatchOwnershipGuard implements CanActivate {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly tenants: TenantContext,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<{
@@ -38,16 +41,15 @@ export class BatchOwnershipGuard implements CanActivate {
       throw new NotFoundException('Batch not found.');
     }
 
-    if (auth.typ === 'user' && auth.role && isStaffRole(auth.role)) {
+    if (this.tenants.isStaff(auth)) {
       return true;
     }
 
-    const ownerId = auth.userId;
-    if (ownerId == null) {
+    if (auth.tenantId == null) {
       throw new ForbiddenException('Not allowed to access this batch.');
     }
 
-    if (batch.uploadedById !== ownerId) {
+    if (batch.tenantId !== auth.tenantId) {
       throw new NotFoundException('Batch not found.');
     }
 

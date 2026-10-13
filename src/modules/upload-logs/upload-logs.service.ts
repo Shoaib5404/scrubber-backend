@@ -23,18 +23,22 @@ export class UploadLogsService {
 
     const staff = auth.typ === 'user' && auth.role && isStaffRole(auth.role);
     if (!staff) {
-      const ownerId = auth.userId;
-      if (ownerId == null) {
-        return {
-          current_page: page,
-          per_page: perPage,
-          total: 0,
-          last_page: 1,
-          data: [],
-          show_user_column: false,
-        };
+      if (auth.tenantId != null) {
+        where.tenantId = auth.tenantId;
+      } else {
+        const ownerId = auth.userId;
+        if (ownerId == null) {
+          return {
+            current_page: page,
+            per_page: perPage,
+            total: 0,
+            last_page: 1,
+            data: [],
+            show_user_column: false,
+          };
+        }
+        where.userId = ownerId;
       }
-      where.userId = ownerId;
     }
 
     if (query.status?.trim()) {

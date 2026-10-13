@@ -26,8 +26,10 @@ describe('createStorageProvider', () => {
           S3_ACCESS_KEY: 'minioadmin',
           S3_SECRET_KEY: 'minioadmin',
           S3_ENDPOINT: 'http://localhost:9020',
+          S3_PUBLIC_ENDPOINT: 'http://localhost:9020',
           S3_REGION: 'us-east-1',
           S3_FORCE_PATH_STYLE: true,
+          S3_PRESIGN_TTL: 900,
         };
         return map[key] ?? fallback;
       },
@@ -44,5 +46,21 @@ describe('createStorageProvider', () => {
     } as ConfigService;
 
     expect(() => createStorageProvider(config)).toThrow(/S3_BUCKET/);
+  });
+
+  it('requires S3_ENDPOINT when STORAGE_DRIVER=s3', () => {
+    const config = {
+      get: (key: string, fallback?: unknown) => {
+        const map: Record<string, unknown> = {
+          STORAGE_DRIVER: 's3',
+          S3_BUCKET: 'neo-scrubber',
+          S3_ACCESS_KEY: 'minioadmin',
+          S3_SECRET_KEY: 'minioadmin',
+        };
+        return map[key] ?? fallback;
+      },
+    } as ConfigService;
+
+    expect(() => createStorageProvider(config)).toThrow(/S3_ENDPOINT/);
   });
 });

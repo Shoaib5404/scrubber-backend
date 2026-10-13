@@ -104,6 +104,7 @@ import { Icd10TabularImportService } from './icd10-tabular/icd10-tabular.import.
 import { NpiOrderingReferringFetchCommand } from './npi-ordering-referring/npi-ordering-referring-fetch.command';
 import { NpiOrderingReferringImportCommand } from './npi-ordering-referring/npi-ordering-referring-import.command';
 import { NpiOrderingReferringSyncCommand } from './npi-ordering-referring/npi-ordering-referring-sync.command';
+import { NpiOrderingReferringSyncService } from './npi-ordering-referring/npi-ordering-referring-sync.service';
 import { NpiOrderingReferringDownloader } from './npi-ordering-referring/npi-ordering-referring.downloader';
 import { NpiOrderingReferringImportService } from './npi-ordering-referring/npi-ordering-referring.import.service';
 import { OrderAndReferringApiClient } from './npi-ordering-referring/order-and-referring-api.client';
@@ -166,6 +167,7 @@ import { OrderAndReferringApiClient } from './npi-ordering-referring/order-and-r
     OrderAndReferringApiClient,
     NpiOrderingReferringDownloader,
     NpiOrderingReferringImportService,
+    NpiOrderingReferringSyncService,
     RadiologyCptCodesImportCommand,
     MajorSurgeryCodesImportCommand,
     InitialTreatmentCodesImportCommand,
@@ -271,6 +273,7 @@ import { OrderAndReferringApiClient } from './npi-ordering-referring/order-and-r
     OrderAndReferringApiClient,
     NpiOrderingReferringDownloader,
     NpiOrderingReferringImportService,
+    NpiOrderingReferringSyncService,
   ],
 })
 export class ImportsModule {}

@@ -1,0 +1,11 @@
+{
+  "generated": "2026-10-09",
+  "updated": "2026-10-10",
+  "laravel_count": 300,
+  "nest_count": 300,
+  "both_count": 300,
+  "laravel_only": [],
+  "nest_only": ["SYS-001"],
+  "known_stubs": [],
+  "notes": "ZIP-OSUB/OPAT handlers ported (validateOtherSubscriberZipCodeRules). ZIP-CITY-001 is Laravel fallback ID when city_rule_code empty — Nest mirrors buildZipCityIssue fallback. SYS-001 is Nest worker wrap only."
+}

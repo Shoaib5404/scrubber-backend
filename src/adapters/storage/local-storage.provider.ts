@@ -1,7 +1,18 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { mkdir, readFile, unlink, writeFile } from 'fs/promises';
-import { dirname, join, resolve, sep } from 'path';
-import type { StorageProvider, StoredObject } from './storage.adapter';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import { mkdir, readFile, stat, unlink, writeFile } from 'fs/promises';
+import { dirname, resolve, sep } from 'path';
+import type {
+  PresignedDownloadUrl,
+  PresignedUploadUrl,
+  StorageObjectHead,
+  StorageProvider,
+  StoredObject,
+} from './storage.adapter';
 import { assertSafeStorageKey } from './storage-key.util';
 
 @Injectable()
@@ -51,5 +62,47 @@ export class LocalStorageProvider implements StorageProvider {
       if (code === 'ENOENT') return;
       throw err;
     }
+  }
+
+  async headObject(key: string): Promise<StorageObjectHead> {
+    try {
+      const info = await stat(this.resolvePath(key));
+      if (!info.isFile()) {
+        return { exists: false };
+      }
+      return {
+        exists: true,
+        contentLength: info.size,
+        contentType: 'application/octet-stream',
+      };
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException)?.code;
+      if (code === 'ENOENT') {
+        return { exists: false };
+      }
+      throw err;
+    }
+  }
+
+  async getPresignedUploadUrl(_params: {
+    objectKey: string;
+    mimeType: string;
+    maxSizeBytes: number;
+    expiresIn?: number;
+  }): Promise<PresignedUploadUrl> {
+    void _params;
+    throw new ServiceUnavailableException(
+      'Presigned uploads require STORAGE_DRIVER=s3 (MinIO). Local disk storage does not support browser direct upload.',
+    );
+  }
+
+  async getPresignedDownloadUrl(_params: {
+    objectKey: string;
+    expiresIn?: number;
+  }): Promise<PresignedDownloadUrl> {
+    void _params;
+    throw new ServiceUnavailableException(
+      'Presigned downloads require STORAGE_DRIVER=s3 (MinIO). Use the Nest EDI viewer proxy with local storage.',
+    );
   }
 }

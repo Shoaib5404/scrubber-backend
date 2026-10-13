@@ -107,6 +107,7 @@ export function validateNcci(
   }
 
   const approvedBypass = ncciApprovedBypassModifierLookup(bypassModifierCodes);
+  const ncciBypassHelpText = ncciBypassModifiersHelpText(bypassModifierCodes);
 
   const count = validLines.length;
 
@@ -135,6 +136,7 @@ export function validateNcci(
           field: `service_lines.${lineA.lineNumber}.modifiers`,
           message: `modifier GV cannot be appended to column 1 CPT/HCPCS code ${cptA} in NCCI edits. Please review and correct the modifier`,
           severity: 'error',
+          help_text: ncciBypassHelpText,
         });
         continue;
       }
@@ -162,6 +164,7 @@ export function validateNcci(
             field: `service_lines.${lineB.lineNumber}.procedure_code`,
             message: `CPT/HCPCS code ${cptB} requires an appropriate NCCI modifier when billed with ${cptA}. Please add a valid modifier.`,
             severity: 'error',
+            help_text: ncciBypassHelpText,
           });
           continue;
         }
@@ -173,13 +176,12 @@ export function validateNcci(
             field: `service_lines.${lineB.lineNumber}.procedure_code`,
             message: `modifier ${invalid} is not valid to override the NCCI edit between ${cptA} and ${cptB}. Please use an approved NCCI modifier.`,
             severity: 'error',
+            help_text: ncciBypassHelpText,
           });
         }
       }
     }
   }
-
-  void ncciBypassModifiersHelpText(bypassModifierCodes);
 
   return { errors, warnings };
 }

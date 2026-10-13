@@ -52,6 +52,29 @@ describe('auth ownership (integration)', () => {
     const stamp = Date.now();
     const passwordHash = await passwords.hashPassword('Password123!');
 
+    const tenantA = await prisma.tenant.create({
+      data: {
+        name: 'Tenant A',
+        slug: `tenant-a-${stamp}`,
+        status: 'active',
+        subscriptionStatus: 'active',
+      },
+    });
+    const tenantB = await prisma.tenant.create({
+      data: {
+        name: 'Tenant B',
+        slug: `tenant-b-${stamp}`,
+        status: 'active',
+        subscriptionStatus: 'active',
+      },
+    });
+    const allFeatures = ['web.upload', 'api.access', 'api.batches', 'api.reference'];
+    await prisma.tenantFeature.createMany({
+      data: [tenantA.id, tenantB.id].flatMap((tenantId) =>
+        allFeatures.map((feature) => ({ tenantId, feature, enabled: true })),
+      ),
+    });
+
     const customerA = await prisma.user.create({
       data: {
         name: 'Customer A',
@@ -60,6 +83,7 @@ describe('auth ownership (integration)', () => {
         role: 'customer',
         isActive: true,
         subscriptionStatus: 'active',
+        tenantId: tenantA.id,
       },
     });
     const customerB = await prisma.user.create({
@@ -70,6 +94,7 @@ describe('auth ownership (integration)', () => {
         role: 'customer',
         isActive: true,
         subscriptionStatus: 'active',
+        tenantId: tenantB.id,
       },
     });
     const admin = await prisma.user.create({
@@ -92,6 +117,7 @@ describe('auth ownership (integration)', () => {
         filePath: `storage/edi/a-${stamp}.edi`,
         status: 'pending',
         uploadedById: customerA.id,
+        tenantId: tenantA.id,
       },
     });
     const batchB = await prisma.batchFile.create({
@@ -101,6 +127,7 @@ describe('auth ownership (integration)', () => {
         filePath: `storage/edi/b-${stamp}.edi`,
         status: 'pending',
         uploadedById: customerB.id,
+        tenantId: tenantB.id,
       },
     });
     ids.batchA = batchA.id;
@@ -114,6 +141,7 @@ describe('auth ownership (integration)', () => {
         role: 'customer',
         isActive: true,
         subscriptionStatus: 'active',
+        tenantId: tenantA.id,
       },
     });
     const customerNoScope = await prisma.user.create({
@@ -124,6 +152,7 @@ describe('auth ownership (integration)', () => {
         role: 'customer',
         isActive: true,
         subscriptionStatus: 'active',
+        tenantId: tenantA.id,
       },
     });
 
@@ -133,6 +162,7 @@ describe('auth ownership (integration)', () => {
         clientId: `client-a-${stamp}`,
         clientSecret: await passwords.hashSecret(secrets.clientA),
         userId: customerA.id,
+        tenantId: tenantA.id,
         isActive: true,
         scopes: ['batches:read', 'batches:write', 'validate'],
       },
@@ -143,6 +173,7 @@ describe('auth ownership (integration)', () => {
         clientId: `client-revoked-${stamp}`,
         clientSecret: await passwords.hashSecret(secrets.clientRevoked),
         userId: customerRevoked.id,
+        tenantId: tenantA.id,
         isActive: false,
         scopes: ['batches:read'],
       },
@@ -153,6 +184,7 @@ describe('auth ownership (integration)', () => {
         clientId: `client-noscope-${stamp}`,
         clientSecret: await passwords.hashSecret(secrets.clientNoScope),
         userId: customerNoScope.id,
+        tenantId: tenantA.id,
         isActive: true,
         scopes: ['reference:read'],
       },

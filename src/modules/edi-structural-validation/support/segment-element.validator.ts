@@ -1,4 +1,5 @@
 import { Edi837ValidationIssue, EdiSegment, issue } from '../types';
+import { FieldFormatValidator } from './field-format.validator';
 
 type ElementDef = {
   required?: boolean;
@@ -424,9 +425,9 @@ export class SegmentElementValidator {
       case 'DIGIT':
         return /^\d+$/.test(value);
       case 'YYMMDD':
-        return /^\d{6}$/.test(value);
+        return FieldFormatValidator.isValidYyMmDd(value);
       case 'CCYYMMDD':
-        return /^\d{8}$/.test(value);
+        return FieldFormatValidator.isValidD8(value);
       case 'HHMM':
         return /^\d{4}$/.test(value) && Number(value.slice(0, 2)) <= 23 && Number(value.slice(2, 4)) <= 59;
       case 'HHMM OR HHMMSS OR HHMMSSDD':

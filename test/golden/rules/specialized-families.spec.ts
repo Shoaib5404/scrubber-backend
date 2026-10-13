@@ -13,11 +13,14 @@ import {
 } from '../../../src/modules/claim-validation/rules/radiology-tc-modifier.rules';
 import {
   isApplicableCigna62308,
+  validateCigna62308,
   CIGNA_ICD_001,
 } from '../../../src/modules/claim-validation/rules/cigna-62308.rules';
 import {
   isApplicableAetnaLcd,
+  validateAetnaLcd,
   AETNA_FETAL_001,
+  AETNA_B12_001,
 } from '../../../src/modules/claim-validation/rules/aetna-lcd.rules';
 import {
   isApplicableModifierSequence,
@@ -89,6 +92,57 @@ describe('SP-4 claim golden / specialized families', () => {
   it('AETNA LCD applicable for payer 60054', () => {
     expect(isApplicableAetnaLcd({ payerId: '60054' })).toBe(true);
     expect(AETNA_FETAL_001).toBe('AETNA-FETAL-001');
+  });
+
+  it('CIGNA-ICD-001 rejects unsupported ICD and attaches details_url', () => {
+    const errors = validateCigna62308(
+      [
+        {
+          lineNumber: 1,
+          procedureCode: '93303',
+          diagnosisPointers: [1],
+          serviceDateFrom: new Date('2024-01-01'),
+        },
+      ],
+      [{ sequence: 1, code: 'Z00.00' }],
+      {
+        payerId: '62308',
+        patientDob: new Date('1980-01-01'),
+        subscriberDob: null,
+      },
+      { '93303': { A1884: true } },
+    );
+    expect(errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rule: CIGNA_ICD_001,
+          cpt_code: '93303',
+          icd_code: 'Z00.00',
+          details_url: '/dashboard/references/cigna-cpt-icd-crosswalk?search=93303&cpt_code=93303',
+        }),
+      ]),
+    );
+  });
+
+  it('AETNA-B12-001 rejects unsupported ICD and attaches details_url', () => {
+    const errors = validateAetnaLcd(
+      [{ lineNumber: 1, procedureCode: '83090', diagnosisPointers: [1] }],
+      [{ sequence: 1, code: 'Z00.00' }],
+      { payerId: '60054' },
+      [],
+      {},
+      { '83090': { B700: true } },
+    );
+    expect(errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rule: AETNA_B12_001,
+          cpt_code: '83090',
+          icd_code: 'Z00.00',
+          details_url: '/dashboard/references/aetna-b12-lcd?search=83090&cpt=83090',
+        }),
+      ]),
+    );
   });
 
   it('MOD-SEQ-001 applicable for Medicare filing', () => {

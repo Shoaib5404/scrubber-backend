@@ -6,40 +6,59 @@ async function main() {
   const prisma = new PrismaClient();
   const password = await hash('Password123!');
 
-  const fixtures = [
-    {
+  await prisma.user.upsert({
+    where: { email: 'e2e-admin@example.com' },
+    create: {
       email: 'e2e-admin@example.com',
       name: 'E2E Admin',
       role: 'admin',
+      password,
+      isActive: true,
       subscriptionStatus: 'active',
     },
-    {
+    update: {
+      password,
+      isActive: true,
+      role: 'admin',
+      subscriptionStatus: 'active',
+      tenantId: null,
+    },
+  });
+
+  const tenant = await prisma.tenant.upsert({
+    where: { slug: 'e2e-customer-org' },
+    create: {
+      name: 'E2E Customer Org',
+      slug: 'e2e-customer-org',
+      status: 'active',
+      subscriptionStatus: 'active',
+      subscriptionStartsAt: new Date(),
+    },
+    update: {
+      status: 'active',
+      subscriptionStatus: 'active',
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: 'e2e-customer@example.com' },
+    create: {
       email: 'e2e-customer@example.com',
       name: 'E2E Customer',
       role: 'customer',
+      password,
+      isActive: true,
       subscriptionStatus: 'active',
+      tenantId: tenant.id,
     },
-  ] as const;
-
-  for (const fixture of fixtures) {
-    await prisma.user.upsert({
-      where: { email: fixture.email },
-      create: {
-        email: fixture.email,
-        name: fixture.name,
-        role: fixture.role,
-        password,
-        isActive: true,
-        subscriptionStatus: fixture.subscriptionStatus,
-      },
-      update: {
-        password,
-        isActive: true,
-        role: fixture.role,
-        subscriptionStatus: fixture.subscriptionStatus,
-      },
-    });
-  }
+    update: {
+      password,
+      isActive: true,
+      role: 'customer',
+      subscriptionStatus: 'active',
+      tenantId: tenant.id,
+    },
+  });
 
   await prisma.$disconnect();
   // eslint-disable-next-line no-console

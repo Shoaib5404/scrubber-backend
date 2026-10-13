@@ -32,9 +32,8 @@ import { NpiOrderingReferringImportService } from '../../src/modules/imports/npi
  * downloader is swapped for a jest mock in the sync-command suite instead of mocking `fetch`
  * globally, since `OrderAndReferringApiClient` already isolates all HTTP calls behind it.
  *
- * Schedule note: the Laravel daily 06:00 America/New_York `npi-ordering-referrings:sync` entry is
- * commented out in bootstrap/app.php and stays disabled here too — no Nest scheduler invokes any
- * of these commands (see scheduler.host.ts and NPI_SYNC_SCHEDULE_ENABLED in env.schema.ts).
+ * Schedule note: daily 06:00 America/New_York sync is gated by `NPI_SYNC_SCHEDULE_ENABLED`
+ * (default false; Laravel schedule was commented). When true, SchedulerHost runs the sync service.
  */
 
 function envOverrides(config: Record<string, unknown>) {

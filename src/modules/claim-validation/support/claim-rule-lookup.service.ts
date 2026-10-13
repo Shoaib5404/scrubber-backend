@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { lookupLogicalName } from '../../cache/cache.constants';
 import { LookupCacheService } from '../../cache/lookup-cache.service';
 import { NcciRulesCacheService } from '../../cache/ncci-rules-cache.service';
+import { MedicaidMemberIdFormatRepository } from '../../reference-admin/medicaid/medicaid-member-id-format.repository';
 import {
   CptCoreRuleRow,
   CptModifierRuleRow,
@@ -25,6 +27,9 @@ import {
   BRIEF_CHECKIN_RELATED_EM,
 } from '../rules/em-bundling.rules';
 import {
+  ZipCodeLookupRow,
+} from '../rules/payer-edi-zip-city.rules';
+import {
   buildNdcCrosswalkContext,
   emptyNdcCrosswalkContext,
   NdcCrosswalkContext,
@@ -36,14 +41,16 @@ import {
   icdLookupCandidates,
   normalizeIcdCode,
 } from './icd-tabular-notes';
+import { digitsOnly, zip5FromDigits } from './payer-edi.helpers';
 
-/** Loads claim-rule reference rows (Laravel LookupCache + NCCI Redis path). */
+/** Loads claim-rule reference rows (Postgres + Nest lookup Redis cache-aside). */
 @Injectable()
 export class ClaimRuleLookupService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly lookupCache: LookupCacheService,
     private readonly ncciCache: NcciRulesCacheService,
+    private readonly medicaidFormats: MedicaidMemberIdFormatRepository,
   ) {}
 
   uniqueCodes(codes: Array<string | null | undefined>): string[] {
@@ -57,125 +64,195 @@ export class ClaimRuleLookupService {
     return [...set];
   }
 
+  /** Cache-aside helper: `lookup:v1:{table}:{profile}:{disc}`. */
+  private cached<T>(
+    table: string,
+    profile: string,
+    discriminator: string,
+    loader: () => Promise<T>,
+  ): Promise<T> {
+    return this.lookupCache.getOrLoad(lookupLogicalName(table, profile, discriminator), loader);
+  }
+
   async cptRuleRowsByCode(codes: string[]): Promise<Record<string, CptCoreRuleRow>> {
     if (codes.length === 0) return {};
-    const cpts = await this.prisma.cptCode.findMany({
-      where: { name: { in: codes }, isActive: true },
-      select: { name: true },
+    const disc = this.lookupCache.hashCodes(codes);
+    return this.cached('cpt_codes', 'by_code', disc, async () => {
+      const cpts = await this.prisma.cptCode.findMany({
+        where: { name: { in: codes }, isActive: true },
+        select: { name: true },
+      });
+      const age = await this.prisma.ageSpecificCptRule.findMany({
+        where: { cptCode: { in: codes }, isActive: true },
+      });
+      const gender = await this.prisma.genderSpecificCptRule.findMany({
+        where: { cptCode: { in: codes }, isActive: true },
+      });
+      const ageBy = Object.fromEntries(age.map((r) => [r.cptCode.toUpperCase(), r]));
+      const genderBy = Object.fromEntries(gender.map((r) => [r.cptCode.toUpperCase(), r]));
+      const out: Record<string, CptCoreRuleRow> = {};
+      for (const row of cpts) {
+        const code = row.name.toUpperCase();
+        const a = ageBy[code];
+        const g = genderBy[code];
+        out[code] = {
+          cpt_code: code,
+          age_rule_id: a?.id ?? null,
+          low_limit: a?.lowLimit ?? null,
+          high_limit: a?.highLimit ?? null,
+          unit: a?.unit ?? null,
+          age_gender: a?.gender ?? null,
+          gender_rule_id: g?.id ?? null,
+          required_gender: g?.gender ?? null,
+        };
+      }
+      return out;
     });
-    const age = await this.prisma.ageSpecificCptRule.findMany({
-      where: { cptCode: { in: codes }, isActive: true },
-    });
-    const gender = await this.prisma.genderSpecificCptRule.findMany({
-      where: { cptCode: { in: codes }, isActive: true },
-    });
-    const ageBy = Object.fromEntries(age.map((r) => [r.cptCode.toUpperCase(), r]));
-    const genderBy = Object.fromEntries(gender.map((r) => [r.cptCode.toUpperCase(), r]));
-    const out: Record<string, CptCoreRuleRow> = {};
-    for (const row of cpts) {
-      const code = row.name.toUpperCase();
-      const a = ageBy[code];
-      const g = genderBy[code];
-      out[code] = {
-        cpt_code: code,
-        age_rule_id: a?.id ?? null,
-        low_limit: a?.lowLimit ?? null,
-        high_limit: a?.highLimit ?? null,
-        unit: a?.unit ?? null,
-        age_gender: a?.gender ?? null,
-        gender_rule_id: g?.id ?? null,
-        required_gender: g?.gender ?? null,
-      };
-    }
-    return out;
   }
 
   async ageRulesByCode(codes: string[]): Promise<Record<string, AgeSpecificCptRuleRow>> {
     if (codes.length === 0) return {};
-    const rows = await this.prisma.ageSpecificCptRule.findMany({
-      where: { cptCode: { in: codes }, isActive: true },
+    return this.cached('age_specific_cpt_rules', 'by_code', this.lookupCache.hashCodes(codes), async () => {
+      const rows = await this.prisma.ageSpecificCptRule.findMany({
+        where: { cptCode: { in: codes }, isActive: true },
+      });
+      return Object.fromEntries(
+        rows.map((r) => [
+          r.cptCode.toUpperCase(),
+          {
+            id: r.id,
+            cpt_code: r.cptCode,
+            low_limit: r.lowLimit,
+            high_limit: r.highLimit,
+            unit: r.unit,
+            gender: r.gender,
+          },
+        ]),
+      );
     });
-    return Object.fromEntries(
-      rows.map((r) => [
-        r.cptCode.toUpperCase(),
-        {
-          id: r.id,
-          cpt_code: r.cptCode,
-          low_limit: r.lowLimit,
-          high_limit: r.highLimit,
-          unit: r.unit,
-          gender: r.gender,
-        },
-      ]),
-    );
   }
 
   async genderRulesByCode(codes: string[]): Promise<Record<string, GenderSpecificCptRuleRow>> {
     if (codes.length === 0) return {};
-    const rows = await this.prisma.genderSpecificCptRule.findMany({
-      where: { cptCode: { in: codes }, isActive: true },
-    });
-    return Object.fromEntries(
-      rows.map((r) => [
-        r.cptCode.toUpperCase(),
-        { id: r.id, cpt_code: r.cptCode, gender: r.gender },
-      ]),
+    return this.cached(
+      'gender_specific_cpt_rules',
+      'by_code',
+      this.lookupCache.hashCodes(codes),
+      async () => {
+        const rows = await this.prisma.genderSpecificCptRule.findMany({
+          where: { cptCode: { in: codes }, isActive: true },
+        });
+        return Object.fromEntries(
+          rows.map((r) => [
+            r.cptCode.toUpperCase(),
+            { id: r.id, cpt_code: r.cptCode, gender: r.gender },
+          ]),
+        );
+      },
     );
   }
 
   async activeTaxonomyCodes(codes: string[]): Promise<Record<string, true>> {
     if (codes.length === 0) return {};
-    const rows = await this.prisma.taxonomyCode.findMany({
-      where: { taxonomyCode: { in: codes }, isActive: true },
-      select: { taxonomyCode: true },
+    return this.cached('taxonomy_codes', 'by_code', this.lookupCache.hashCodes(codes), async () => {
+      const rows = await this.prisma.taxonomyCode.findMany({
+        where: { taxonomyCode: { in: codes }, isActive: true },
+        select: { taxonomyCode: true },
+      });
+      return Object.fromEntries(rows.map((r) => [r.taxonomyCode.toUpperCase(), true as const]));
     });
-    return Object.fromEntries(rows.map((r) => [r.taxonomyCode.toUpperCase(), true as const]));
   }
 
   async iCodeSet(codes: string[]): Promise<Record<string, true>> {
     if (codes.length === 0) return {};
-    const rows = await this.prisma.iCode.findMany({
-      where: { hcpcs: { in: codes }, active: true },
-      select: { hcpcs: true },
+    return this.cached('i_codes', 'by_code', this.lookupCache.hashCodes(codes), async () => {
+      const rows = await this.prisma.iCode.findMany({
+        where: { hcpcs: { in: codes }, active: true },
+        select: { hcpcs: true },
+      });
+      return Object.fromEntries(rows.map((r) => [r.hcpcs.toUpperCase(), true as const]));
     });
-    return Object.fromEntries(rows.map((r) => [r.hcpcs.toUpperCase(), true as const]));
   }
 
   async zeroAmountProcedureSet(codes: string[]): Promise<Record<string, true>> {
     if (codes.length === 0) return {};
-    const rows = await this.prisma.zeroAmountProcedure.findMany({
-      where: { procedureCode: { in: codes }, isActive: true },
-      select: { procedureCode: true },
-    });
-    return Object.fromEntries(rows.map((r) => [r.procedureCode.toUpperCase(), true as const]));
+    return this.cached(
+      'zero_amount_procedures',
+      'by_code',
+      this.lookupCache.hashCodes(codes),
+      async () => {
+        const rows = await this.prisma.zeroAmountProcedure.findMany({
+          where: { procedureCode: { in: codes }, isActive: true },
+          select: { procedureCode: true },
+        });
+        return Object.fromEntries(
+          rows.map((r) => [r.procedureCode.toUpperCase(), true as const]),
+        );
+      },
+    );
   }
 
   async noOfUnitsCptSet(codes: string[]): Promise<Record<string, true>> {
     if (codes.length === 0) return {};
-    const rows = await this.prisma.noOfUnitsCpt.findMany({
-      where: { cpt: { in: codes }, isActive: true },
-      select: { cpt: true },
+    return this.cached('no_of_units_cpts', 'by_code', this.lookupCache.hashCodes(codes), async () => {
+      const rows = await this.prisma.noOfUnitsCpt.findMany({
+        where: { cpt: { in: codes }, isActive: true },
+        select: { cpt: true },
+      });
+      return Object.fromEntries(rows.map((r) => [r.cpt.toUpperCase(), true as const]));
     });
-    return Object.fromEntries(rows.map((r) => [r.cpt.toUpperCase(), true as const]));
   }
 
   async npiOrderingReferringByNpi(
     npis: string[],
   ): Promise<Record<string, { last_name: string | null }>> {
     if (npis.length === 0) return {};
+    const unique = this.uniqueCodes(npis);
+    const out: Record<string, { last_name: string | null }> = {};
+    const missing: string[] = [];
+
+    for (const npi of unique) {
+      const logical = lookupLogicalName('npi_ordering_referrings', 'by_npi', npi);
+      const hit = await this.lookupCache.peek<{ last_name: string | null }>(logical);
+      if (hit != null) {
+        out[npi] = hit;
+      } else {
+        missing.push(npi);
+      }
+    }
+
+    if (missing.length === 0) return out;
+
     const rows = await this.prisma.npiOrderingReferring.findMany({
-      where: { npi: { in: npis }, active: true },
+      where: { npi: { in: missing }, active: true },
     });
-    return Object.fromEntries(rows.map((r) => [r.npi, { last_name: r.lastName }]));
+    const found = new Set<string>();
+    for (const r of rows) {
+      found.add(r.npi);
+      const payload = { last_name: r.lastName };
+      out[r.npi] = payload;
+      await this.lookupCache.getOrLoad(
+        lookupLogicalName('npi_ordering_referrings', 'by_npi', r.npi),
+        async () => payload,
+      );
+    }
+    return out;
   }
 
   async mueUhcOxfordByCode(codes: string[]): Promise<Record<string, { min: number; max: number }>> {
     if (codes.length === 0) return {};
-    const rows = await this.prisma.mue87726Uhc06111Oxford.findMany({
-      where: { cptCode: { in: codes }, isActive: true },
-    });
-    return Object.fromEntries(
-      rows.map((r) => [r.cptCode.toUpperCase(), { min: r.min, max: r.max }]),
+    return this.cached(
+      'mue_87726_uhc_06111_oxford',
+      'by_code',
+      this.lookupCache.hashCodes(codes),
+      async () => {
+        const rows = await this.prisma.mue87726Uhc06111Oxford.findMany({
+          where: { cptCode: { in: codes }, isActive: true },
+        });
+        return Object.fromEntries(
+          rows.map((r) => [r.cptCode.toUpperCase(), { min: r.min, max: r.max }]),
+        );
+      },
     );
   }
 
@@ -186,34 +263,38 @@ export class ClaimRuleLookupService {
 
   async muePractitionerByCode(codes: string[]): Promise<Record<string, MuePractitionerLookupRow>> {
     if (codes.length === 0) return {};
-    const rows = await this.prisma.muePractitioner.findMany({
-      where: { cptCode: { in: codes } },
+    return this.cached('mue_practitioners', 'by_code', this.lookupCache.hashCodes(codes), async () => {
+      const rows = await this.prisma.muePractitioner.findMany({
+        where: { cptCode: { in: codes } },
+      });
+      return Object.fromEntries(
+        rows.map((r) => [
+          r.cptCode.toUpperCase(),
+          { upperLimit: r.upperLimit, indicator: r.indicator },
+        ]),
+      );
     });
-    return Object.fromEntries(
-      rows.map((r) => [
-        r.cptCode.toUpperCase(),
-        { upperLimit: r.upperLimit, indicator: r.indicator },
-      ]),
-    );
   }
 
   async radiologyCptSet(codes: string[]): Promise<Record<string, true>> {
     if (codes.length === 0) return {};
-    const rows = await this.prisma.radiologyCptCode.findMany({
-      where: { cpt: { in: codes }, isActive: true },
-      select: { cpt: true },
+    return this.cached('radiology_cpt_codes', 'by_code', this.lookupCache.hashCodes(codes), async () => {
+      const rows = await this.prisma.radiologyCptCode.findMany({
+        where: { cpt: { in: codes }, isActive: true },
+        select: { cpt: true },
+      });
+      return Object.fromEntries(
+        rows.map((r) => {
+          const code = r.cpt.trim().toUpperCase();
+          const padded = /^\d+$/.test(code) ? code.padStart(5, '0') : code;
+          return [padded, true as const];
+        }),
+      );
     });
-    return Object.fromEntries(
-      rows.map((r) => {
-        const code = r.cpt.trim().toUpperCase();
-        const padded = /^\d+$/.test(code) ? code.padStart(5, '0') : code;
-        return [padded, true as const];
-      }),
-    );
   }
 
   async modifierSequences(): Promise<Array<{ id: number; modifier: string }>> {
-    return this.lookupCache.getOrLoad('modifier_sequences:active', () =>
+    return this.cached('modifier_sequences', 'set', 'active', () =>
       this.prisma.modifierSequence.findMany({
         where: { isActive: true },
         select: { id: true, modifier: true },
@@ -224,109 +305,132 @@ export class ClaimRuleLookupService {
 
   async primariesByAddon(codes: string[]): Promise<Record<string, string[]>> {
     if (codes.length === 0) return {};
-    const rows = await this.prisma.addOnCode.findMany({
-      where: { addOnCode: { in: codes } },
-      select: { addOnCode: true, primaryCode: true },
+    return this.cached('add_on_codes', 'by_code', this.lookupCache.hashCodes(codes), async () => {
+      const rows = await this.prisma.addOnCode.findMany({
+        where: { addOnCode: { in: codes } },
+        select: { addOnCode: true, primaryCode: true },
+      });
+      const out: Record<string, string[]> = {};
+      for (const row of rows) {
+        const addon = String(row.addOnCode ?? '')
+          .trim()
+          .toUpperCase();
+        if (!addon) continue;
+        (out[addon] ??= []).push(row.primaryCode.toUpperCase());
+      }
+      return out;
     });
-    const out: Record<string, string[]> = {};
-    for (const row of rows) {
-      const addon = String(row.addOnCode ?? '')
-        .trim()
-        .toUpperCase();
-      if (!addon) continue;
-      (out[addon] ??= []).push(row.primaryCode.toUpperCase());
-    }
-    return out;
   }
 
   async cptPosRules(codes: string[]): Promise<CptPosRuleRow[]> {
     if (codes.length === 0) return [];
-    const rows = await this.prisma.cptPosRule.findMany({
-      where: { cptCode: { in: codes }, isDeleted: false },
+    return this.cached('cpt_pos_rules', 'by_code', this.lookupCache.hashCodes(codes), async () => {
+      const rows = await this.prisma.cptPosRule.findMany({
+        where: { cptCode: { in: codes }, isDeleted: false },
+      });
+      return rows.map((r) => ({
+        id: r.id,
+        cpt_code: r.cptCode,
+        payer_id: r.payerId,
+        pos_code: r.posCode,
+      }));
     });
-    return rows.map((r) => ({
-      id: r.id,
-      cpt_code: r.cptCode,
-      payer_id: r.payerId,
-      pos_code: r.posCode,
-    }));
   }
 
   async cptModifierRules(codes: string[]): Promise<CptModifierRuleRow[]> {
     if (codes.length === 0) return [];
-    const rows = await this.prisma.cptModifierRule.findMany({
-      where: { cptCode: { in: codes }, isActive: true },
+    return this.cached('cpt_modifier_rules', 'by_code', this.lookupCache.hashCodes(codes), async () => {
+      const rows = await this.prisma.cptModifierRule.findMany({
+        where: { cptCode: { in: codes }, isActive: true },
+      });
+      return rows.map((r) => ({
+        id: r.id,
+        cpt_code: r.cptCode,
+        modifier_code: r.modifierCode,
+        is_allowed: r.isAllowed,
+      }));
     });
-    return rows.map((r) => ({
-      id: r.id,
-      cpt_code: r.cptCode,
-      modifier_code: r.modifierCode,
-      is_allowed: r.isAllowed,
-    }));
   }
 
   async uhcPosByCpt(codes: string[]): Promise<Record<string, string[]>> {
     if (codes.length === 0) return {};
-    const rows = await this.prisma.uhcPosCrosswalk.findMany({
-      where: { cptCode: { in: codes }, isActive: true },
+    return this.cached('uhc_pos_crosswalk', 'by_code', this.lookupCache.hashCodes(codes), async () => {
+      const rows = await this.prisma.uhcPosCrosswalk.findMany({
+        where: { cptCode: { in: codes }, isActive: true },
+      });
+      const out: Record<string, string[]> = {};
+      for (const r of rows) {
+        const cpt = r.cptCode.toUpperCase();
+        (out[cpt] ??= []).push(String(r.posCode).trim().padStart(2, '0'));
+      }
+      return out;
     });
-    const out: Record<string, string[]> = {};
-    for (const r of rows) {
-      const cpt = r.cptCode.toUpperCase();
-      (out[cpt] ??= []).push(String(r.posCode).trim().padStart(2, '0'));
-    }
-    return out;
   }
 
   /**
-   * Laravel Uhc87726PriorAuthRules::loadRulesByCpt — active uhc_authorizations by CPT
-   * (DB query; Redis by-cpt cache deferred).
+   * Active uhc_authorizations by CPT (cache-aside by code hash).
    */
   async uhcPriorAuthRulesByCpt(
     codes: string[],
   ): Promise<Record<string, UhcAuthorizationParsedRule[]>> {
     if (codes.length === 0) return {};
-    const rows = await this.prisma.uhcAuthorization.findMany({
-      where: { cptCode: { in: codes }, isActive: true },
-      orderBy: { id: 'asc' },
+    return this.cached('uhc_authorizations', 'by_code', this.lookupCache.hashCodes(codes), async () => {
+      const rows = await this.prisma.uhcAuthorization.findMany({
+        where: { cptCode: { in: codes }, isActive: true },
+        orderBy: { id: 'asc' },
+      });
+      const out: Record<string, UhcAuthorizationParsedRule[]> = {};
+      for (const row of rows) {
+        const cpt = row.cptCode.trim().toUpperCase();
+        if (cpt === '') continue;
+        (out[cpt] ??= []).push(
+          toUhcAuthorizationParsedRule({
+            id: row.id,
+            condition: row.condition,
+            conditionValues: row.conditionValues,
+          }),
+        );
+      }
+      return out;
     });
-    const out: Record<string, UhcAuthorizationParsedRule[]> = {};
-    for (const row of rows) {
-      const cpt = row.cptCode.trim().toUpperCase();
-      if (cpt === '') continue;
-      (out[cpt] ??= []).push(
-        toUhcAuthorizationParsedRule({
-          id: row.id,
-          condition: row.condition,
-          conditionValues: row.conditionValues,
-        }),
-      );
-    }
-    return out;
   }
 
   async ndcContext(hcpcsCodes: string[]): Promise<NdcCrosswalkContext> {
     if (hcpcsCodes.length === 0) return emptyNdcCrosswalkContext();
-    const rows = await this.prisma.ndcHcpcsCrosswalk.findMany({
-      where: { hcpcs: { in: hcpcsCodes }, isActive: true },
-      select: { hcpcs: true, ndc: true },
-    });
-    return buildNdcCrosswalkContext(rows);
+    return this.cached(
+      'ndc_hcpcs_crosswalk',
+      'by_code',
+      this.lookupCache.hashCodes(hcpcsCodes),
+      async () => {
+        const rows = await this.prisma.ndcHcpcsCrosswalk.findMany({
+          where: { hcpcs: { in: hcpcsCodes }, isActive: true },
+          select: { hcpcs: true, ndc: true },
+        });
+        return buildNdcCrosswalkContext(rows);
+      },
+    );
   }
 
   async icdBodySides(codes: string[]): Promise<Record<string, string>> {
     if (codes.length === 0) return {};
     const normalized = codes.map((c) => c.replace(/\./g, '').toUpperCase());
-    const rows = await this.prisma.icd10BodySidewise.findMany({
-      where: { code: { in: normalized } },
-    });
-    return Object.fromEntries(
-      rows.map((r) => [r.code.replace(/\./g, '').toUpperCase(), String(r.side ?? '')]),
+    return this.cached(
+      'icd10_body_sidewise',
+      'by_code',
+      this.lookupCache.hashCodes(normalized),
+      async () => {
+        const rows = await this.prisma.icd10BodySidewise.findMany({
+          where: { code: { in: normalized } },
+        });
+        return Object.fromEntries(
+          rows.map((r) => [r.code.replace(/\./g, '').toUpperCase(), String(r.side ?? '')]),
+        );
+      },
     );
   }
 
   async enmProcedureSet(): Promise<Record<string, true>> {
-    return this.lookupCache.getOrLoad('enm_procedures:active_set', async () => {
+    return this.cached('enm_procedures', 'set', 'active', async () => {
       const rows = await this.prisma.enmProcedure.findMany({
         where: { isActive: true },
         select: { cptCode: true },
@@ -336,7 +440,7 @@ export class ClaimRuleLookupService {
   }
 
   async enmSurgerySet(): Promise<Record<string, true>> {
-    return this.lookupCache.getOrLoad('enm_surgery_codes:active_set', async () => {
+    return this.cached('enm_surgery_codes', 'set', 'active', async () => {
       const rows = await this.prisma.enmSurgeryCode.findMany({
         where: { isActive: true },
         select: { cptCode: true },
@@ -347,20 +451,29 @@ export class ClaimRuleLookupService {
 
   async majorSurgerySet(codes: string[]): Promise<Record<string, true>> {
     if (codes.length === 0) return {};
-    const rows = await this.prisma.majorSurgeryCode.findMany({
-      where: { code: { in: codes }, active: true },
-      select: { code: true },
+    return this.cached('major_surgery_codes', 'by_code', this.lookupCache.hashCodes(codes), async () => {
+      const rows = await this.prisma.majorSurgeryCode.findMany({
+        where: { code: { in: codes }, active: true },
+        select: { code: true },
+      });
+      return Object.fromEntries(rows.map((r) => [r.code.toUpperCase(), true as const]));
     });
-    return Object.fromEntries(rows.map((r) => [r.code.toUpperCase(), true as const]));
   }
 
   async globalDaysSurgerySet(codes: string[]): Promise<Record<string, true>> {
     if (codes.length === 0) return {};
-    const rows = await this.prisma.globalDaysSurgery.findMany({
-      where: { cptCode: { in: codes }, isActive: true },
-      select: { cptCode: true },
-    });
-    return Object.fromEntries(rows.map((r) => [r.cptCode.toUpperCase(), true as const]));
+    return this.cached(
+      'global_days_surgeries',
+      'by_code',
+      this.lookupCache.hashCodes(codes),
+      async () => {
+        const rows = await this.prisma.globalDaysSurgery.findMany({
+          where: { cptCode: { in: codes }, isActive: true },
+          select: { cptCode: true },
+        });
+        return Object.fromEntries(rows.map((r) => [r.cptCode.toUpperCase(), true as const]));
+      },
+    );
   }
 
   async anesthesiaLookups(codes: string[]): Promise<{
@@ -371,23 +484,25 @@ export class ClaimRuleLookupService {
     if (codes.length === 0) {
       return { minUnitsByCode: {}, allowedModifierKeys: {}, codesWithBillableModifierRules: {} };
     }
-    const mins = await this.prisma.anesthesiaCode.findMany({
-      where: { cptCode: { in: codes }, active: true },
+    return this.cached('anesthesia_codes', 'lookups', this.lookupCache.hashCodes(codes), async () => {
+      const mins = await this.prisma.anesthesiaCode.findMany({
+        where: { cptCode: { in: codes }, active: true },
+      });
+      const billable = await this.prisma.anesthesiaCodeWithBillableModifier.findMany({
+        where: { code: { in: codes }, active: true },
+      });
+      const minUnitsByCode = Object.fromEntries(
+        mins.map((r) => [r.cptCode.toUpperCase(), Number(r.unit ?? 0)]),
+      );
+      const allowedModifierKeys: Record<string, true> = {};
+      const codesWithBillableModifierRules: Record<string, true> = {};
+      for (const r of billable) {
+        const code = r.code.toUpperCase();
+        codesWithBillableModifierRules[code] = true;
+        allowedModifierKeys[`${code}|${String(r.modifier).trim().toUpperCase()}`] = true;
+      }
+      return { minUnitsByCode, allowedModifierKeys, codesWithBillableModifierRules };
     });
-    const billable = await this.prisma.anesthesiaCodeWithBillableModifier.findMany({
-      where: { code: { in: codes }, active: true },
-    });
-    const minUnitsByCode = Object.fromEntries(
-      mins.map((r) => [r.cptCode.toUpperCase(), Number(r.unit ?? 0)]),
-    );
-    const allowedModifierKeys: Record<string, true> = {};
-    const codesWithBillableModifierRules: Record<string, true> = {};
-    for (const r of billable) {
-      const code = r.code.toUpperCase();
-      codesWithBillableModifierRules[code] = true;
-      allowedModifierKeys[`${code}|${String(r.modifier).trim().toUpperCase()}`] = true;
-    }
-    return { minUnitsByCode, allowedModifierKeys, codesWithBillableModifierRules };
   }
 
   async ncciPairsByColumnKey(codes: string[]): Promise<Record<string, NcciPairLookupRow[]>> {
@@ -395,12 +510,14 @@ export class ClaimRuleLookupService {
   }
 
   async aetnaFetalCpts(): Promise<string[]> {
-    const rows = await this.prisma.aetnaFetalLcd.findMany({
-      where: { isActive: true },
-      distinct: ['cpt'],
-      select: { cpt: true },
+    return this.cached('aetna_fetal_lcd', 'set', 'distinct_cpts', async () => {
+      const rows = await this.prisma.aetnaFetalLcd.findMany({
+        where: { isActive: true },
+        distinct: ['cpt'],
+        select: { cpt: true },
+      });
+      return rows.map((r) => r.cpt.toUpperCase());
     });
-    return rows.map((r) => r.cpt.toUpperCase());
   }
 
   async aetnaLcdMaps(
@@ -410,42 +527,65 @@ export class ClaimRuleLookupService {
     fetal: Record<string, Record<string, true>>;
     b12: Record<string, Record<string, true>>;
   }> {
-    const fetalRows =
+    const fetal =
       fetalCpts.length === 0
-        ? []
-        : await this.prisma.aetnaFetalLcd.findMany({
-            where: { cpt: { in: fetalCpts }, isActive: true },
-          });
-    const b12Rows =
+        ? {}
+        : await this.cached(
+            'aetna_fetal_lcd',
+            'by_code',
+            this.lookupCache.hashCodes(fetalCpts),
+            async () => {
+              const fetalRows = await this.prisma.aetnaFetalLcd.findMany({
+                where: { cpt: { in: fetalCpts }, isActive: true },
+              });
+              const out: Record<string, Record<string, true>> = {};
+              for (const r of fetalRows) {
+                const cpt = r.cpt.toUpperCase();
+                (out[cpt] ??= {})[r.icd.replace(/\./g, '').toUpperCase()] = true;
+              }
+              return out;
+            },
+          );
+    const b12 =
       b12Cpts.length === 0
-        ? []
-        : await this.prisma.aetnaB12Lcd.findMany({
-            where: { cpt: { in: b12Cpts }, isActive: true },
-          });
-    const fetal: Record<string, Record<string, true>> = {};
-    for (const r of fetalRows) {
-      const cpt = r.cpt.toUpperCase();
-      (fetal[cpt] ??= {})[r.icd.replace(/\./g, '').toUpperCase()] = true;
-    }
-    const b12: Record<string, Record<string, true>> = {};
-    for (const r of b12Rows) {
-      const cpt = r.cpt.toUpperCase();
-      (b12[cpt] ??= {})[r.icd.replace(/\./g, '').toUpperCase()] = true;
-    }
+        ? {}
+        : await this.cached(
+            'aetna_b12_lcd',
+            'by_code',
+            this.lookupCache.hashCodes(b12Cpts),
+            async () => {
+              const b12Rows = await this.prisma.aetnaB12Lcd.findMany({
+                where: { cpt: { in: b12Cpts }, isActive: true },
+              });
+              const out: Record<string, Record<string, true>> = {};
+              for (const r of b12Rows) {
+                const cpt = r.cpt.toUpperCase();
+                (out[cpt] ??= {})[r.icd.replace(/\./g, '').toUpperCase()] = true;
+              }
+              return out;
+            },
+          );
     return { fetal, b12 };
   }
 
   async cignaIcdMaps(codes: string[]): Promise<Record<string, Record<string, true>>> {
     if (codes.length === 0) return {};
-    const rows = await this.prisma.cignaCptIcdCrosswalk.findMany({
-      where: { cptCode: { in: codes }, isActive: true },
-    });
-    const out: Record<string, Record<string, true>> = {};
-    for (const r of rows) {
-      const cpt = r.cptCode.toUpperCase();
-      (out[cpt] ??= {})[r.icdCode.replace(/\./g, '').toUpperCase()] = true;
-    }
-    return out;
+    return this.cached(
+      'cigna_cpt_icd_crosswalk',
+      'by_code',
+      this.lookupCache.hashCodes(codes),
+      async () => {
+        const rows = await this.prisma.cignaCptIcdCrosswalk.findMany({
+          where: { cptCode: { in: codes }, isActive: true },
+        });
+        const out: Record<string, Record<string, true>> = {};
+        for (const r of rows) {
+          const cpt = r.cptCode.toUpperCase();
+          (out[cpt] ??= {})[r.icdCode.replace(/\./g, '').toUpperCase()] = true;
+        }
+        return out;
+      },
+    );
   }
 
   async icdDiagnosisLookups(
@@ -467,69 +607,72 @@ export class ClaimRuleLookupService {
       };
     }
 
-    const tabular = await this.prisma.icd10TabularCode.findMany({
-      where: { code: { in: candidates } },
-      select: { id: true, code: true, isBillable: true },
+    const disc = `${this.lookupCache.hashCodes(norms)}:ct${claimType}`;
+    return this.cached('icd10_tabular_codes', 'diagnosis_lookups', disc, async () => {
+      const tabular = await this.prisma.icd10TabularCode.findMany({
+        where: { code: { in: candidates } },
+        select: { id: true, code: true, isBillable: true },
+      });
+      const billableNormalizedCodes = Object.fromEntries(
+        tabular
+          .filter((r) => r.isBillable)
+          .map((r) => [normalizeIcdCode(r.code), true as const]),
+      );
+
+      const notesByNormalizedCode = await this.loadNotesByDiagnosisCode(tabular);
+
+      const tobacco = await this.prisma.tobaccoCounselingIcdRule.findMany({
+        where: { icdCode: { in: candidates }, indicator: true, isActive: true },
+      });
+      const tobaccoCounselingApprovedIcd = Object.fromEntries(
+        tobacco.map((r) => [normalizeIcdCode(r.icdCode), true as const]),
+      );
+
+      const unacceptable = await this.prisma.icd10UnacceptablePrincipalDiagnoseCode.findMany({
+        where: { claimType, active: true },
+        select: { code: true },
+      });
+      const unacceptablePrincipalByClaimType: Record<string, Record<string, true>> = {
+        [String(claimType)]: Object.fromEntries(
+          unacceptable.map((r) => [normalizeIcdCode(r.code), true as const]),
+        ),
+      };
+
+      const gender = await this.prisma.icdGenderSpecificRule.findMany({
+        where: { icdCode: { in: candidates }, isActive: true },
+      });
+      const icdGenderRulesByNorm = Object.fromEntries(
+        gender.map((r) => [
+          normalizeIcdCode(r.icdCode),
+          { id: r.id, icd_code: r.icdCode, gender: r.gender },
+        ]),
+      );
+
+      const age = await this.prisma.ageSpecificIcdRule.findMany({
+        where: { icdCode: { in: candidates }, isActive: true },
+      });
+      const icdAgeRulesByNorm = Object.fromEntries(
+        age.map((r) => [
+          normalizeIcdCode(r.icdCode),
+          {
+            id: r.id,
+            icd_code: r.icdCode,
+            low_limit: r.lowLimit,
+            upper_limit: r.upperLimit,
+            unit: r.unit,
+          },
+        ]),
+      );
+
+      return {
+        billableNormalizedCodes,
+        notesByNormalizedCode,
+        tobaccoCounselingApprovedIcd,
+        unacceptablePrincipalByClaimType,
+        icdGenderRulesByNorm,
+        icdAgeRulesByNorm,
+      };
     });
-    const billableNormalizedCodes = Object.fromEntries(
-      tabular
-        .filter((r) => r.isBillable)
-        .map((r) => [normalizeIcdCode(r.code), true as const]),
-    );
-
-    const notesByNormalizedCode = await this.loadNotesByDiagnosisCode(tabular);
-
-    const tobacco = await this.prisma.tobaccoCounselingIcdRule.findMany({
-      where: { icdCode: { in: candidates }, indicator: true, isActive: true },
-    });
-    const tobaccoCounselingApprovedIcd = Object.fromEntries(
-      tobacco.map((r) => [normalizeIcdCode(r.icdCode), true as const]),
-    );
-
-    const unacceptable = await this.prisma.icd10UnacceptablePrincipalDiagnoseCode.findMany({
-      where: { claimType, active: true },
-      select: { code: true },
-    });
-    const unacceptablePrincipalByClaimType: Record<string, Record<string, true>> = {
-      [String(claimType)]: Object.fromEntries(
-        unacceptable.map((r) => [normalizeIcdCode(r.code), true as const]),
-      ),
-    };
-
-    const gender = await this.prisma.icdGenderSpecificRule.findMany({
-      where: { icdCode: { in: candidates }, isActive: true },
-    });
-    const icdGenderRulesByNorm = Object.fromEntries(
-      gender.map((r) => [
-        normalizeIcdCode(r.icdCode),
-        { id: r.id, icd_code: r.icdCode, gender: r.gender },
-      ]),
-    );
-
-    const age = await this.prisma.ageSpecificIcdRule.findMany({
-      where: { icdCode: { in: candidates }, isActive: true },
-    });
-    const icdAgeRulesByNorm = Object.fromEntries(
-      age.map((r) => [
-        normalizeIcdCode(r.icdCode),
-        {
-          id: r.id,
-          icd_code: r.icdCode,
-          low_limit: r.lowLimit,
-          upper_limit: r.upperLimit,
-          unit: r.unit,
-        },
-      ]),
-    );
-
-    return {
-      billableNormalizedCodes,
-      notesByNormalizedCode,
-      tobaccoCounselingApprovedIcd,
-      unacceptablePrincipalByClaimType,
-      icdGenderRulesByNorm,
-      icdAgeRulesByNorm,
-    };
   }
 
   /**
@@ -698,19 +841,151 @@ export class ClaimRuleLookupService {
 
   async ncdDeniedByCpt(codes: string[]): Promise<Record<string, Record<string, true>>> {
     if (codes.length === 0) return {};
-    const ncdCpts = await this.prisma.ncdCpt.findMany({
-      where: { cptCode: { in: codes } },
-      include: { ncdIcds: true },
-    });
-    const out: Record<string, Record<string, true>> = {};
-    for (const row of ncdCpts) {
-      const cpt = row.cptCode.toUpperCase();
-      for (const icd of row.ncdIcds) {
-        if (icd.resolutionCode !== 2) continue;
-        (out[cpt] ??= {})[icd.icdCode.replace(/\./g, '').toUpperCase()] = true;
+    return this.cached('ncd_denied_icd_pairs', 'by_code', this.lookupCache.hashCodes(codes), async () => {
+      const ncdCpts = await this.prisma.ncdCpt.findMany({
+        where: { cptCode: { in: codes } },
+        include: { ncdIcds: true },
+      });
+      const out: Record<string, Record<string, true>> = {};
+      for (const row of ncdCpts) {
+        const cpt = row.cptCode.toUpperCase();
+        for (const icd of row.ncdIcds) {
+          if (icd.resolutionCode !== 2) continue;
+          (out[cpt] ??= {})[icd.icdCode.replace(/\./g, '').toUpperCase()] = true;
+        }
       }
+      return out;
+    });
+  }
+
+  /**
+   * Laravel LookupCacheService::getGroupRows('zip_codes', zip5) for claim ZIP entities.
+   * Accepts raw ZIP / address digit strings; groups by ZIP-5.
+   */
+  async zipCodeRowsByZip5(
+    zipValues: Array<string | null | undefined>,
+  ): Promise<Record<string, ZipCodeLookupRow[]>> {
+    const zip5Keys = new Set<string>();
+    for (const raw of zipValues) {
+      const z5 = zip5FromDigits(digitsOnly(String(raw ?? '')));
+      if (z5 != null) zip5Keys.add(z5);
     }
-    return out;
+    if (zip5Keys.size === 0) return {};
+
+    const keys = [...zip5Keys];
+    return this.cached('zip_codes', 'by_zip5', this.lookupCache.hashCodes(keys), async () => {
+      const rows = await this.prisma.zipCode.findMany({
+        where: { zipCode: { in: keys } },
+        select: { zipCode: true, city: true, state: true, zipCodeType: true },
+      });
+
+      const out: Record<string, ZipCodeLookupRow[]> = {};
+      for (const row of rows) {
+        const z5 = String(row.zipCode ?? '').trim();
+        if (z5 === '') continue;
+        (out[z5] ??= []).push({
+          city: String(row.city ?? ''),
+          state: String(row.state ?? ''),
+          zip_code_type: String(row.zipCodeType ?? ''),
+        });
+      }
+      return out;
+    });
+  }
+
+  /** Laravel MedicaidMemberIdFormatRepository::hasActiveFormatsForPayerId */
+  async medicaidAlMemberIdFormatsActive(payerId: string | null | undefined): Promise<boolean> {
+    return this.medicaidFormats.hasActiveFormatsForPayerId(String(payerId ?? ''));
+  }
+
+  /** Active consultation_procedures set for claim CPT codes. */
+  async consultationProcedureSet(codes: string[]): Promise<Record<string, true>> {
+    if (codes.length === 0) return {};
+    return this.cached(
+      'consultation_procedures',
+      'by_code',
+      this.lookupCache.hashCodes(codes),
+      async () => {
+        const rows = await this.prisma.consultationProcedure.findMany({
+          where: { cptCode: { in: codes }, isActive: true },
+          select: { cptCode: true },
+        });
+        return Object.fromEntries(rows.map((r) => [r.cptCode.toUpperCase(), true as const]));
+      },
+    );
+  }
+
+  /** vaccine_codes.component_count keyed by vaccine_code. */
+  async vaccineComponentCountByCode(codes: string[]): Promise<Record<string, number>> {
+    if (codes.length === 0) return {};
+    return this.cached('vaccine_codes', 'by_code', this.lookupCache.hashCodes(codes), async () => {
+      const rows = await this.prisma.vaccineCode.findMany({
+        where: { vaccineCode: { in: codes }, isActive: true },
+        select: { vaccineCode: true, componentCount: true },
+      });
+      return Object.fromEntries(
+        rows.map((r) => [r.vaccineCode.toUpperCase(), Number(r.componentCount ?? 0)]),
+      );
+    });
+  }
+
+  /** mcr_vaccine_codes → vaccine_code => administration_code (with type defaults). */
+  async mcrVaccineAdminByVaccineCode(codes: string[]): Promise<Record<string, string>> {
+    if (codes.length === 0) return {};
+    return this.cached('mcr_vaccine_codes', 'by_code', this.lookupCache.hashCodes(codes), async () => {
+      const rows = await this.prisma.mcrVaccineCode.findMany({
+        where: { vaccineCode: { in: codes }, isActive: true },
+        select: { vaccineCode: true, administrationCode: true, type: true },
+      });
+      const map: Record<string, string> = {};
+      for (const row of rows) {
+        const vaccine = String(row.vaccineCode ?? '')
+          .trim()
+          .toUpperCase();
+        if (vaccine === '') continue;
+        let admin = String(row.administrationCode ?? '')
+          .trim()
+          .toUpperCase();
+        if (admin === '') {
+          const type = String(row.type ?? '')
+            .trim()
+            .toLowerCase();
+          if (type === 'flu' || type === 'influenza') admin = 'G0008';
+          else if (type === 'pneumococcal' || type === 'pneumo') admin = 'G0009';
+          else if (type === 'hepatitis' || type === 'hep') admin = 'G0010';
+        }
+        if (admin === '') continue;
+        map[vaccine] = admin;
+      }
+      return map;
+    });
+  }
+
+  /** lab_codes HCPCS → modifier set (blank/NaN/null modifiers omitted). */
+  async labCodeModifiersByHcpcs(
+    codes: string[],
+  ): Promise<Record<string, Record<string, true>>> {
+    if (codes.length === 0) return {};
+    return this.cached('lab_codes', 'by_code', this.lookupCache.hashCodes(codes), async () => {
+      const rows = await this.prisma.labCode.findMany({
+        where: { hcpcs: { in: codes }, isActive: true },
+        select: { hcpcs: true, modifier: true },
+      });
+      const map: Record<string, Record<string, true>> = {};
+      for (const row of rows) {
+        const hcpcs = String(row.hcpcs ?? '')
+          .trim()
+          .toUpperCase();
+        if (hcpcs === '') continue;
+        map[hcpcs] ??= {};
+        const modifier = String(row.modifier ?? '')
+          .trim()
+          .toUpperCase();
+        if (modifier === '' || modifier === 'NAN' || modifier === 'NULL') continue;
+        map[hcpcs][modifier] = true;
+      }
+      return map;
+    });
   }
 }
 

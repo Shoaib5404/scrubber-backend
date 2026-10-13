@@ -41,4 +41,22 @@ describe('LocalStorageProvider', () => {
     const buf = await provider.getObject('edi_files/seed.edi');
     expect(buf.toString('utf8')).toBe('SEED');
   });
+
+  it('heads local objects and rejects presign', async () => {
+    await provider.putObject('edi/1/2/a.edi', Buffer.from('ISA*'));
+    await expect(provider.headObject('edi/1/2/a.edi')).resolves.toMatchObject({
+      exists: true,
+      contentLength: 4,
+    });
+    await expect(provider.headObject('edi/1/2/missing.edi')).resolves.toEqual({
+      exists: false,
+    });
+    await expect(
+      provider.getPresignedUploadUrl({
+        objectKey: 'edi/1/2/a.edi',
+        mimeType: 'application/EDI-X12',
+        maxSizeBytes: 100,
+      }),
+    ).rejects.toThrow(/STORAGE_DRIVER=s3/);
+  });
 });

@@ -16,6 +16,7 @@ import { Response } from 'express';
 import { BatchOwnershipGuard } from '../../common/guards/batch-ownership.guard';
 import { ClaimOwnershipGuard } from '../../common/guards/claim-ownership.guard';
 import { ApiScope } from '../auth/auth.constants';
+import { ActiveSubscriptionGuard } from '../auth/guards/active-subscription.guard';
 import { RequireScopes } from '../auth/auth.types';
 import { ClaimsService } from './claims.service';
 
@@ -53,7 +54,7 @@ export class ClaimsController {
 
   @Post('batches/:id/validate')
   @RequireScopes(ApiScope.Validate)
-  @UseGuards(BatchOwnershipGuard)
+  @UseGuards(ActiveSubscriptionGuard, BatchOwnershipGuard)
   async validateBatch(
     @Param('id', ParseIntPipe) batchId: number,
     @Body() body: { force?: boolean | string | number },
@@ -97,7 +98,7 @@ export class ClaimsController {
   @Post('claims/:id/validate')
   @HttpCode(200)
   @RequireScopes(ApiScope.Validate)
-  @UseGuards(ClaimOwnershipGuard)
+  @UseGuards(ActiveSubscriptionGuard, ClaimOwnershipGuard)
   async validate(@Param('id', ParseIntPipe) id: number) {
     const data = await this.claims.validateClaim(id);
     return { success: true, data };

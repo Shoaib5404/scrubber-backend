@@ -16,7 +16,7 @@ export class PasswordService {
     return argon2.hash(plain, ARGON2_OPTIONS);
   }
 
-  /** Verify Laravel bcrypt or Nest argon2 password hashes. */
+  /** Verify legacy bcrypt or Nest argon2 password hashes. */
   async verifyPassword(plain: string, stored: string): Promise<boolean> {
     if (stored.startsWith('$2a$') || stored.startsWith('$2b$') || stored.startsWith('$2y$')) {
       return bcrypt.compare(plain, stored);
@@ -32,8 +32,8 @@ export class PasswordService {
   }
 
   /**
-   * ApiClient secret verify — mirrors Laravel `ApiClient::secretMatches`
-   * (legacy bcrypt, argon2, or plaintext equality for encrypted-port paths).
+   * ApiClient secret verify — legacy bcrypt, argon2, or plaintext equality
+   * for encrypted-port paths.
    */
   async verifySecret(plain: string, stored: string): Promise<boolean> {
     if (stored.startsWith('$2a$') || stored.startsWith('$2b$') || stored.startsWith('$2y$')) {

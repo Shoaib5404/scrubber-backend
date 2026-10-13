@@ -58,10 +58,125 @@ import {
 import { validateMuePractitioner } from './rules/mue-practitioner.rules';
 import { buildServiceLineStatusUpdates } from './support/service-line-status.updater';
 import { ClaimRuleLookupService } from './support/claim-rule-lookup.service';
+import {
+  extractStateFromFullAddress,
+  extractZipDigitsFromAddress,
+} from './support/payer-edi.helpers';
+import { OtherSubscriberInput } from './types/payer-edi.types';
 
 function pointers(raw: unknown): number[] {
   if (!Array.isArray(raw)) return [];
   return raw.map((p) => Number(p)).filter((n) => Number.isFinite(n));
+}
+
+function normalizeOtherSubscribers(raw: unknown): OtherSubscriberInput[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((row) => {
+    const r = (row ?? {}) as Record<string, unknown>;
+    return {
+      ssn: (r.ssn as string | null | undefined) ?? null,
+      relationshipCode:
+        (r.relationship_code as string | null | undefined) ??
+        (r.relationshipCode as string | null | undefined) ??
+        null,
+      memberId:
+        (r.member_id as string | null | undefined) ??
+        (r.memberId as string | null | undefined) ??
+        null,
+      groupNumber:
+        (r.group_number as string | null | undefined) ??
+        (r.groupNumber as string | null | undefined) ??
+        null,
+      claimFilingIndicator:
+        (r.claim_filing_indicator as string | null | undefined) ??
+        (r.claimFilingIndicator as string | null | undefined) ??
+        null,
+      payerResponsibility:
+        (r.payer_responsibility as string | null | undefined) ??
+        (r.payerResponsibility as string | null | undefined) ??
+        null,
+      remittanceDate:
+        (r.remittance_date as string | null | undefined) ??
+        (r.remittanceDate as string | null | undefined) ??
+        null,
+      payerName:
+        (r.payer_name as string | null | undefined) ??
+        (r.payerName as string | null | undefined) ??
+        null,
+      payerId:
+        (r.payer_id as string | null | undefined) ??
+        (r.payerId as string | null | undefined) ??
+        null,
+      payerClaimControlNumber:
+        (r.payer_claim_control_number as string | null | undefined) ??
+        (r.payerClaimControlNumber as string | null | undefined) ??
+        null,
+      hasOtherPayerNm1:
+        (r.has_other_payer_nm1 as string | boolean | null | undefined) ??
+        (r.hasOtherPayerNm1 as string | boolean | null | undefined) ??
+        null,
+      paidAmount:
+        (r.paid_amount as string | number | null | undefined) ??
+        (r.payer_paid_amount as string | number | null | undefined) ??
+        (r.paidAmount as string | number | null | undefined) ??
+        (r.payerPaidAmount as string | number | null | undefined) ??
+        null,
+      remainingPatientLiability:
+        (r.remaining_patient_liability as string | number | null | undefined) ??
+        (r.remainingPatientLiability as string | number | null | undefined) ??
+        null,
+      lastName:
+        (r.last_name as string | null | undefined) ??
+        (r.lastName as string | null | undefined) ??
+        null,
+      firstName:
+        (r.first_name as string | null | undefined) ??
+        (r.firstName as string | null | undefined) ??
+        null,
+      middleName:
+        (r.middle_name as string | null | undefined) ??
+        (r.middleName as string | null | undefined) ??
+        null,
+      zipCode:
+        (r.zip_code as string | null | undefined) ??
+        (r.zipCode as string | null | undefined) ??
+        null,
+      city: (r.city as string | null | undefined) ?? null,
+      state: (r.state as string | null | undefined) ?? null,
+      addressLine1:
+        (r.address_line_1 as string | null | undefined) ??
+        (r.addressLine1 as string | null | undefined) ??
+        null,
+      patientLastName:
+        (r.patient_last_name as string | null | undefined) ??
+        (r.patientLastName as string | null | undefined) ??
+        null,
+      patientFirstName:
+        (r.patient_first_name as string | null | undefined) ??
+        (r.patientFirstName as string | null | undefined) ??
+        null,
+      patientMiddleName:
+        (r.patient_middle_name as string | null | undefined) ??
+        (r.patientMiddleName as string | null | undefined) ??
+        null,
+      patientZipCode:
+        (r.patient_zip_code as string | null | undefined) ??
+        (r.patientZipCode as string | null | undefined) ??
+        null,
+      patientCity:
+        (r.patient_city as string | null | undefined) ??
+        (r.patientCity as string | null | undefined) ??
+        null,
+      patientState:
+        (r.patient_state as string | null | undefined) ??
+        (r.patientState as string | null | undefined) ??
+        null,
+      patientAddressLine1:
+        (r.patient_address_line_1 as string | null | undefined) ??
+        (r.patientAddressLine1 as string | null | undefined) ??
+        null,
+    };
+  });
 }
 
 @Injectable()
@@ -124,6 +239,7 @@ export class ClaimValidationService {
       }),
     );
 
+    const otherSubscribers = normalizeOtherSubscribers(claim.otherSubscribers);
     const payerEdiClaim: PayerEdiClaimInput = {
       payerId: claim.payerId,
       subscriberMemberId: claim.subscriberMemberId,
@@ -141,10 +257,10 @@ export class ClaimValidationService {
       facilityAddress: claim.facilityAddress,
       billingProviderZip: claim.billingProviderZip,
       billingProviderState: claim.billingProviderState,
-      patientState: null,
-      subscriberState: null,
-      facilityState: null,
-      otherSubscribers: null,
+      patientState: extractStateFromFullAddress(claim.patientAddress),
+      subscriberState: extractStateFromFullAddress(claim.subscriberAddress),
+      facilityState: extractStateFromFullAddress(claim.facilityAddress),
+      otherSubscribers,
       onsetOfIllnessDate: claim.onsetOfIllnessDate,
       lastMenstrualPeriodDate: claim.lastMenstrualPeriodDate,
       initialTreatmentDate: claim.initialTreatmentDate,
@@ -160,13 +276,100 @@ export class ClaimValidationService {
       authorizedReturnToWorkDate: claim.authorizedReturnToWorkDate,
       assumedCareDate: claim.assumedCareDate,
       relinquishedCareDate: claim.relinquishedCareDate,
+      billingProviderName: claim.billingProviderName,
+      billingProviderNpi: claim.billingProviderNpi,
+      billingProviderTaxId: claim.billingProviderTaxId,
+      billingProviderSsn: claim.billingProviderSsn,
+      billingProviderTaxonomy: claim.billingProviderTaxonomy,
+      billingProviderUpin: claim.billingProviderUpin,
+      billingProviderStateLicense: claim.billingProviderStateLicense,
+      billingProviderAddress: claim.billingProviderAddress,
+      billingProviderAddressLine1: claim.billingProviderAddressLine1,
+      billingProviderAddressLine2: claim.billingProviderAddressLine2,
+      subscriberLastName: claim.subscriberLastName,
+      subscriberFirstName: claim.subscriberFirstName,
+      subscriberDob: claim.subscriberDob,
+      subscriberGroupNumber: claim.subscriberGroupNumber,
+      subscriberGroupName: claim.subscriberGroupName,
+      subscriberRelationship: claim.subscriberRelationship,
+      payerResponsibility: claim.payerResponsibility,
+      insuranceTypeCode: claim.insuranceTypeCode,
+      frequencyCode: claim.frequencyCode,
+      delayReasonCode: claim.delayReasonCode,
+      submissionMethod: claim.submissionMethod,
+      originalReferenceNumber: claim.originalReferenceNumber,
+      priorAuthNumber: claim.priorAuthNumber,
+      referralNumber: claim.referralNumber,
+      cliaNumber: claim.cliaNumber,
+      mammographyCertificationNumber: claim.mammographyCertificationNumber,
+      patientLastName: claim.patientLastName,
+      patientFirstName: claim.patientFirstName,
+      patientDob: claim.patientDob,
+      patientRelationship: claim.patientRelationship,
+      renderingProviderNpi: claim.renderingProviderNpi,
+      renderingProviderLastName: claim.renderingProviderLastName,
+      renderingProviderFirstName: claim.renderingProviderFirstName,
+      renderingProviderMiddleName: claim.renderingProviderMiddleName,
+      renderingProviderUpin: claim.renderingProviderUpin,
+      renderingProviderStateLicense: claim.renderingProviderStateLicense,
+      referringProviderNpi: claim.referringProviderNpi,
+      referringProviderLastName: claim.referringProviderLastName,
+      referringProviderFirstName: claim.referringProviderFirstName,
+      referringProviderMiddleName: claim.referringProviderMiddleName,
+      referringProviderUpin: claim.referringProviderUpin,
+      referringProviderStateLicense: claim.referringProviderStateLicense,
+      transactionSetCreationDate: claim.transactionSetCreationDate,
+      batchIsaDate: claim.batchFile?.isaDate ?? null,
+      batchBhtDate: claim.batchFile?.bhtDate ?? null,
+      diagnoses: claim.diagnoses.map((d) => ({
+        sequence: d.sequence,
+        code: d.code,
+        type: d.type,
+        qualifier: d.qualifier,
+      })),
       serviceLines: claim.serviceLines.map((l) => ({
         lineNumber: l.lineNumber,
         serviceDateFrom: l.serviceDateFrom,
         serviceDateTo: l.serviceDateTo,
+        procedureCode: l.procedureCode,
+        units: Number(l.units),
+        modifier1: l.modifier1,
+        modifier2: l.modifier2,
+        modifier3: l.modifier3,
+        modifier4: l.modifier4,
+        referringProviderNpi: l.referringProviderNpi,
+        referringProviderLastName: l.referringProviderLastName,
+        referringProviderFirstName: l.referringProviderFirstName,
+        referringProviderMiddleName: l.referringProviderMiddleName,
+        diagnosisPointers: pointers(l.diagnosisPointers),
+        otherPayerPaidAmount:
+          l.otherPayerPaidAmount == null ? null : Number(l.otherPayerPaidAmount),
       })),
     };
-    pushSplit(validatePayerAndEdiSpecific(payerEdiClaim));
+    const payerEdiProcCodes = this.lookups.uniqueCodes(
+      claim.serviceLines.map((l) => l.procedureCode),
+    );
+    const referringNpis = this.lookups.uniqueCodes([claim.referringProviderNpi]);
+    const payerEdiLookups = {
+      zipCodeRowsByZip5: await this.lookups.zipCodeRowsByZip5([
+        claim.billingProviderZip,
+        extractZipDigitsFromAddress(claim.patientAddress),
+        extractZipDigitsFromAddress(claim.subscriberAddress),
+        extractZipDigitsFromAddress(claim.facilityAddress),
+        ...otherSubscribers.flatMap((other) => [other.zipCode, other.patientZipCode]),
+      ]),
+      medicaidAlMemberIdFormatsActive: await this.lookups.medicaidAlMemberIdFormatsActive(
+        claim.payerId,
+      ),
+      consultationProcedureSet: await this.lookups.consultationProcedureSet(payerEdiProcCodes),
+      npiOrderingReferringByNpi: await this.lookups.npiOrderingReferringByNpi(referringNpis),
+      vaccineComponentCountByCode: await this.lookups.vaccineComponentCountByCode(payerEdiProcCodes),
+      mcrVaccineAdminByVaccineCode: await this.lookups.mcrVaccineAdminByVaccineCode(
+        payerEdiProcCodes,
+      ),
+      labCodeModifiersByHcpcs: await this.lookups.labCodeModifiersByHcpcs(payerEdiProcCodes),
+    };
+    pushSplit(validatePayerAndEdiSpecific(payerEdiClaim, payerEdiLookups));
 
     const haltAfterDosFutureGate = errors.some((e) => e.rule === 'DOS-FUT-001');
 

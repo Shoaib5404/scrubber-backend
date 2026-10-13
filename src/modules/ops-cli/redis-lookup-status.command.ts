@@ -1,25 +1,17 @@
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Command, CommandRunner } from 'nest-commander';
-import { lookupMetaKey } from '../cache/cache.constants';
+import { lookupLogicalName, lookupV1Key, lookupChunkMetaKey } from '../cache/cache.constants';
 import { RedisLookupStore } from '../cache/redis-lookup.store';
 import { LOOKUP_CACHE_TABLE_NAMES, isKnownLookupTable } from '../cache/lookup-table.registry';
 
 /**
- * Laravel App\Console\Commands\RedisLookupStatus (redis:lookup-status).
- *
- * Nest adaptation: there is no `LookupTableRegistry` service with per-table profile/version
- * metadata yet, so this reports table names from the static LOOKUP_CACHE_TABLE_NAMES
- * registry and only checks whether the Laravel-shaped meta key
- * (`${prefix}:meta:${table}`) exists — Nest tables don't write that key until something
- * calls `invalidateTable`/a future Laravel-style seed writes it, so most tables will show
- * "not seeded" until first touched. This stays honest about the gap rather than fabricating
- * row counts/versions Nest does not track per-table.
+ * Report Nest v1 lookup cache presence for registered tables on Redis DB 1.
  */
 @Command({
   name: 'redis:lookup-status',
   arguments: '[table]',
-  description: 'Show lookup cache meta-key presence for one or all known tables',
+  description: 'Show lookup cache key presence for one or all known tables',
   argsDescription: {
     table: 'Optional table to inspect',
   },
@@ -36,21 +28,32 @@ export class RedisLookupStatusCommand extends CommandRunner {
 
   async run(passedParams: string[]): Promise<void> {
     this.logger.log(`LOOKUP_CACHE_ENABLED=${this.store.enabled()}`);
-    this.logger.log(`REDIS_LOOKUP_DB=${this.config.get<number>('REDIS_LOOKUP_DB', 2)}`);
+    this.logger.log(`REDIS_LOOKUP_DB=${this.config.get<number>('REDIS_LOOKUP_DB', 1)}`);
+    this.logger.log(`lookup Redis dbIndex=${this.store.dbIndex()}`);
 
     const requested = passedParams[0];
-    if (requested !== undefined && !isKnownLookupTable(requested)) {
+    if (requested !== undefined && requested !== 'nccis' && !isKnownLookupTable(requested)) {
       this.logger.error(`Unknown table [${requested}]`);
       process.exitCode = 1;
       return;
     }
 
-    const tables = requested !== undefined ? [requested] : [...LOOKUP_CACHE_TABLE_NAMES];
+    const tables =
+      requested !== undefined ? [requested] : [...LOOKUP_CACHE_TABLE_NAMES, 'nccis'];
+
     for (const table of tables) {
-      const metaKey = lookupMetaKey(this.store.keyPrefix(), table);
-      const meta = await this.store.get(metaKey);
-      const warmedAt = meta !== null ? 'present' : 'not seeded';
-      this.logger.log(`${table}  meta_key=${metaKey}  warmed_at=${warmedAt}`);
+      const logical =
+        table === 'nccis'
+          ? 'nccis:full:active'
+          : lookupLogicalName(table, 'full', 'all');
+      const prefix = this.store.keyPrefix();
+      const singleKey = lookupV1Key(prefix, logical);
+      const metaKey = lookupChunkMetaKey(prefix, logical);
+      const [single, meta] = await this.store.mget([singleKey, metaKey]);
+      let state = 'cold';
+      if (single != null) state = 'warm (single)';
+      else if (meta != null) state = 'warm (chunked)';
+      this.logger.log(`${table}  key=${singleKey}  state=${state}`);
     }
   }
 }

@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { UserRole } from '../auth/auth.constants';
+import { isTenantRole, UserRole } from '../auth/auth.constants';
 import { PasswordService } from '../auth/password.service';
 import { ApiClientIssuerService } from '../ops-cli/api-client-issuer.service';
 import {
@@ -16,6 +16,32 @@ import {
   ReissueApiClientDto,
   UpdateUserDto,
 } from './users-admin.dto';
+
+function roleLabel(role: string): string {
+  switch (role) {
+    case UserRole.SuperAdmin:
+      return 'Super Admin';
+    case UserRole.Admin:
+      return 'Admin';
+    case UserRole.User:
+      return 'User';
+    case UserRole.Customer:
+      return 'Customer';
+    case UserRole.TenantAdmin:
+      return 'Tenant Admin';
+    default:
+      return role;
+  }
+}
+
+function slugify(input: string): string {
+  const base = input
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48);
+  return base.length > 0 ? base : 'tenant';
+}
 
 function serializeUser(user: {
   id: number;
@@ -115,17 +141,70 @@ export class UsersAdminService {
     return serializeUser(user);
   }
 
-  async create(dto: CreateUserDto) {
-    this.assertAssignableRole(dto.role);
+  assignableRolesFor(actorRole: string): string[] {
+    if (actorRole === UserRole.SuperAdmin) {
+      return [UserRole.Admin, UserRole.User, UserRole.Customer];
+    }
+    if (actorRole === UserRole.Admin) {
+      return [UserRole.User, UserRole.Customer];
+    }
+    return [];
+  }
+
+  formMeta(actorRole: string) {
+    return {
+      assignable_roles: this.assignableRolesFor(actorRole).map((value) => ({
+        value,
+        label: roleLabel(value),
+      })),
+      plans: [
+        { value: 'basic', label: 'Basic' },
+        { value: 'pro', label: 'Pro' },
+        { value: 'enterprise', label: 'Enterprise' },
+      ],
+      subscription_statuses: [
+        { value: 'active', label: 'Active' },
+        { value: 'inactive', label: 'Inactive' },
+        { value: 'expired', label: 'Expired' },
+        { value: 'cancelled', label: 'Cancelled' },
+      ],
+    };
+  }
+
+  async create(dto: CreateUserDto, actorRole: string) {
+    this.assertActorCanAssign(actorRole, dto.role);
     const password = await this.passwords.hashPassword(dto.password);
     const normalized = this.normalizeSubscriptionFields(dto);
     try {
+      let tenantId: number | null = null;
+      if (isTenantRole(dto.role)) {
+        const base = slugify(`${dto.name}-${dto.email.split('@')[0]}`);
+        let slug = base;
+        let n = 0;
+        while (await this.prisma.tenant.findUnique({ where: { slug } })) {
+          n += 1;
+          slug = `${base}-${n}`;
+        }
+        const tenant = await this.prisma.tenant.create({
+          data: {
+            name: `${dto.name.trim()} Org`,
+            slug,
+            status: 'active',
+            subscriptionStatus: normalized.subscription_status,
+            subscriptionStartsAt: normalized.subscription_starts_at,
+            subscriptionEndsAt: normalized.subscription_ends_at,
+          },
+        });
+        tenantId = tenant.id;
+      }
+
       const user = await this.prisma.user.create({
         data: {
           name: dto.name.trim(),
           email: dto.email.trim().toLowerCase(),
           password,
           role: dto.role,
+          tenantId,
           isActive: dto.is_active,
           emailVerifiedAt: new Date(),
           plan: normalized.plan,
@@ -143,13 +222,18 @@ export class UsersAdminService {
     }
   }
 
-  async update(id: number, dto: UpdateUserDto, actorUserId: number) {
+  async update(
+    id: number,
+    dto: UpdateUserDto,
+    actorUserId: number,
+    actorRole: string,
+  ) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('User not found.');
     if (user.role === UserRole.SuperAdmin) {
       throw new ForbiddenException('Super Admin account cannot be updated.');
     }
-    this.assertAssignableRole(dto.role);
+    this.assertActorCanAssign(actorRole, dto.role);
     if (id === actorUserId && dto.is_active === false) {
       throw new BadRequestException('You cannot deactivate your own account.');
     }
@@ -253,6 +337,13 @@ export class UsersAdminService {
     }
   }
 
+  private assertActorCanAssign(actorRole: string, role: string) {
+    this.assertAssignableRole(role);
+    if (!this.assignableRolesFor(actorRole).includes(role)) {
+      throw new ForbiddenException('You cannot assign this role.');
+    }
+  }
+
   private normalizeSubscriptionFields(dto: {
     role: string;
     plan?: string | null;
@@ -260,7 +351,7 @@ export class UsersAdminService {
     subscription_starts_at?: string | null;
     subscription_ends_at?: string | null;
   }) {
-    if (dto.role !== UserRole.Customer) {
+    if (!isTenantRole(dto.role)) {
       return {
         plan: null,
         subscription_status: 'inactive',
@@ -281,7 +372,7 @@ export class UsersAdminService {
   private async requireCustomer(userId: number) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found.');
-    if (user.role !== UserRole.Customer) {
+    if (!isTenantRole(user.role)) {
       throw new NotFoundException('User not found.');
     }
     return user;

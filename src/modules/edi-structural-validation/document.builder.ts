@@ -38,6 +38,8 @@ export class EdiDocumentBuilder {
       } else if (seg.id === 'SE' && currentTx) {
         currentTx.se = seg;
         currentTx.segments.push(seg);
+        // ST…SE closed — do not attach GE/IEA (or trailing junk) to the transaction.
+        currentTx = null;
       } else if (currentTx) {
         currentTx.segments.push(seg);
       }

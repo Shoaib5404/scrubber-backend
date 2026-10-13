@@ -1,6 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { BatchesModule } from '../batches/batches.module';
 import { ClaimValidationModule } from '../claim-validation/claim-validation.module';
+import { ImportsModule } from '../imports/imports.module';
 import { DetectStalledQueuesService } from './detect-stalled-queues.service';
 import { FinalizeBatchValidationProcessor } from './processors/finalize-batch.processor';
 import { ProcessBatchFileProcessor } from './processors/process-batch-file.processor';
@@ -11,7 +12,7 @@ import { QueueWorkerHost } from './queue-worker.host';
 import { SchedulerHost } from './scheduler.host';
 
 @Module({
-  imports: [ClaimValidationModule, forwardRef(() => BatchesModule)],
+  imports: [ClaimValidationModule, forwardRef(() => BatchesModule), ImportsModule],
   providers: [
     QueueProducerService,
     ValidateClaimProcessor,

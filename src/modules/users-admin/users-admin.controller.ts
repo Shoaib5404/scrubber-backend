@@ -11,7 +11,13 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { StaffOnlyGuard } from '../../common/guards/staff-only.guard';
-import { AuthPrincipal, CurrentAuth } from '../auth/auth.types';
+import { Permission } from '../auth/permissions.constants';
+import { RequirePermissionGuard } from '../auth/guards/require-permission.guard';
+import {
+  AuthPrincipal,
+  CurrentAuth,
+  RequirePermissions,
+} from '../auth/auth.types';
 import {
   CreateApiClientDto,
   CreateUserDto,
@@ -23,7 +29,8 @@ import { UsersAdminService } from './users-admin.service';
 
 @ApiTags('admin-users')
 @ApiBearerAuth()
-@UseGuards(StaffOnlyGuard)
+@UseGuards(StaffOnlyGuard, RequirePermissionGuard)
+@RequirePermissions(Permission.UsersManage)
 @Controller('admin/users')
 export class UsersAdminController {
   constructor(private readonly users: UsersAdminService) {}
@@ -33,9 +40,24 @@ export class UsersAdminController {
     return { success: true, data: await this.users.list(query) };
   }
 
+  @Get('meta')
+  meta(@CurrentAuth() auth: AuthPrincipal) {
+    return {
+      success: true,
+      data: this.users.formMeta(auth.role ?? ''),
+    };
+  }
+
   @Post()
-  async create(@Body() body: CreateUserDto) {
-    return { success: true, data: await this.users.create(body) };
+  async create(
+    @Body() body: CreateUserDto,
+    @CurrentAuth() auth: AuthPrincipal,
+  ) {
+    return {
+      success: true,
+      message: `User ${body.email} created successfully.`,
+      data: await this.users.create(body, auth.role ?? ''),
+    };
   }
 
   @Get(':id')
@@ -50,7 +72,11 @@ export class UsersAdminController {
     @CurrentAuth() auth: AuthPrincipal,
   ) {
     const actorId = auth.userId ?? 0;
-    return { success: true, data: await this.users.update(id, body, actorId) };
+    return {
+      success: true,
+      message: `User ${body.email} updated successfully.`,
+      data: await this.users.update(id, body, actorId, auth.role ?? ''),
+    };
   }
 
   @Get(':id/api-clients')

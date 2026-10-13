@@ -1,6 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { BatchOwnershipGuard } from '../../common/guards/batch-ownership.guard';
 import { ClaimOwnershipGuard } from '../../common/guards/claim-ownership.guard';
+import { AuthModule } from '../auth/auth.module';
 import { ClaimValidationModule } from '../claim-validation/claim-validation.module';
 import { BatchesModule } from '../batches/batches.module';
 import { QueueModule } from '../queue/queue.module';
@@ -9,6 +10,7 @@ import { ClaimsService } from './claims.service';
 
 @Module({
   imports: [
+    AuthModule,
     ClaimValidationModule,
     forwardRef(() => BatchesModule),
     forwardRef(() => QueueModule),

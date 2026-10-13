@@ -14,8 +14,15 @@ import { ReferenceAdminModule } from './modules/reference-admin/reference-admin.
 import { ReferencesModule } from './modules/references/references.module';
 import { StorageModule } from './adapters/storage/storage.module';
 import { PrismaModule } from './common/prisma/prisma.module';
+import { TenantModule } from './common/tenant/tenant.module';
 import { UsersAdminModule } from './modules/users-admin/users-admin.module';
 import { UploadLogsModule } from './modules/upload-logs/upload-logs.module';
+import { PermissionsModule } from './modules/permissions/permissions.module';
+import { IntegrationsModule } from './modules/integrations/integrations.module';
+import { MailModule } from './modules/mail/mail.module';
+import { TenantsModule } from './modules/tenants/tenants.module';
+import { TenantsAdminModule } from './modules/tenants-admin/tenants-admin.module';
+import { ServiceClientsAdminModule } from './modules/service-clients-admin/service-clients-admin.module';
 import { loadEnvFrom } from './config';
 
 @Module({
@@ -32,9 +39,13 @@ import { loadEnvFrom } from './config';
       },
     ]),
     PrismaModule,
+    TenantModule,
+    MailModule,
     LookupCacheModule,
     StorageModule,
     AuthModule,
+    TenantsModule,
+    TenantsAdminModule,
     EdiStructuralValidationModule,
     EdiParserModule,
     ClaimValidationModule,
@@ -44,8 +55,13 @@ import { loadEnvFrom } from './config';
     ReferencesModule,
     ReferenceAdminModule,
     UsersAdminModule,
+    ServiceClientsAdminModule,
+    PermissionsModule,
+    IntegrationsModule,
     UploadLogsModule,
     HealthModule,
   ],
 })
 export class AppModule {}
+
+

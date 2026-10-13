@@ -1,8 +1,9 @@
+/** CMS NPI Luhn — matches Laravel NpiValidator (`alternate` starts false). */
 export function validateNpiLuhn(npi: string): boolean {
   if (!/^\d{10}$/.test(npi)) return false;
   const prefix = '80840' + npi;
   let sum = 0;
-  let alternate = true;
+  let alternate = false;
   for (let i = prefix.length - 1; i >= 0; i--) {
     let n = Number(prefix[i]);
     if (alternate) {

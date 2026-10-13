@@ -1,3 +1,4 @@
+import { referenceDetailsUrl } from '../support/reference-details-url';
 import { ClaimIssue } from '../types';
 
 /** Laravel MedicareNcdIcd10Rules */
@@ -110,6 +111,9 @@ export function validateMedicareNcdIcd10(
       field: `service_lines.${pair.line.lineNumber}.diagnosis_pointers`,
       message: formatNcdRejectionMessage(pair.icdDisplay, pair.cpt),
       severity: 'error',
+      cpt_code: pair.cpt,
+      icd_code: pair.icdDisplay,
+      details_url: referenceDetailsUrl('ncd-icd', { search: pair.cpt }),
     });
   }
 

@@ -16,10 +16,31 @@ export class Edi837Spec {
     return segment && typeof segment === 'object' ? (segment as Json) : null;
   }
 
-  loopSegmentSpec(loopKey: string, segmentCode: string): Json | null {
+  elementSpec(segmentCode: string, elementKey: string): Json | null {
+    const segment = this.segmentSpec(segmentCode);
+    if (!segment) return null;
+    const elements = segment.elements;
+    if (!elements || typeof elements !== 'object') return null;
+    const element = (elements as Json)[elementKey];
+    return element && typeof element === 'object' ? (element as Json) : null;
+  }
+
+  validValues(segmentCode: string, elementKey: string): string[] {
+    const element = this.elementSpec(segmentCode, elementKey);
+    if (!element) return [];
+    const allowed = element.valid_values;
+    return Array.isArray(allowed) ? (allowed as string[]) : [];
+  }
+
+  loopSpec(loopKey: string): Json | null {
     const loop = this.loops[loopKey];
-    if (!loop || typeof loop !== 'object') return null;
-    const segments = (loop as Json).segments;
+    return loop && typeof loop === 'object' ? (loop as Json) : null;
+  }
+
+  loopSegmentSpec(loopKey: string, segmentCode: string): Json | null {
+    const loop = this.loopSpec(loopKey);
+    if (!loop) return null;
+    const segments = loop.segments;
     if (!segments || typeof segments !== 'object') return null;
     const segment = (segments as Json)[segmentCode];
     return segment && typeof segment === 'object' ? (segment as Json) : null;

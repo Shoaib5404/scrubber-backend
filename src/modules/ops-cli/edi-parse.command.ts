@@ -62,8 +62,13 @@ export class EdiParseCommand extends CommandRunner {
     this.logger.log('=== Interchange (ISA) / Functional Group (GS) ===');
     this.logger.log(`ISA Sender ID: ${parsed.isaSenderId ?? 'N/A'}`);
     this.logger.log(`ISA Receiver ID: ${parsed.isaReceiverId ?? 'N/A'}`);
+    this.logger.log(`ISA Date: ${parsed.isaDate ?? 'N/A'}`);
+    this.logger.log(`BHT Date: ${parsed.bhtDate ?? 'N/A'}`);
     this.logger.log(`ISA Control Number: ${parsed.isaControlNumber ?? 'N/A'}`);
+    this.logger.log(`GS Sender Code: ${parsed.gsSenderCode ?? 'N/A'}`);
+    this.logger.log(`GS Receiver Code: ${parsed.gsReceiverCode ?? 'N/A'}`);
     this.logger.log(`GS Control Number: ${parsed.gsControlNumber ?? 'N/A'}`);
+    this.logger.log(`GS Version: ${parsed.gsVersionCode ?? 'N/A'}`);
 
     this.logger.log('');
     this.logger.log('=== Statistics ===');

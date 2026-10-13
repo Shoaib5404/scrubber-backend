@@ -16,6 +16,7 @@ import { RedisFlushCommand } from './redis-flush.command';
 import { RedisLookupFlushCommand } from './redis-lookup-flush.command';
 import { RedisLookupStatusCommand } from './redis-lookup-status.command';
 import { RedisSeedLookupsCommand } from './redis-seed-lookups.command';
+import { RedisVerifyLookupImportsCommand } from './redis-verify-lookup-imports.command';
 import { StatusCheckCommand } from './status-check.command';
 
 /**
@@ -50,6 +51,7 @@ import { StatusCheckCommand } from './status-check.command';
     RedisLookupFlushCommand,
     RedisLookupStatusCommand,
     RedisSeedLookupsCommand,
+    RedisVerifyLookupImportsCommand,
     DetectStalledQueuesCommand,
     ApiClientCreateCommand,
     ReferenceApiIssueCommand,

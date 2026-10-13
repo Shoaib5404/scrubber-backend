@@ -7,6 +7,15 @@ export const ZIP_CODE_INVALID_OR_NOT_FOUND_MESSAGE =
 export const ZIP_STATE_MISMATCH_MESSAGE =
   '%s state (%s) does not match zip code (%s). Please verify the state abbreviation.';
 
+export const ZIP_CITY_MISMATCH_MESSAGE =
+  'City (%s) does not match the USPS preferred city for zip code (%s). Please select one of the recommended USPS cities: (%s).';
+
+export const ZIP_CITY_N_RECOMMENDATION_MESSAGE =
+  'City (%s) is an acceptable alternate for zip code (%s). Recommended USPS preferred city: (%s).';
+
+/** Laravel Formats::ZIP_SUPPORTED_TYPES */
+export const ZIP_SUPPORTED_TYPES = ['P', 'N', 'Z', 'B', 'C', 'U', 'X'] as const;
+
 export type ZipCodeRuleDefinition = {
   entity: string;
   ruleCode: string;
@@ -36,8 +45,8 @@ export const ZIP_CODE_RULES: ZipCodeRuleDefinition[] = [
     label: 'Billing Provider',
     message: ZIP_CODE_INVALID_OR_NOT_FOUND_MESSAGE,
     stateMessage: ZIP_STATE_MISMATCH_MESSAGE,
-    cityMessage: '',
-    cityWarningMessage: '',
+    cityMessage: ZIP_CITY_MISMATCH_MESSAGE,
+    cityWarningMessage: ZIP_CITY_N_RECOMMENDATION_MESSAGE,
   },
   {
     entity: 'patient',
@@ -51,8 +60,8 @@ export const ZIP_CODE_RULES: ZipCodeRuleDefinition[] = [
     requireEntity: true,
     message: ZIP_CODE_INVALID_OR_NOT_FOUND_MESSAGE,
     stateMessage: ZIP_STATE_MISMATCH_MESSAGE,
-    cityMessage: '',
-    cityWarningMessage: '',
+    cityMessage: ZIP_CITY_MISMATCH_MESSAGE,
+    cityWarningMessage: ZIP_CITY_N_RECOMMENDATION_MESSAGE,
   },
   {
     entity: 'facility',
@@ -65,8 +74,8 @@ export const ZIP_CODE_RULES: ZipCodeRuleDefinition[] = [
     requireEntity: true,
     message: ZIP_CODE_INVALID_OR_NOT_FOUND_MESSAGE,
     stateMessage: ZIP_STATE_MISMATCH_MESSAGE,
-    cityMessage: '',
-    cityWarningMessage: '',
+    cityMessage: ZIP_CITY_MISMATCH_MESSAGE,
+    cityWarningMessage: ZIP_CITY_N_RECOMMENDATION_MESSAGE,
   },
   {
     entity: 'subscriber',
@@ -79,8 +88,8 @@ export const ZIP_CODE_RULES: ZipCodeRuleDefinition[] = [
     relationshipCode: '18',
     message: ZIP_CODE_INVALID_OR_NOT_FOUND_MESSAGE,
     stateMessage: ZIP_STATE_MISMATCH_MESSAGE,
-    cityMessage: '',
-    cityWarningMessage: '',
+    cityMessage: ZIP_CITY_MISMATCH_MESSAGE,
+    cityWarningMessage: ZIP_CITY_N_RECOMMENDATION_MESSAGE,
   },
   {
     entity: 'other_subscriber',
@@ -93,8 +102,8 @@ export const ZIP_CODE_RULES: ZipCodeRuleDefinition[] = [
     relationshipCode: '18',
     message: ZIP_CODE_INVALID_OR_NOT_FOUND_MESSAGE,
     stateMessage: ZIP_STATE_MISMATCH_MESSAGE,
-    cityMessage: '',
-    cityWarningMessage: '',
+    cityMessage: ZIP_CITY_MISMATCH_MESSAGE,
+    cityWarningMessage: ZIP_CITY_N_RECOMMENDATION_MESSAGE,
   },
   {
     entity: 'other_patient',
@@ -108,7 +117,7 @@ export const ZIP_CODE_RULES: ZipCodeRuleDefinition[] = [
     requireEntity: true,
     message: ZIP_CODE_INVALID_OR_NOT_FOUND_MESSAGE,
     stateMessage: ZIP_STATE_MISMATCH_MESSAGE,
-    cityMessage: '',
-    cityWarningMessage: '',
+    cityMessage: ZIP_CITY_MISMATCH_MESSAGE,
+    cityWarningMessage: ZIP_CITY_N_RECOMMENDATION_MESSAGE,
   },
 ];
