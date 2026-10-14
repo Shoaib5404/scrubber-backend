@@ -27,7 +27,7 @@ export class RequestBatchUploadUrlDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(26_214_400)
+  @Max(10_485_760)
   sizeBytes!: number;
 }
 
@@ -57,7 +57,7 @@ export class CompleteBatchUploadDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(26_214_400)
+  @Max(10_485_760)
   sizeBytes!: number;
 
   @ApiPropertyOptional({

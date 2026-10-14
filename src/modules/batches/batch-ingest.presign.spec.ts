@@ -60,7 +60,7 @@ describe('BatchIngestService presign complete', () => {
 
   const config = {
     get: (key: string, fallback?: unknown) => {
-      if (key === 'EDI_MAX_BYTES') return 26_214_400;
+      if (key === 'EDI_MAX_BYTES') return 10_485_760;
       if (key === 'EDI837_VALIDATION_STRICT') return true;
       return fallback;
     },

@@ -79,7 +79,7 @@ export class BatchIngestService {
         `Unsupported MIME type "${params.mimeType}". Allowed: application/EDI-X12, text/plain, application/octet-stream.`,
       );
     }
-    const max = this.config.get<number>('EDI_MAX_BYTES', 26_214_400);
+    const max = this.config.get<number>('EDI_MAX_BYTES', 10_485_760);
     if (params.sizeBytes > max) {
       throw new BadRequestException(`EDI file exceeds max size of ${max} bytes`);
     }
@@ -120,7 +120,7 @@ export class BatchIngestService {
         `Unsupported MIME type "${params.mimeType}". Allowed: application/EDI-X12, text/plain, application/octet-stream.`,
       );
     }
-    const max = this.config.get<number>('EDI_MAX_BYTES', 26_214_400);
+    const max = this.config.get<number>('EDI_MAX_BYTES', 10_485_760);
     if (params.sizeBytes > max) {
       throw new BadRequestException(`EDI file exceeds max size of ${max} bytes`);
     }
@@ -242,7 +242,7 @@ export class BatchIngestService {
       });
     }
 
-    const max = this.config.get<number>('EDI_MAX_BYTES', 26_214_400);
+    const max = this.config.get<number>('EDI_MAX_BYTES', 10_485_760);
     if (size > max) {
       throw new BadRequestException(`EDI file exceeds max size of ${max} bytes`);
     }

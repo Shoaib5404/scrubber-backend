@@ -2,11 +2,10 @@ import {
   ArgumentsHost,
   Catch,
   ExceptionFilter,
-  HttpException,
-  HttpStatus,
   Logger,
 } from '@nestjs/common';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
+import { normalizeException } from '../errors/normalize-exception';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -15,35 +14,36 @@ export class HttpExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
 
-    const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+    const requestId = request.requestId ?? request.header('x-request-id') ?? undefined;
+    const path = sanitizePath(request.originalUrl ?? request.url);
 
-    const exceptionResponse =
-      exception instanceof HttpException ? exception.getResponse() : null;
+    const normalized = normalizeException(exception, { requestId, path });
 
-    const title =
-      typeof exceptionResponse === 'string'
-        ? exceptionResponse
-        : typeof exceptionResponse === 'object' &&
-            exceptionResponse !== null &&
-            'message' in exceptionResponse
-          ? Array.isArray((exceptionResponse as { message: unknown }).message)
-            ? (exceptionResponse as { message: string[] }).message.join(', ')
-            : String((exceptionResponse as { message: unknown }).message)
-          : 'Internal Server Error';
-
-    if (status >= 500) {
-      this.logger.error(exception);
+    if (normalized.logAsUnexpected) {
+      const exceptionName =
+        exception instanceof Error ? exception.name : typeof exception;
+      const exceptionMessage =
+        exception instanceof Error ? exception.message : String(exception);
+      this.logger.error(
+        `[${normalized.body.code}] ${request.method} ${path ?? 'unknown'} status=${normalized.status} requestId=${requestId ?? 'n/a'} ${exceptionName}: ${exceptionMessage}`,
+        exception instanceof Error ? exception.stack : undefined,
+      );
     }
 
-    response.status(status).json({
-      type: 'about:blank',
-      title,
-      status,
-      detail: status >= 500 ? 'An unexpected error occurred.' : title,
-    });
+    response.status(normalized.status).json(normalized.body);
+  }
+}
+
+function sanitizePath(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  try {
+    const url = new URL(raw, 'http://localhost');
+    // Drop query string — may contain tokens or PII.
+    return url.pathname;
+  } catch {
+    const q = raw.indexOf('?');
+    return q >= 0 ? raw.slice(0, q) : raw;
   }
 }

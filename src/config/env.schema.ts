@@ -87,7 +87,8 @@ export const envSchema = z.object({
   S3_FORCE_PATH_STYLE: booleanFromString.default(true),
   /** Presigned PUT/GET TTL in seconds (TeleWound default 900). */
   S3_PRESIGN_TTL: z.coerce.number().int().positive().default(900),
-  EDI_MAX_BYTES: z.coerce.number().int().positive().default(26_214_400),
+  /** Default 10MB — matches Laravel `SCRUBBER_MAX_FILE_SIZE`. */
+  EDI_MAX_BYTES: z.coerce.number().int().positive().default(10_485_760),
   EDI_LOCAL_PATH: z.string().default('./storage/edi'),
   EDI837_SPEC_PATH: z.string().default('./edi/837p/models'),
   EDI837_VALIDATION_ENABLED: booleanFromString.default(true),

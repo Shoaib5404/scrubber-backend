@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { wrapTransactionalEmailHtml } from './email-layout';
 
 export type InviteEmailPayload = {
   to: string;
@@ -60,12 +61,12 @@ export class MailService {
       '',
       'If you did not expect this email, you can ignore it.',
     ].join('\n');
-    const html = `
+    const html = this.renderHtml(subject, `
       <p>You have been invited to join <strong>${escapeHtml(payload.tenantName)}</strong>
       as <strong>${escapeHtml(payload.role)}</strong>.</p>
       <p><a href="${escapeAttr(payload.inviteUrl)}">Accept invite and set password</a></p>
       <p>If you did not expect this email, you can ignore it.</p>
-    `;
+    `);
 
     if (this.config.get<string>('NODE_ENV') !== 'production') {
       this.logger.log(`Invite email for ${payload.to}: ${payload.inviteUrl}`);
@@ -91,11 +92,11 @@ export class MailService {
       '',
       'If you did not request this, you can ignore this email.',
     ].join('\n');
-    const html = `
+    const html = this.renderHtml(subject, `
       <p>We received a request to reset your password.</p>
       <p><a href="${escapeAttr(payload.resetUrl)}">Reset your password</a></p>
       <p>If you did not request this, you can ignore this email.</p>
-    `;
+    `);
     return this.sendEmail({
       to: payload.to,
       subject,
@@ -114,16 +115,30 @@ export class MailService {
       '',
       'If you did not create an account, you can ignore this email.',
     ].join('\n');
-    const html = `
+    const html = this.renderHtml(subject, `
       <p>Please verify your email address.</p>
       <p><a href="${escapeAttr(payload.verificationUrl)}">Verify email</a></p>
       <p>If you did not create an account, you can ignore this email.</p>
-    `;
+    `);
     return this.sendEmail({
       to: payload.to,
       subject,
       text,
       html,
+    });
+  }
+
+  private frontendOrigin(): string {
+    return (
+      this.config.get<string>('FRONTEND_URL')?.trim() || 'http://localhost:3010'
+    );
+  }
+
+  private renderHtml(title: string, bodyHtml: string): string {
+    return wrapTransactionalEmailHtml({
+      frontendOrigin: this.frontendOrigin(),
+      title,
+      bodyHtml,
     });
   }
 

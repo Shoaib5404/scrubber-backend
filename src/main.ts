@@ -5,6 +5,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { requestIdMiddleware } from './common/middleware/request-id.middleware';
 import { CacheHeaderInterceptor } from './modules/cache/cache-header.interceptor';
 import { installCacheTelemetryMiddleware } from './modules/cache/cache-telemetry';
 
@@ -18,6 +19,7 @@ async function bootstrap() {
       crossOriginResourcePolicy: { policy: 'cross-origin' },
     }),
   );
+  app.use(requestIdMiddleware);
   app.use(installCacheTelemetryMiddleware);
 
   app.setGlobalPrefix('api/v1', {
@@ -29,7 +31,7 @@ async function bootstrap() {
     origin: corsOrigins.split(',').map((o) => o.trim()),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-    exposedHeaders: ['Cache'],
+    exposedHeaders: ['Cache', 'X-Request-Id'],
   });
 
   app.useGlobalPipes(

@@ -32,7 +32,7 @@ describe('loadEnvFrom', () => {
       JWT_REFRESH_TTL: '30',
       JWT_ISSUER: 'neo-scrubber',
       JWT_AUDIENCE: 'neo-scrubber-api',
-      EDI_MAX_BYTES: '26214400',
+      EDI_MAX_BYTES: '10485760',
       EDI_LOCAL_PATH: './storage/edi',
       FRONTEND_URL: 'http://localhost:3010',
     });

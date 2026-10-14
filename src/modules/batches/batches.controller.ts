@@ -98,7 +98,7 @@ export class BatchesController {
   @UseInterceptors(
     FileInterceptor('edi_file', {
       storage: memoryStorage(),
-      limits: { fileSize: 26_214_400 },
+      limits: { fileSize: 10_485_760 },
     }),
   )
   async store(
@@ -118,7 +118,7 @@ export class BatchesController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: memoryStorage(),
-      limits: { fileSize: 26_214_400 },
+      limits: { fileSize: 10_485_760 },
     }),
   )
   async ingestAlias(
