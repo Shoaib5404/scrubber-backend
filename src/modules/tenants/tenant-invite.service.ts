@@ -7,6 +7,8 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditCategoryCode } from '../audit/audit.catalog';
+import { AuditService } from '../audit/audit.service';
 import { UserRole } from '../auth/auth.constants';
 import { PasswordService } from '../auth/password.service';
 import { MailService } from '../mail/mail.service';
@@ -22,6 +24,7 @@ export class TenantInviteService {
     private readonly passwords: PasswordService,
     private readonly mail: MailService,
     private readonly config: ConfigService,
+    private readonly audit: AuditService,
   ) {}
 
   async inviteUser(input: {
@@ -260,6 +263,19 @@ export class TenantInviteService {
         },
         data: { acceptedAt: new Date() },
       });
+    });
+
+    this.audit.record({
+      category: AuditCategoryCode.AuthInviteAccept,
+      action: 'succeeded',
+      actorType: 'user',
+      actorUserId: user.id,
+      actorRole: invite.role,
+      tenantId: invite.tenantId,
+      system: true,
+      resourceType: 'tenant_invite',
+      resourceId: invite.id,
+      metadata: { user_id: user.id },
     });
 
     return { success: true, message: 'Invite accepted. You can now sign in.' };

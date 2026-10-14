@@ -24,6 +24,8 @@ import { MailModule } from './modules/mail/mail.module';
 import { TenantsModule } from './modules/tenants/tenants.module';
 import { TenantsAdminModule } from './modules/tenants-admin/tenants-admin.module';
 import { ServiceClientsAdminModule } from './modules/service-clients-admin/service-clients-admin.module';
+import { AuditModule } from './modules/audit/audit.module';
+import { SupportModule } from './modules/support/support.module';
 import { loadEnvFrom } from './config';
 
 @Module({
@@ -44,6 +46,8 @@ import { loadEnvFrom } from './config';
     MailModule,
     LookupCacheModule,
     StorageModule,
+    AuditModule,
+    SupportModule,
     AuthModule,
     TenantsModule,
     TenantsAdminModule,

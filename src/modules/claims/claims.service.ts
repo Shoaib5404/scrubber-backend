@@ -9,6 +9,8 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Prisma, UnitScale } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditCategoryCode } from '../audit/audit.catalog';
+import { AuditService } from '../audit/audit.service';
 import { ClaimValidationService } from '../claim-validation/claim-validation.service';
 import { QueueProducerService } from '../queue/queue-producer.service';
 import {
@@ -155,6 +157,7 @@ export class ClaimsService {
     private readonly batches: BatchesService,
     @Inject(forwardRef(() => QueueProducerService))
     private readonly queue: QueueProducerService,
+    private readonly audit: AuditService,
   ) {}
 
   async listByBatch(
@@ -393,6 +396,19 @@ export class ClaimsService {
       }
     });
 
+    const batch = await this.prisma.batchFile.findUnique({
+      where: { id: existing.batchFileId },
+      select: { tenantId: true },
+    });
+    this.audit.record({
+      category: AuditCategoryCode.ClaimUpdate,
+      action: 'updated',
+      tenantId: batch?.tenantId ?? null,
+      resourceType: 'claim',
+      resourceId: id,
+      metadata: { batch_id: existing.batchFileId },
+    });
+
     return this.getById(id);
   }
 
@@ -429,11 +445,36 @@ export class ClaimsService {
     }
 
     const updated = await this.prisma.serviceLine.update({ where: { id: lineId }, data });
+    const claim = await this.prisma.claim.findUnique({
+      where: { id: claimId },
+      include: { batchFile: { select: { tenantId: true } } },
+    });
+    this.audit.record({
+      category: AuditCategoryCode.ClaimUpdate,
+      action: 'updated',
+      tenantId: claim?.batchFile.tenantId ?? null,
+      resourceType: 'service_line',
+      resourceId: lineId,
+      metadata: { claim_id: claimId },
+    });
     return serializeServiceLine(updated);
   }
 
   async validateClaim(id: number) {
-    return this.claimValidation.validateClaim(id);
+    const claim = await this.prisma.claim.findUnique({
+      where: { id },
+      include: { batchFile: { select: { tenantId: true, id: true } } },
+    });
+    const result = await this.claimValidation.validateClaim(id);
+    this.audit.record({
+      category: AuditCategoryCode.ClaimValidate,
+      action: 'validated',
+      tenantId: claim?.batchFile.tenantId ?? null,
+      resourceType: 'claim',
+      resourceId: id,
+      metadata: { batch_id: claim?.batchFile.id },
+    });
+    return result;
   }
 
   /**
@@ -442,6 +483,17 @@ export class ClaimsService {
   async validateBatch(batchId: number, force = false) {
     const batch = await this.prisma.batchFile.findUnique({ where: { id: batchId } });
     if (!batch) throw new NotFoundException('Batch not found.');
+
+    if (force) {
+      this.audit.record({
+        category: AuditCategoryCode.BatchRetry,
+        action: 'forced',
+        tenantId: batch.tenantId,
+        resourceType: 'batch',
+        resourceId: batchId,
+        metadata: { previous_status: batch.status },
+      });
+    }
 
     if (!force && batch.status === 'validated') {
       return this.validationResultsResponse(batchId, batch.status);
@@ -482,11 +534,35 @@ export class ClaimsService {
         where: { id: batchId },
         data: { status: 'validating' },
       });
+      this.audit.record({
+        category: AuditCategoryCode.BatchValidate,
+        action: 'started',
+        tenantId: batch.tenantId,
+        resourceType: 'batch',
+        resourceId: batchId,
+        metadata: { queued: true, force },
+      });
+      this.audit.record({
+        category: AuditCategoryCode.BatchStatusChange,
+        action: 'changed',
+        tenantId: batch.tenantId,
+        resourceType: 'batch',
+        resourceId: batchId,
+        metadata: { from: batch.status, to: 'validating' },
+      });
       return this.underProcessingResponse(batchId, 'validating', true);
     }
 
     await this.claimValidation.validateBatch(batchId, force);
     const fresh = await this.prisma.batchFile.findUniqueOrThrow({ where: { id: batchId } });
+    this.audit.record({
+      category: AuditCategoryCode.BatchValidate,
+      action: 'completed',
+      tenantId: batch.tenantId,
+      resourceType: 'batch',
+      resourceId: batchId,
+      metadata: { status: fresh.status, force },
+    });
     return this.validationResultsResponse(batchId, fresh.status);
   }
 

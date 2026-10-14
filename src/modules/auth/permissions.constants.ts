@@ -9,6 +9,8 @@ export const Permission = {
   ArticlesManage: 'articles.manage',
   UsersManage: 'users.manage',
   TenantsManage: 'tenants.manage',
+  AuditView: 'audit.view',
+  InquiriesView: 'inquiries.view',
 } as const;
 
 export type PermissionValue = (typeof Permission)[keyof typeof Permission];
@@ -21,6 +23,8 @@ export const ALL_PERMISSIONS: PermissionValue[] = [
   Permission.ArticlesManage,
   Permission.UsersManage,
   Permission.TenantsManage,
+  Permission.AuditView,
+  Permission.InquiriesView,
 ];
 
 export type PermissionMeta = {
@@ -71,6 +75,18 @@ export const PERMISSION_CATALOG: PermissionMeta[] = [
     value: Permission.TenantsManage,
     label: 'Manage Tenants',
     description: 'Create organizations, invite members, and manage subscriptions.',
+    group: 'Administration',
+  },
+  {
+    value: Permission.AuditView,
+    label: 'View Audit Logs',
+    description: 'View platform audit events across tenants.',
+    group: 'Administration',
+  },
+  {
+    value: Permission.InquiriesView,
+    label: 'View Inquiries',
+    description: 'View and manage customer and public support inquiries.',
     group: 'Administration',
   },
 ];

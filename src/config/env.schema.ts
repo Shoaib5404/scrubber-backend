@@ -89,6 +89,13 @@ export const envSchema = z.object({
   S3_PRESIGN_TTL: z.coerce.number().int().positive().default(900),
   /** Default 10MB — matches Laravel `SCRUBBER_MAX_FILE_SIZE`. */
   EDI_MAX_BYTES: z.coerce.number().int().positive().default(10_485_760),
+  /** Max size for a single support-inquiry attachment (default 5 MiB). */
+  INQUIRY_ATTACHMENT_MAX_BYTES: z.coerce.number().int().positive().default(5_242_880),
+  /**
+   * Staff-admin inbox for Request a Demo alerts. Trusted env only — never from client.
+   * When unset/empty, demo tickets are still stored (`email_notify_status=skipped`).
+   */
+  SUPPORT_INBOX: z.string().optional(),
   EDI_LOCAL_PATH: z.string().default('./storage/edi'),
   EDI837_SPEC_PATH: z.string().default('./edi/837p/models'),
   EDI837_VALIDATION_ENABLED: booleanFromString.default(true),

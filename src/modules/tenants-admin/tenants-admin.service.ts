@@ -9,6 +9,8 @@ import type {
   PeriodFilter,
 } from '../../common/period/period.util';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditCategoryCode } from '../audit/audit.catalog';
+import { AuditService } from '../audit/audit.service';
 import { TenantActivityService } from '../tenants/tenant-activity.service';
 import { ALL_TENANT_FEATURES, TENANT_FEATURE_CATALOG } from '../tenants/tenant-features.constants';
 import { TenantFeaturesService } from '../tenants/tenant-features.service';
@@ -69,6 +71,7 @@ export class TenantsAdminService {
     private readonly invites: TenantInviteService,
     private readonly tenantFeatures: TenantFeaturesService,
     private readonly activity: TenantActivityService,
+    private readonly audit: AuditService,
   ) {}
 
   featureCatalog() {
@@ -180,6 +183,19 @@ export class TenantsAdminService {
       });
     }
 
+    this.audit.record({
+      category: AuditCategoryCode.AdminTenantCreate,
+      action: 'created',
+      resourceType: 'tenant',
+      resourceId: tenant.id,
+      tenantId: tenant.id,
+      metadata: {
+        slug: tenant.slug,
+        subscription_status: subscriptionStatus,
+        features,
+      },
+    });
+
     return {
       tenant: serializeTenant(
         { ...tenant, _count: { users: invite ? 1 : 0, batchFiles: 0 } },
@@ -220,6 +236,19 @@ export class TenantsAdminService {
       dto.features != null
         ? await this.tenantFeatures.replace(id, dto.features)
         : await this.tenantFeatures.list(id);
+
+    this.audit.record({
+      category: AuditCategoryCode.AdminTenantUpdate,
+      action: 'updated',
+      resourceType: 'tenant',
+      resourceId: id,
+      tenantId: id,
+      metadata: {
+        status: updated.status,
+        subscription_status: updated.subscriptionStatus,
+        features_changed: dto.features != null,
+      },
+    });
 
     return serializeTenant(updated, features);
   }
@@ -303,6 +332,20 @@ export class TenantsAdminService {
       data: {
         ...(dto.role != null ? { role: dto.role } : {}),
         ...(dto.is_active != null ? { isActive: dto.is_active } : {}),
+      },
+    });
+
+    this.audit.record({
+      category: AuditCategoryCode.AdminMemberUpdate,
+      action: 'updated',
+      resourceType: 'user',
+      resourceId: updated.id,
+      tenantId,
+      metadata: {
+        role: updated.role,
+        is_active: updated.isActive,
+        previous_role: user.role,
+        previous_is_active: user.isActive,
       },
     });
 

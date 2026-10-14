@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditCategoryCode } from '../audit/audit.catalog';
+import { AuditService } from '../audit/audit.service';
 import { isTenantRole, UserRole } from '../auth/auth.constants';
 import { PasswordService } from '../auth/password.service';
 import { ApiClientIssuerService } from '../ops-cli/api-client-issuer.service';
@@ -99,6 +101,7 @@ export class UsersAdminService {
     private readonly prisma: PrismaService,
     private readonly passwords: PasswordService,
     private readonly issuer: ApiClientIssuerService,
+    private readonly audit: AuditService,
   ) {}
 
   async list(query: ListUsersQueryDto) {
@@ -213,6 +216,24 @@ export class UsersAdminService {
           subscriptionEndsAt: normalized.subscription_ends_at,
         },
       });
+      this.audit.record({
+        category: AuditCategoryCode.AdminUserCreate,
+        action: 'created',
+        resourceType: 'user',
+        resourceId: user.id,
+        tenantId: user.tenantId,
+        metadata: { role: user.role, is_active: user.isActive },
+      });
+      if (tenantId != null) {
+        this.audit.record({
+          category: AuditCategoryCode.AdminTenantCreate,
+          action: 'created',
+          resourceType: 'tenant',
+          resourceId: tenantId,
+          tenantId,
+          metadata: { via: 'user_create' },
+        });
+      }
       return serializeUser(user);
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
@@ -255,6 +276,19 @@ export class UsersAdminService {
 
     try {
       const updated = await this.prisma.user.update({ where: { id }, data });
+      this.audit.record({
+        category: AuditCategoryCode.AdminUserUpdate,
+        action: 'updated',
+        resourceType: 'user',
+        resourceId: updated.id,
+        tenantId: updated.tenantId,
+        metadata: {
+          role: updated.role,
+          is_active: updated.isActive,
+          password_changed: Boolean(dto.password && dto.password.trim() !== ''),
+          actor_user_id: actorUserId,
+        },
+      });
       return serializeUser(updated);
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
@@ -274,6 +308,13 @@ export class UsersAdminService {
     await this.requireCustomer(userId);
     void createdById;
     const issued = await this.issuer.issueForCustomer(String(userId), dto.name);
+    this.audit.record({
+      category: AuditCategoryCode.AdminApiClient,
+      action: 'created',
+      resourceType: 'api_client',
+      resourceId: issued.client.id,
+      metadata: { user_id: userId, name: dto.name },
+    });
     return {
       ...serializeApiClient({
         id: issued.client.id,
@@ -292,6 +333,13 @@ export class UsersAdminService {
   async rotateApiClient(userId: number, clientId: number) {
     await this.requireOwnedClient(userId, clientId);
     const issued = await this.issuer.rotateSecret(clientId);
+    this.audit.record({
+      category: AuditCategoryCode.AdminApiClient,
+      action: 'rotated',
+      resourceType: 'api_client',
+      resourceId: clientId,
+      metadata: { user_id: userId },
+    });
     return {
       ...serializeApiClient({
         id: issued.client.id,
@@ -310,6 +358,13 @@ export class UsersAdminService {
   async reissueApiClient(userId: number, clientId: number, dto: ReissueApiClientDto) {
     await this.requireOwnedClient(userId, clientId);
     const issued = await this.issuer.reissue(clientId, dto.name);
+    this.audit.record({
+      category: AuditCategoryCode.AdminApiClient,
+      action: 'reissued',
+      resourceType: 'api_client',
+      resourceId: clientId,
+      metadata: { user_id: userId },
+    });
     return {
       ...serializeApiClient({
         id: issued.client.id,
@@ -328,6 +383,13 @@ export class UsersAdminService {
   async revokeApiClient(userId: number, clientId: number) {
     await this.requireOwnedClient(userId, clientId);
     await this.issuer.revoke(clientId);
+    this.audit.record({
+      category: AuditCategoryCode.AdminApiClient,
+      action: 'revoked',
+      resourceType: 'api_client',
+      resourceId: clientId,
+      metadata: { user_id: userId },
+    });
     return { revoked: true };
   }
 

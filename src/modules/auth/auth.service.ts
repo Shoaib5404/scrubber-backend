@@ -1,7 +1,9 @@
 import {
+  Inject,
   Injectable,
   UnauthorizedException,
   UnprocessableEntityException,
+  forwardRef,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -14,6 +16,8 @@ import {
   isStaffRole,
   isTenantRole,
 } from './auth.constants';
+import { AuditCategoryCode } from '../audit/audit.catalog';
+import { AuditService } from '../audit/audit.service';
 import { PasswordService } from './password.service';
 import { RolePermissionService } from './role-permission.service';
 
@@ -55,6 +59,8 @@ export class AuthService {
     private readonly passwords: PasswordService,
     private readonly rolePermissions: RolePermissionService,
     private readonly tenantFeatures: TenantFeaturesService,
+    @Inject(forwardRef(() => AuditService))
+    private readonly audit: AuditService,
   ) {}
 
   async login(email: string, password: string): Promise<AuthSession> {
@@ -72,7 +78,19 @@ export class AuthService {
       throw new UnauthorizedException(TENANT_SUSPENDED_MESSAGE);
     }
 
-    return this.issueUserSession(user);
+    const session = await this.issueUserSession(user);
+    this.audit.record({
+      category: AuditCategoryCode.AuthLogin,
+      action: 'succeeded',
+      actorType: 'user',
+      actorUserId: user.id,
+      actorRole: user.role,
+      tenantId: user.tenantId,
+      system: true,
+      resourceType: 'user',
+      resourceId: user.id,
+    });
+    return session;
   }
 
   async refresh(refreshToken: string): Promise<AuthSession> {
@@ -101,10 +119,27 @@ export class AuthService {
 
   async logout(refreshToken: string): Promise<void> {
     const tokenHash = this.passwords.hashToken(refreshToken);
+    const stored = await this.prisma.refreshToken.findFirst({
+      where: { tokenHash },
+      select: { userId: true, user: { select: { role: true, tenantId: true } } },
+    });
     await this.prisma.refreshToken.updateMany({
       where: { tokenHash, revokedAt: null },
       data: { revokedAt: new Date() },
     });
+    if (stored) {
+      this.audit.record({
+        category: AuditCategoryCode.AuthLogout,
+        action: 'succeeded',
+        actorType: 'user',
+        actorUserId: stored.userId,
+        actorRole: stored.user.role,
+        tenantId: stored.user.tenantId,
+        system: true,
+        resourceType: 'user',
+        resourceId: stored.userId,
+      });
+    }
   }
 
   async issueApiClientToken(
@@ -117,6 +152,13 @@ export class AuthService {
     });
 
     if (!client || !(await this.passwords.verifySecret(clientSecret, client.clientSecret))) {
+      this.audit.record({
+        category: AuditCategoryCode.AuthApiTokenIssue,
+        action: 'failed',
+        actorType: 'system',
+        system: true,
+        metadata: { reason: 'invalid_credentials' },
+      });
       throw new UnprocessableEntityException({
         message: 'Validation failed',
         errors: { client_id: ['Invalid client credentials.'] },
@@ -190,6 +232,19 @@ export class AuthService {
     await this.prisma.apiClient.update({
       where: { id: client.id },
       data: { lastUsedAt: new Date() },
+    });
+
+    this.audit.record({
+      category: AuditCategoryCode.AuthApiTokenIssue,
+      action: 'succeeded',
+      actorType: 'api_client',
+      actorApiClientId: client.id,
+      actorUserId: client.userId,
+      tenantId: client.tenantId ?? client.user?.tenantId ?? null,
+      system: true,
+      resourceType: 'api_client',
+      resourceId: client.id,
+      metadata: { client_id: client.clientId },
     });
 
     return {

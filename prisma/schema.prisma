@@ -38,6 +38,8 @@ model Tenant {
   ediUploadErrorLogs EdiUploadErrorLog[]
   invites            TenantInvite[]
   features           TenantFeature[]
+  auditEvents        AuditEvent[]
+  supportTickets     SupportTicket[]
 
   @@index([status])
   @@index([subscriptionStatus])
@@ -106,6 +108,10 @@ model User {
   ediUploadErrorLogs  EdiUploadErrorLog[]
   refreshTokens       RefreshToken[]
   sentInvites         TenantInvite[]       @relation("TenantInviteInviter")
+  auditCategoriesUpdated AuditCategory[]   @relation("AuditCategoryUpdater")
+  auditEventsAsActor  AuditEvent[]         @relation("AuditEventActor")
+  supportTicketsRequested SupportTicket[]  @relation("SupportTicketRequester")
+  supportMessages         SupportMessage[] @relation("SupportMessageAuthor")
 
   @@index([role])
   @@index([isActive])
@@ -125,6 +131,56 @@ model RolePermission {
   @@index([role])
   @@index([permission])
   @@map("role_permissions")
+}
+
+/// Platform-wide audit category toggles. Disabling a row stops new writes for that code.
+model AuditCategory {
+  code            String   @id @db.VarChar(64)
+  label           String
+  description     String   @db.Text
+  group           String   @map("group_name") @db.VarChar(64)
+  enabled         Boolean  @default(true)
+  updatedByUserId Int?     @map("updated_by_user_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  updatedBy User?        @relation("AuditCategoryUpdater", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+  events    AuditEvent[]
+
+  @@index([group])
+  @@index([enabled])
+  @@map("audit_categories")
+}
+
+/// Append-only audit trail. Never store EDI payloads, PHI, passwords, or secrets in metadata.
+model AuditEvent {
+  id               Int      @id @default(autoincrement())
+  occurredAt       DateTime @default(now()) @map("occurred_at")
+  categoryCode     String   @map("category_code") @db.VarChar(64)
+  action           String   @db.VarChar(40)
+  actorType        String   @map("actor_type") @db.VarChar(20)
+  actorUserId      Int?     @map("actor_user_id")
+  actorApiClientId Int?     @map("actor_api_client_id")
+  actorRole        String?  @map("actor_role") @db.VarChar(40)
+  tenantId         Int?     @map("tenant_id")
+  resourceType     String?  @map("resource_type") @db.VarChar(64)
+  resourceId       String?  @map("resource_id") @db.VarChar(64)
+  requestId        String?  @map("request_id") @db.VarChar(128)
+  ip               String?  @db.VarChar(64)
+  userAgent        String?  @map("user_agent") @db.VarChar(512)
+  metadata         Json?
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  category  AuditCategory @relation(fields: [categoryCode], references: [code], onDelete: Restrict)
+  actorUser User?         @relation("AuditEventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  tenant    Tenant?       @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  @@index([occurredAt(sort: Desc)])
+  @@index([tenantId, occurredAt(sort: Desc)])
+  @@index([categoryCode, occurredAt(sort: Desc)])
+  @@index([actorUserId, occurredAt(sort: Desc)])
+  @@index([resourceType, resourceId])
+  @@map("audit_events")
 }
 
 model ApiClient {
@@ -1788,5 +1844,60 @@ model NcdOtherLabIcd {
   @@index([icdCode])
   @@index([isActive])
   @@map("ncd_other_lab_icd")
+}
+
+/// Customer / public support inquiries (contact, demo, portal support).
+model SupportTicket {
+  id                      Int       @id @default(autoincrement())
+  publicReference         String    @unique @map("public_reference") @db.VarChar(32)
+  source                  String    @db.VarChar(16) // public | portal
+  tenantId                Int?      @map("tenant_id")
+  requesterUserId         Int?      @map("requester_user_id")
+  requesterName           String    @map("requester_name") @db.VarChar(255)
+  requesterEmail          String    @map("requester_email") @db.VarChar(255)
+  requesterOrganization   String?   @map("requester_organization") @db.VarChar(255)
+  category                String    @db.VarChar(64)
+  subject                 String    @db.VarChar(255)
+  description             String    @db.Text
+  relatedBatchId          Int?      @map("related_batch_id")
+  status                  String    @default("open") @db.VarChar(32)
+  priority                String    @default("normal") @db.VarChar(16)
+  emailNotifyStatus       String?   @map("email_notify_status") @db.VarChar(16) // sent | failed | skipped
+  attachmentObjectKey     String?   @map("attachment_object_key") @db.VarChar(512)
+  attachmentOriginalName  String?   @map("attachment_original_name") @db.VarChar(255)
+  attachmentMimeType      String?   @map("attachment_mime_type") @db.VarChar(128)
+  attachmentSizeBytes     Int?      @map("attachment_size_bytes")
+  attachmentUploadedAt    DateTime? @map("attachment_uploaded_at")
+  resolvedAt              DateTime? @map("resolved_at")
+  closedAt                DateTime? @map("closed_at")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+
+  tenant    Tenant?          @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  requester User?            @relation("SupportTicketRequester", fields: [requesterUserId], references: [id], onDelete: SetNull)
+  messages  SupportMessage[]
+
+  @@index([status, createdAt])
+  @@index([category, createdAt])
+  @@index([requesterEmail])
+  @@index([tenantId, createdAt])
+  @@map("support_tickets")
+}
+
+model SupportMessage {
+  id             Int      @id @default(autoincrement())
+  ticketId       Int      @map("ticket_id")
+  authorUserId   Int?     @map("author_user_id")
+  authorType     String   @map("author_type") @db.VarChar(16) // customer | staff | system
+  body           String   @db.Text
+  isInternalNote Boolean  @default(false) @map("is_internal_note")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author User?         @relation("SupportMessageAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
+
+  @@index([ticketId, createdAt])
+  @@map("support_messages")
 }
 

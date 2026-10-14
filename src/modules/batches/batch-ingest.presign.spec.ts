@@ -78,6 +78,7 @@ describe('BatchIngestService presign complete', () => {
       parser as never,
       {} as never,
       { enqueueValidateBatch: jest.fn() } as never,
+      { record: jest.fn() } as never,
     );
   });
 

@@ -7,6 +7,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenant/tenant-context';
+import { AuditCategoryCode } from '../../modules/audit/audit.catalog';
+import { AuditService } from '../../modules/audit/audit.service';
 import { AuthPrincipal } from '../../modules/auth/auth.types';
 
 /**
@@ -18,12 +20,14 @@ export class BatchOwnershipGuard implements CanActivate {
   constructor(
     private readonly prisma: PrismaService,
     private readonly tenants: TenantContext,
+    private readonly audit: AuditService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<{
       user?: AuthPrincipal;
       params: { id?: string; batchId?: string };
+      method?: string;
     }>();
     const auth = request.user;
     if (!auth) {
@@ -42,6 +46,15 @@ export class BatchOwnershipGuard implements CanActivate {
     }
 
     if (this.tenants.isStaff(auth)) {
+      if (batch.tenantId != null && (request.method === 'GET' || request.method === 'HEAD')) {
+        this.audit.recordFromAuth(auth, {
+          category: AuditCategoryCode.StaffTenantBatchAccess,
+          action: 'viewed',
+          tenantId: batch.tenantId,
+          resourceType: 'batch',
+          resourceId: batchId,
+        });
+      }
       return true;
     }
 

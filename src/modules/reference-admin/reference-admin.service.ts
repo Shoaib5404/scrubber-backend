@@ -7,6 +7,8 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditCategoryCode } from '../audit/audit.catalog';
+import { AuditService } from '../audit/audit.service';
 import { lookupLogicalName } from '../cache/cache.constants';
 import { LookupCacheService } from '../cache/lookup-cache.service';
 import { CLAIM_FILING_INDICATORS } from '../claim-validation/config/claim-filing-indicators';
@@ -52,6 +54,7 @@ export class ReferenceAdminService {
     private readonly lookupCache: LookupCacheService,
     private readonly medicaidFormats: MedicaidMemberIdFormatRepository,
     private readonly cmsRelationships: CmsRelationshipService,
+    private readonly audit: AuditService,
   ) {}
 
   cmsIntegrityReport() {
@@ -181,6 +184,13 @@ export class ReferenceAdminService {
     if (isJsonStorageDomain(def)) {
       const data = this.buildMedicaidWritePayload(def, body, 'create');
       const created = await this.medicaidFormats.create(data);
+      this.audit.record({
+        category: AuditCategoryCode.ReferenceCreate,
+        action: 'created',
+        resourceType: 'reference',
+        resourceId: slug,
+        metadata: { domain: slug },
+      });
       return this.medicaidFormats.flatRecordToApi(created);
     }
 
@@ -189,6 +199,13 @@ export class ReferenceAdminService {
     try {
       const created = await this.delegate(def).create({ data });
       await this.invalidateAfterMutation(def);
+      this.audit.record({
+        category: AuditCategoryCode.ReferenceCreate,
+        action: 'created',
+        resourceType: 'reference',
+        resourceId: slug,
+        metadata: { domain: slug },
+      });
       return this.serializeReferenceRow(def, created);
     } catch (e) {
       throw this.mapPrismaError(e);
@@ -203,6 +220,13 @@ export class ReferenceAdminService {
       await this.medicaidFormats.findOrFail(id);
       const data = this.buildMedicaidWritePayload(def, body, 'update');
       const updated = await this.medicaidFormats.update(id, data);
+      this.audit.record({
+        category: AuditCategoryCode.ReferenceUpdate,
+        action: 'updated',
+        resourceType: 'reference',
+        resourceId: `${slug}:${id}`,
+        metadata: { domain: slug },
+      });
       return this.medicaidFormats.flatRecordToApi(updated);
     }
 
@@ -216,6 +240,13 @@ export class ReferenceAdminService {
         data,
       });
       await this.invalidateAfterMutation(def);
+      this.audit.record({
+        category: AuditCategoryCode.ReferenceUpdate,
+        action: 'updated',
+        resourceType: 'reference',
+        resourceId: `${slug}:${id}`,
+        metadata: { domain: slug },
+      });
       return this.serializeReferenceRow(def, updated);
     } catch (e) {
       throw this.mapPrismaError(e);
@@ -229,6 +260,13 @@ export class ReferenceAdminService {
     if (isJsonStorageDomain(def)) {
       await this.medicaidFormats.findOrFail(id);
       await this.medicaidFormats.delete(id);
+      this.audit.record({
+        category: AuditCategoryCode.ReferenceDelete,
+        action: 'deleted',
+        resourceType: 'reference',
+        resourceId: `${slug}:${id}`,
+        metadata: { domain: slug },
+      });
       return { id };
     }
 
@@ -245,6 +283,13 @@ export class ReferenceAdminService {
       }
       await this.delegate(def).delete({ where: this.whereForRouteId(def, routeId) });
       await this.invalidateAfterMutation(def);
+      this.audit.record({
+        category: AuditCategoryCode.ReferenceDelete,
+        action: 'deleted',
+        resourceType: 'reference',
+        resourceId: `${slug}:${id}`,
+        metadata: { domain: slug },
+      });
       return { id: routeId };
     } catch (e) {
       throw this.mapPrismaError(e);

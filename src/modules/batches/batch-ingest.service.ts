@@ -17,6 +17,8 @@ import { ModelDrivenEdiParser } from '../edi-parser/model-driven-edi.parser';
 import { ParsedBatch } from '../edi-parser/types';
 import { Edi837ValidationService } from '../edi-structural-validation/edi837-validation.service';
 import { Edi837ValidationResultDto } from '../edi-structural-validation/types';
+import { AuditCategoryCode } from '../audit/audit.catalog';
+import { AuditService } from '../audit/audit.service';
 import { QueueProducerService } from '../queue/queue-producer.service';
 import {
   assertEdiObjectKeyBelongsToActor,
@@ -57,6 +59,7 @@ export class BatchIngestService {
     private readonly claimValidation: ClaimValidationService,
     @Inject(forwardRef(() => QueueProducerService))
     private readonly queue: QueueProducerService,
+    private readonly audit: AuditService,
   ) {}
 
   /**
@@ -188,6 +191,18 @@ export class BatchIngestService {
           ediValidationErrors: ediValidation.issues.length ? ediValidation : undefined,
         },
       });
+      this.audit.record({
+        category: AuditCategoryCode.BatchUploadSucceeded,
+        action: 'succeeded',
+        actorUserId: actor.userId,
+        tenantId: actor.dbTenantId,
+        resourceType: 'batch',
+        resourceId: batch.id,
+        metadata: {
+          original_filename: params.originalFilename,
+          file_size: buffer.byteLength,
+        },
+      });
       return this.storeParsedData(batch.id, parsed, ediValidation);
     } catch (err) {
       await this.safeDeleteObject(objectKey);
@@ -217,6 +232,19 @@ export class BatchIngestService {
         status: 'processing',
         ...envelopeFromParsed(parsed),
         ediValidationErrors: ediValidation.issues.length ? ediValidation : undefined,
+      },
+    });
+
+    this.audit.record({
+      category: AuditCategoryCode.BatchUploadSucceeded,
+      action: 'succeeded',
+      actorUserId: uploadedById,
+      tenantId,
+      resourceType: 'batch',
+      resourceId: batch.id,
+      metadata: {
+        original_filename: file.originalname,
+        file_size: file.size,
       },
     });
 
@@ -314,6 +342,17 @@ export class BatchIngestService {
     const existing = await this.prisma.batchFile.findUnique({ where: { id: batchId } });
     if (!existing) throw new NotFoundException('Batch not found.');
 
+    this.audit.record({
+      category: force
+        ? AuditCategoryCode.BatchRetry
+        : AuditCategoryCode.BatchProcess,
+      action: force ? 'forced' : 'started',
+      tenantId: existing.tenantId,
+      resourceType: 'batch',
+      resourceId: batchId,
+      metadata: { previous_status: existing.status, force },
+    });
+
     if (!force && this.shouldResumeValidation(existing)) {
       const { batch } = await this.startRuleValidation(batchId, force);
       return batch;
@@ -335,9 +374,29 @@ export class BatchIngestService {
       this.config.get<boolean>('USE_QUEUE', false) &&
       this.config.get<boolean>('PARALLEL_VALIDATE', true);
 
+    const prior = await this.prisma.batchFile.findUnique({ where: { id: batchId } });
     await this.prisma.batchFile.update({
       where: { id: batchId },
       data: { status: 'validating' },
+    });
+
+    this.audit.record({
+      category: AuditCategoryCode.BatchStatusChange,
+      action: 'changed',
+      tenantId: prior?.tenantId ?? null,
+      resourceType: 'batch',
+      resourceId: batchId,
+      metadata: { from: prior?.status ?? null, to: 'validating' },
+    });
+    this.audit.record({
+      category: force
+        ? AuditCategoryCode.BatchRetry
+        : AuditCategoryCode.BatchValidate,
+      action: force ? 'forced' : 'started',
+      tenantId: prior?.tenantId ?? null,
+      resourceType: 'batch',
+      resourceId: batchId,
+      metadata: { queued: useParallel, force },
     });
 
     if (useParallel) {
@@ -488,6 +547,24 @@ export class BatchIngestService {
           ediValidationErrors: ediValidation ?? undefined,
         },
       });
+    }).then((batch) => {
+      this.audit.record({
+        category: AuditCategoryCode.BatchParse,
+        action: 'succeeded',
+        tenantId: batch.tenantId,
+        resourceType: 'batch',
+        resourceId: batch.id,
+        metadata: { total_claims: batch.totalClaims, status: batch.status },
+      });
+      this.audit.record({
+        category: AuditCategoryCode.BatchStatusChange,
+        action: 'changed',
+        tenantId: batch.tenantId,
+        resourceType: 'batch',
+        resourceId: batch.id,
+        metadata: { to: 'parsed' },
+      });
+      return batch;
     });
   }
 }

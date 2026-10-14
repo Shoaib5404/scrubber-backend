@@ -4,6 +4,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditCategoryCode } from '../audit/audit.catalog';
+import { AuditService } from '../audit/audit.service';
 import { isTenantRole, UserRole } from '../auth/auth.constants';
 import { ApiClientIssuerService } from '../ops-cli/api-client-issuer.service';
 import {
@@ -42,6 +44,7 @@ export class IntegrationsService {
     private readonly prisma: PrismaService,
     private readonly issuer: ApiClientIssuerService,
     private readonly tenantFeatures: TenantFeaturesService,
+    private readonly audit: AuditService,
   ) {}
 
   async show(userId: number) {
@@ -90,6 +93,17 @@ export class IntegrationsService {
       where: { id: issued.client.id },
     });
 
+    this.audit.record({
+      category: AuditCategoryCode.SettingsIntegrations,
+      action: 'created',
+      actorUserId: userId,
+      actorRole: user.role,
+      tenantId: user.tenantId,
+      resourceType: 'api_client',
+      resourceId: client.id,
+      metadata: { client_id: client.clientId },
+    });
+
     return {
       message:
         'API credentials created. Copy the client secret now — it will not be shown again.',
@@ -127,6 +141,17 @@ export class IntegrationsService {
     const issued = await this.issuer.rotateSecret(client.id);
     const refreshed = await this.prisma.apiClient.findUniqueOrThrow({
       where: { id: client.id },
+    });
+
+    this.audit.record({
+      category: AuditCategoryCode.SettingsIntegrations,
+      action: 'rotated',
+      actorUserId: userId,
+      actorRole: user.role,
+      tenantId: user.tenantId,
+      resourceType: 'api_client',
+      resourceId: client.id,
+      metadata: { client_id: client.clientId },
     });
 
     return {

@@ -1,5 +1,13 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  OnModuleInit,
+  forwardRef,
+} from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditCategoryCode } from '../audit/audit.catalog';
+import { AuditService } from '../audit/audit.service';
 import { UserRole, isStaffRole } from './auth.constants';
 import {
   ALL_PERMISSIONS,
@@ -11,30 +19,40 @@ import {
 @Injectable()
 export class RolePermissionService implements OnModuleInit {
   private readonly logger = new Logger(RolePermissionService.name);
+  private seeding = false;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => AuditService))
+    private readonly audit: AuditService,
+  ) {}
 
   async onModuleInit(): Promise<void> {
     await this.ensureDefaultsSeeded();
   }
 
   async ensureDefaultsSeeded(): Promise<void> {
-    for (const role of MANAGEABLE_ROLES) {
-      const count = await this.prisma.rolePermission.count({ where: { role } });
-      if (count === 0) {
-        await this.syncRolePermissions(role, defaultPermissionsFor(role));
-        this.logger.log(`Seeded default permissions for role=${role}`);
-        continue;
+    this.seeding = true;
+    try {
+      for (const role of MANAGEABLE_ROLES) {
+        const count = await this.prisma.rolePermission.count({ where: { role } });
+        if (count === 0) {
+          await this.syncRolePermissions(role, defaultPermissionsFor(role));
+          this.logger.log(`Seeded default permissions for role=${role}`);
+          continue;
+        }
+        // Additive: grant any newly introduced default permissions (e.g. audit.view).
+        const defaults = defaultPermissionsFor(role);
+        for (const permission of defaults) {
+          await this.prisma.rolePermission.upsert({
+            where: { role_permission: { role, permission } },
+            create: { role, permission },
+            update: {},
+          });
+        }
       }
-      // Additive: grant any newly introduced default permissions (e.g. tenants.manage).
-      const defaults = defaultPermissionsFor(role);
-      for (const permission of defaults) {
-        await this.prisma.rolePermission.upsert({
-          where: { role_permission: { role, permission } },
-          create: { role, permission },
-          update: {},
-        });
-      }
+    } finally {
+      this.seeding = false;
     }
   }
 
@@ -101,5 +119,15 @@ export class RolePermissionService implements OnModuleInit {
         });
       }
     });
+
+    if (!this.seeding) {
+      this.audit.record({
+        category: AuditCategoryCode.AdminPermissionsSync,
+        action: 'updated',
+        resourceType: 'role',
+        resourceId: role,
+        metadata: { permissions: values },
+      });
+    }
   }
 }

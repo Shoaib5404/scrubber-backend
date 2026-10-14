@@ -2,6 +2,8 @@ import { Injectable, Logger, UnprocessableEntityException } from '@nestjs/common
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditCategoryCode } from '../audit/audit.catalog';
+import { AuditService } from '../audit/audit.service';
 import { MailService } from '../mail/mail.service';
 import { PasswordService } from './password.service';
 
@@ -17,6 +19,7 @@ export class PasswordResetService {
     private readonly config: ConfigService,
     private readonly passwords: PasswordService,
     private readonly mail: MailService,
+    private readonly audit: AuditService,
   ) {}
 
   /**
@@ -35,6 +38,18 @@ export class PasswordResetService {
     if (!user || !user.isActive) {
       return { success: true, message: GENERIC_FORGOT_MESSAGE };
     }
+
+    this.audit.record({
+      category: AuditCategoryCode.AuthPasswordReset,
+      action: 'requested',
+      actorType: 'user',
+      actorUserId: user.id,
+      actorRole: user.role,
+      tenantId: user.tenantId,
+      system: true,
+      resourceType: 'user',
+      resourceId: user.id,
+    });
 
     const rawToken = randomBytes(32).toString('hex');
     const tokenHash = this.passwords.hashToken(rawToken);
@@ -129,6 +144,18 @@ export class PasswordResetService {
         where: { userId: user.id, revokedAt: null },
         data: { revokedAt: new Date() },
       });
+    });
+
+    this.audit.record({
+      category: AuditCategoryCode.AuthPasswordReset,
+      action: 'completed',
+      actorType: 'user',
+      actorUserId: user.id,
+      actorRole: user.role,
+      tenantId: user.tenantId,
+      system: true,
+      resourceType: 'user',
+      resourceId: user.id,
     });
 
     return {

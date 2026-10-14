@@ -8,6 +8,8 @@ import { mkdtemp, rm, writeFile } from 'fs/promises';
 import { tmpdir } from 'os';
 import * as path from 'path';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditCategoryCode } from '../audit/audit.catalog';
+import { AuditService } from '../audit/audit.service';
 import { AgeSpecificCptRulesImportService } from '../imports/age-specific-cpt-rules.import.service';
 import { getReferenceDomain } from './domains.registry';
 import {
@@ -32,6 +34,7 @@ export class ReferenceAdminIoService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly ageSpecificCptImport: AgeSpecificCptRulesImportService,
+    private readonly audit: AuditService,
   ) {}
 
   async exportDomain(slug: string): Promise<ReferenceExportResult> {
@@ -43,7 +46,13 @@ export class ReferenceAdminIoService {
     }
 
     const stamp = formatStamp(new Date());
+    return this.buildExport(slug, stamp);
+  }
 
+  private async buildExport(
+    slug: string,
+    stamp: string,
+  ): Promise<ReferenceExportResult> {
     switch (slug) {
       case 'age-specific-cpt-rules': {
         const rows = await this.prisma.ageSpecificCptRule.findMany({
@@ -205,6 +214,17 @@ export class ReferenceAdminIoService {
       if (result.skipped > 0) {
         parts.push(`Skipped ${result.skipped} empty rows.`);
       }
+      this.audit.record({
+        category: AuditCategoryCode.ReferenceImport,
+        action: 'imported',
+        resourceType: 'reference',
+        resourceId: slug,
+        metadata: {
+          domain: slug,
+          upserted: result.upserted,
+          skipped: result.skipped,
+        },
+      });
       return {
         message: parts.join(' '),
         upserted: result.upserted,

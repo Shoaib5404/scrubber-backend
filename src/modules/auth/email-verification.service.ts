@@ -7,6 +7,8 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { createHash, createHmac, timingSafeEqual } from 'crypto';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditCategoryCode } from '../audit/audit.catalog';
+import { AuditService } from '../audit/audit.service';
 import { MailService } from '../mail/mail.service';
 
 const VERIFY_TTL_MINUTES = 60;
@@ -19,6 +21,7 @@ export class EmailVerificationService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly mail: MailService,
+    private readonly audit: AuditService,
   ) {}
 
   emailHash(email: string): string {
@@ -128,6 +131,18 @@ export class EmailVerificationService {
         data: { emailVerifiedAt: new Date() },
       });
     }
+
+    this.audit.record({
+      category: AuditCategoryCode.AuthEmailVerify,
+      action: 'succeeded',
+      actorType: 'user',
+      actorUserId: user.id,
+      actorRole: user.role,
+      tenantId: user.tenantId,
+      system: true,
+      resourceType: 'user',
+      resourceId: user.id,
+    });
 
     return {
       success: true,

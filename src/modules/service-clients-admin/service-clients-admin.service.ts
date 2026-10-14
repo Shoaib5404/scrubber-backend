@@ -5,6 +5,8 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditCategoryCode } from '../audit/audit.catalog';
+import { AuditService } from '../audit/audit.service';
 import { ApiClientIssuerService } from '../ops-cli/api-client-issuer.service';
 import {
   CreateServiceClientDto,
@@ -49,6 +51,7 @@ export class ServiceClientsAdminService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly issuer: ApiClientIssuerService,
+    private readonly audit: AuditService,
   ) {}
 
   scopeCatalog() {
@@ -101,6 +104,13 @@ export class ServiceClientsAdminService {
     const client = await this.prisma.apiClient.findUniqueOrThrow({
       where: { id: issued.client.id },
     });
+    this.audit.record({
+      category: AuditCategoryCode.AdminServiceClient,
+      action: 'created',
+      resourceType: 'api_client',
+      resourceId: client.id,
+      metadata: { client_id: client.clientId, name: client.name },
+    });
     return {
       ...serializeServiceClient(client),
       plain_client_secret: issued.plainSecret,
@@ -112,6 +122,13 @@ export class ServiceClientsAdminService {
     const issued = await this.issuer.rotateSecret(existing.id);
     const client = await this.prisma.apiClient.findUniqueOrThrow({
       where: { id: existing.id },
+    });
+    this.audit.record({
+      category: AuditCategoryCode.AdminServiceClient,
+      action: 'rotated',
+      resourceType: 'api_client',
+      resourceId: id,
+      metadata: { client_id: client.clientId },
     });
     return {
       ...serializeServiceClient(client),
@@ -125,6 +142,13 @@ export class ServiceClientsAdminService {
     const client = await this.prisma.apiClient.findUniqueOrThrow({
       where: { id: existing.id },
     });
+    this.audit.record({
+      category: AuditCategoryCode.AdminServiceClient,
+      action: 'reissued',
+      resourceType: 'api_client',
+      resourceId: id,
+      metadata: { client_id: client.clientId },
+    });
     return {
       ...serializeServiceClient(client),
       plain_client_secret: issued.plainSecret,
@@ -134,6 +158,12 @@ export class ServiceClientsAdminService {
   async revoke(id: number) {
     await this.requirePlatformClient(id);
     await this.issuer.revoke(id);
+    this.audit.record({
+      category: AuditCategoryCode.AdminServiceClient,
+      action: 'revoked',
+      resourceType: 'api_client',
+      resourceId: id,
+    });
     return { revoked: true };
   }
 

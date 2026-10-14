@@ -2,6 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { StorageService } from '../../adapters/storage/storage.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditCategoryCode } from '../audit/audit.catalog';
+import { AuditService } from '../audit/audit.service';
 import {
   BatchStatistics,
   decimalToNumber,
@@ -15,6 +17,7 @@ export class BatchesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
+    private readonly audit: AuditService,
   ) {}
 
   async list(params: {
@@ -187,6 +190,14 @@ export class BatchesService {
     }
 
     await this.prisma.batchFile.delete({ where: { id } });
+    this.audit.record({
+      category: AuditCategoryCode.BatchDelete,
+      action: 'deleted',
+      tenantId: batch.tenantId,
+      resourceType: 'batch',
+      resourceId: id,
+      metadata: { original_filename: batch.originalFilename },
+    });
   }
 
   /** Raw uploaded EDI bytes for inline display. */

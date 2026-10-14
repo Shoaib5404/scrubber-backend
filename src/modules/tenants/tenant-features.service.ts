@@ -1,5 +1,12 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  forwardRef,
+} from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditCategoryCode } from '../audit/audit.catalog';
+import { AuditService } from '../audit/audit.service';
 import type { ApiScopeValue } from '../auth/auth.constants';
 import {
   ALL_TENANT_FEATURES,
@@ -10,7 +17,11 @@ import {
 
 @Injectable()
 export class TenantFeaturesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => AuditService))
+    private readonly audit: AuditService,
+  ) {}
 
   async has(tenantId: number, feature: string): Promise<boolean> {
     const row = await this.prisma.tenantFeature.findUnique({
@@ -52,6 +63,15 @@ export class TenantFeaturesService {
           enabled: true,
         })),
       });
+    });
+
+    this.audit.record({
+      category: AuditCategoryCode.AdminTenantFeatures,
+      action: 'updated',
+      resourceType: 'tenant',
+      resourceId: tenantId,
+      tenantId,
+      metadata: { features: normalized },
     });
 
     return normalized;
