@@ -4,7 +4,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import type {
+  ActivityPeriod,
+  PeriodFilter,
+} from '../../common/period/period.util';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { TenantActivityService } from '../tenants/tenant-activity.service';
 import { ALL_TENANT_FEATURES, TENANT_FEATURE_CATALOG } from '../tenants/tenant-features.constants';
 import { TenantFeaturesService } from '../tenants/tenant-features.service';
 import { TenantInviteService } from '../tenants/tenant-invite.service';
@@ -63,6 +68,7 @@ export class TenantsAdminService {
     private readonly prisma: PrismaService,
     private readonly invites: TenantInviteService,
     private readonly tenantFeatures: TenantFeaturesService,
+    private readonly activity: TenantActivityService,
   ) {}
 
   featureCatalog() {
@@ -111,6 +117,29 @@ export class TenantsAdminService {
     if (!tenant) throw new NotFoundException('Tenant not found.');
     const features = await this.tenantFeatures.list(id);
     return serializeTenant(tenant, features);
+  }
+
+  async overview(id: number, filter: PeriodFilter | ActivityPeriod = '30d') {
+    const tenant = await this.activity.requireTenant(id);
+    const features = await this.tenantFeatures.list(id);
+    const [stats, members, recent_batches] = await Promise.all([
+      this.activity.tenantStats(id, filter),
+      this.activity.memberActivity(id, filter),
+      this.activity.recentBatches(id, 10),
+    ]);
+    return {
+      tenant: serializeTenant(tenant, features),
+      period: stats.period,
+      period_start: stats.period_start,
+      period_end: stats.period_end,
+      stats: {
+        batches: stats.batches,
+        claims: stats.claims,
+        users: stats.users,
+      },
+      members,
+      recent_batches,
+    };
   }
 
   async create(dto: CreateTenantDto, actorUserId: number | null) {

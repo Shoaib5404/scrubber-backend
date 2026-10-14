@@ -5,6 +5,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { BatchesModule } from './modules/batches/batches.module';
 import { ClaimsModule } from './modules/claims/claims.module';
 import { ClaimValidationModule } from './modules/claim-validation/claim-validation.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { EdiParserModule } from './modules/edi-parser/edi-parser.module';
 import { EdiStructuralValidationModule } from './modules/edi-structural-validation/edi-structural.module';
 import { HealthModule } from './modules/health/health.module';
@@ -51,6 +52,7 @@ import { loadEnvFrom } from './config';
     ClaimValidationModule,
     QueueModule,
     BatchesModule,
+    DashboardModule,
     ClaimsModule,
     ReferencesModule,
     ReferenceAdminModule,

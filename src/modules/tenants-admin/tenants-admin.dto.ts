@@ -12,7 +12,10 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { PeriodFilterQueryDto } from '../../common/period/period-filter.dto';
 import { ALL_TENANT_FEATURES } from '../tenants/tenant-features.constants';
+
+export class TenantOverviewQueryDto extends PeriodFilterQueryDto {}
 
 export class CreateTenantDto {
   @ApiProperty()

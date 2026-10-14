@@ -23,6 +23,7 @@ import {
   InviteTenantUserDto,
   ListTenantsQueryDto,
   ResendInviteDto,
+  TenantOverviewQueryDto,
   UpdateTenantDto,
   UpdateTenantUserDto,
 } from './tenants-admin.dto';
@@ -62,6 +63,21 @@ export class TenantsAdminController {
           ? `Tenant created and invite sent to ${body.admin_email}.`
           : 'Tenant created successfully.',
       data,
+    };
+  }
+
+  @Get(':id/overview')
+  async overview(
+    @Param('id', ParseIntPipe) id: number,
+    @Query() query: TenantOverviewQueryDto,
+  ) {
+    return {
+      success: true,
+      data: await this.tenants.overview(id, {
+        period: query.period ?? '30d',
+        from: query.from,
+        to: query.to,
+      }),
     };
   }
 

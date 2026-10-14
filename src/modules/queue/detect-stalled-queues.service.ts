@@ -44,7 +44,8 @@ export class DetectStalledQueuesService {
     let logged = 0;
     for (const batch of stalled) {
       if (!batch.uploadedById) continue;
-      const message = `Claim validation has been pending in the queue for over ${minutes} minutes (batch #${batch.id}). Queue worker may not be running. Pending jobs in queue: ${pendingJobs}. Start the worker with: npm run start:worker`;
+      // Customer-facing log text — never include CLI / worker start instructions.
+      const message = `Claim validation has been pending for over ${minutes} minutes (batch #${batch.id}). Processing may be delayed. Please contact support if this continues.`;
 
       const recent = await this.prisma.ediUploadErrorLog.findFirst({
         where: {
@@ -70,7 +71,9 @@ export class DetectStalledQueuesService {
         },
       });
       logged += 1;
-      this.logger.warn(`Logged stalled queue for batch #${batch.id}`);
+      this.logger.warn(
+        `Logged stalled queue for batch #${batch.id} (pendingJobs=${pendingJobs}). Ops: npm run start:worker`,
+      );
     }
 
     this.logger.log(`Checked ${stalled.length} stalled batch(es); wrote ${logged} stall upload log(s).`);

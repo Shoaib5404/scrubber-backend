@@ -501,8 +501,8 @@ export class ClaimsService {
       body: {
         success: true,
         message: started
-          ? 'Your file is under processing for rule validation. Call this same endpoint again to get results when complete.'
-          : 'Rule validation is still under processing. Call this same endpoint again to get results when complete.',
+          ? 'Your file is under processing for rule validation. Results will be available when processing completes.'
+          : 'Rule validation is still under processing. Results will be available when processing completes.',
         data: {
           batch_id: batchId,
           status: 'under_processing',

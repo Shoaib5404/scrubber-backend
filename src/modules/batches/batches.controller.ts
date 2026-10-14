@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpException,
   NotFoundException,
@@ -35,6 +36,8 @@ import {
   RequireScopes,
   RequireTenantFeature,
 } from '../auth/auth.types';
+import { Permission } from '../auth/permissions.constants';
+import { RolePermissionService } from '../auth/role-permission.service';
 import { TenantFeatureCode } from '../tenants/tenant-features.constants';
 import { BatchIngestService } from './batch-ingest.service';
 import { BatchesService } from './batches.service';
@@ -50,6 +53,7 @@ export class BatchesController {
   constructor(
     private readonly batches: BatchesService,
     private readonly ingest: BatchIngestService,
+    private readonly rolePermissions: RolePermissionService,
   ) {}
 
   @Get()
@@ -58,6 +62,7 @@ export class BatchesController {
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'date_from', required: false })
   @ApiQuery({ name: 'date_to', required: false })
+  @ApiQuery({ name: 'tenant_id', required: false })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'per_page', required: false })
   async index(
@@ -66,14 +71,33 @@ export class BatchesController {
     @Query('search') search?: string,
     @Query('date_from') dateFrom?: string,
     @Query('date_to') dateTo?: string,
+    @Query('tenant_id') filterTenantId?: string,
     @Query('page') page?: string,
     @Query('per_page') perPage?: string,
   ) {
     const staff = auth.typ === 'user' && !!auth.role && isStaffRole(auth.role);
+    if (staff) {
+      const ok = await this.rolePermissions.roleHas(
+        auth.role!,
+        Permission.BatchesView,
+      );
+      if (!ok) {
+        throw new ForbiddenException('Insufficient permissions.');
+      }
+    }
+    const parsedFilterTenant =
+      filterTenantId != null && filterTenantId !== ''
+        ? Number(filterTenantId)
+        : null;
     const data = await this.batches.list({
       ownerUserId: auth.userId,
       tenantId: auth.tenantId,
       staff,
+      // Customers cannot widen scope via tenant_id — only staff filters apply.
+      filterTenantId:
+        staff && parsedFilterTenant != null && Number.isFinite(parsedFilterTenant)
+          ? parsedFilterTenant
+          : null,
       status,
       search,
       dateFrom,
@@ -357,12 +381,12 @@ export class BatchesController {
         validation_queued: validationQueued,
         validation_warning: validationWarning,
         claim_validation_complete: batch.status === 'validated',
+        // Machine clients use method + endpoint; description stays non-instructional for any UI reuse.
         next_step: validationQueued
           ? {
               method: 'POST',
               endpoint: `/api/v1/batches/${batch.id}/validate`,
-              description:
-                'Validation is running. Call this endpoint again to poll results when complete.',
+              description: 'Validation is running. Poll again when complete for results.',
             }
           : undefined,
       },

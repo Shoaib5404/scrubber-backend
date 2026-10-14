@@ -21,6 +21,8 @@ export class BatchesService {
     ownerUserId: number | null;
     tenantId: number | null;
     staff: boolean;
+    /** Staff-only optional filter; ignored for non-staff. */
+    filterTenantId?: number | null;
     status?: string;
     search?: string;
     dateFrom?: string;
@@ -41,6 +43,8 @@ export class BatchesService {
       } else {
         return lengthAwarePaginator([], 0, page, perPage);
       }
+    } else if (params.filterTenantId != null && params.filterTenantId > 0) {
+      where.tenantId = params.filterTenantId;
     }
 
     if (params.status) where.status = params.status;
@@ -63,7 +67,10 @@ export class BatchesService {
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * perPage,
         take: perPage,
-        include: { _count: { select: { claims: true } } },
+        include: {
+          _count: { select: { claims: true } },
+          tenant: { select: { id: true, name: true, slug: true } },
+        },
       }),
     ]);
 
@@ -79,6 +86,7 @@ export class BatchesService {
     const batch = await this.prisma.batchFile.findUnique({
       where: { id },
       include: {
+        tenant: { select: { id: true, name: true, slug: true } },
         claims: {
           include: {
             _count: { select: { diagnoses: true, serviceLines: true } },

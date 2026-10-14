@@ -67,6 +67,7 @@ export function serializeBatch(batch: {
   filePath: string;
   fileSize: number | null;
   uploadedById: number | null;
+  tenantId?: number | null;
   isaSenderId: string | null;
   isaReceiverId: string | null;
   isaDate: Date | null;
@@ -88,7 +89,9 @@ export function serializeBatch(batch: {
   createdAt: Date;
   updatedAt: Date;
   _count?: { claims?: number };
+  tenant?: { id: number; name: string; slug: string } | null;
 }) {
+  const tenantId = batch.tenant?.id ?? batch.tenantId ?? null;
   return {
     id: batch.id,
     filename: batch.filename,
@@ -96,6 +99,9 @@ export function serializeBatch(batch: {
     file_path: batch.filePath,
     file_size: batch.fileSize,
     uploaded_by: batch.uploadedById,
+    tenant_id: tenantId,
+    tenant_name: batch.tenant?.name ?? null,
+    tenant_slug: batch.tenant?.slug ?? null,
     isa_sender_id: batch.isaSenderId,
     isa_receiver_id: batch.isaReceiverId,
     isa_date: formatPrismaDate(batch.isaDate),
