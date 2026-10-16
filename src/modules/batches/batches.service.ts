@@ -2,6 +2,11 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { StorageService } from '../../adapters/storage/storage.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import {
+  batchProgressMessage,
+  batchProgressSnapshot,
+  batchStageKey,
+} from './batch-progress';
 import { AuditCategoryCode } from '../audit/audit.catalog';
 import { AuditService } from '../audit/audit.service';
 import {
@@ -126,6 +131,9 @@ export class BatchesService {
     return {
       status: batch.status,
       label: batchStatusLabel(batch.status),
+      stage: batchStageKey(batch.status),
+      message: batchProgressMessage(batch.status),
+      progress: batchProgressSnapshot(batch.status, batch.totalClaims, pendingClaims),
       total_claims: batch.totalClaims,
       valid_claims: batch.validClaims,
       error_claims: batch.errorClaims,
