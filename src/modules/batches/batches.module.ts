@@ -5,6 +5,7 @@ import { ClaimValidationModule } from '../claim-validation/claim-validation.modu
 import { EdiParserModule } from '../edi-parser/edi-parser.module';
 import { EdiStructuralValidationModule } from '../edi-structural-validation/edi-structural.module';
 import { QueueModule } from '../queue/queue.module';
+import { UploadLogsModule } from '../upload-logs/upload-logs.module';
 import { BatchIngestService } from './batch-ingest.service';
 import { BatchesController } from './batches.controller';
 import { BatchesService } from './batches.service';
@@ -16,6 +17,7 @@ import { BatchesService } from './batches.service';
     EdiParserModule,
     ClaimValidationModule,
     forwardRef(() => QueueModule),
+    UploadLogsModule,
   ],
   controllers: [BatchesController],
   providers: [BatchOwnershipGuard, BatchIngestService, BatchesService],

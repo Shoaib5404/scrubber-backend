@@ -1,4 +1,8 @@
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BatchIngestService } from './batch-ingest.service';
 import { mintEdiObjectKey } from './edi-object-key.util';
@@ -212,5 +216,57 @@ describe('BatchIngestService presign complete', () => {
 
     expect(result.url).toContain('localhost:9020');
     expect(result.objectKey).toMatch(/^edi\/3\/4\//);
+  });
+
+  it('logs a structural rejection and deletes the object without a batch', async () => {
+    const uploadLogs = { recordFromError: jest.fn().mockResolvedValue(undefined) };
+    const logging = new BatchIngestService(
+      prisma as never,
+      config,
+      storage as never,
+      structural as never,
+      parser as never,
+      {} as never,
+      { enqueueValidateBatch: jest.fn() } as never,
+      { record: jest.fn() } as never,
+      uploadLogs as never,
+    );
+    const objectKey = mintEdiObjectKey(3, 4);
+    const body = Buffer.from('ISA*bad~');
+    storage.headObject.mockResolvedValue({
+      exists: true,
+      contentType: 'application/EDI-X12',
+      contentLength: body.byteLength,
+    });
+    storage.getObject.mockResolvedValue(body);
+    structural.validate.mockReturnValueOnce({
+      passed: false,
+      issues: [{ rule_id: 'COB', message: 'SBR01' }],
+    });
+
+    await expect(
+      logging.completeUploadFromObject({
+        typ: 'user',
+        role: 'customer',
+        tenantId: 3,
+        userId: 4,
+        objectKey,
+        originalFilename: 'sample.edi',
+        mimeType: 'application/EDI-X12',
+        sizeBytes: body.byteLength,
+      }),
+    ).rejects.toBeInstanceOf(UnprocessableEntityException);
+
+    expect(prisma.batchFile.create).not.toHaveBeenCalled();
+    expect(storage.deleteObject).toHaveBeenCalledWith(objectKey);
+    expect(uploadLogs.recordFromError).toHaveBeenCalledWith(
+      expect.any(UnprocessableEntityException),
+      expect.objectContaining({
+        userId: 4,
+        tenantId: 3,
+        originalFilename: 'sample.edi',
+        source: 'web',
+      }),
+    );
   });
 });

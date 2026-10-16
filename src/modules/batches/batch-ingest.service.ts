@@ -4,6 +4,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
   UnprocessableEntityException,
   forwardRef,
 } from '@nestjs/common';
@@ -19,6 +20,10 @@ import { Edi837ValidationService } from '../edi-structural-validation/edi837-val
 import { Edi837ValidationResultDto } from '../edi-structural-validation/types';
 import { AuditCategoryCode } from '../audit/audit.catalog';
 import { AuditService } from '../audit/audit.service';
+import {
+  UploadLogsService,
+  type UploadLogSource,
+} from '../upload-logs/upload-logs.service';
 import { QueueProducerService } from '../queue/queue-producer.service';
 import {
   assertEdiObjectKeyBelongsToActor,
@@ -60,6 +65,7 @@ export class BatchIngestService {
     @Inject(forwardRef(() => QueueProducerService))
     private readonly queue: QueueProducerService,
     private readonly audit: AuditService,
+    @Optional() private readonly uploadLogs?: UploadLogsService,
   ) {}
 
   /**
@@ -117,95 +123,108 @@ export class BatchIngestService {
     sizeBytes: number;
   }) {
     const actor = resolveEdiUploadActor(params);
-    assertEdiOriginalFilename(params.originalFilename);
-    if (!isAllowedEdiMimeType(params.mimeType)) {
-      throw new BadRequestException(
-        `Unsupported MIME type "${params.mimeType}". Allowed: application/EDI-X12, text/plain, application/octet-stream.`,
-      );
-    }
-    const max = this.config.get<number>('EDI_MAX_BYTES', 10_485_760);
-    if (params.sizeBytes > max) {
-      throw new BadRequestException(`EDI file exceeds max size of ${max} bytes`);
-    }
+    const logContext = {
+      userId: actor.userId,
+      tenantId: actor.dbTenantId,
+      originalFilename: params.originalFilename,
+      fileSize: params.sizeBytes,
+      source: (params.typ === 'api_client' ? 'api' : 'web') as UploadLogSource,
+    };
 
-    const objectKey = assertEdiObjectKeyBelongsToActor(
-      params.objectKey,
-      actor.keyTenantId,
-      actor.userId,
-    );
-
-    const head = await this.storage.headObject(objectKey);
-    if (!head.exists) {
-      throw new BadRequestException('Uploaded file was not found in storage.');
-    }
-    if (
-      typeof head.contentLength === 'number' &&
-      head.contentLength > max
-    ) {
-      await this.safeDeleteObject(objectKey);
-      throw new BadRequestException(`EDI file exceeds max size of ${max} bytes`);
-    }
-    if (
-      typeof head.contentLength === 'number' &&
-      head.contentLength !== params.sizeBytes
-    ) {
-      await this.safeDeleteObject(objectKey);
-      throw new BadRequestException(
-        'Stored file size does not match the declared size.',
-      );
-    }
-    if (
-      head.contentType &&
-      normalizeEdiMimeType(head.contentType) !== normalizeEdiMimeType(params.mimeType)
-    ) {
-      // MinIO may omit or normalize Content-Type; only reject clear mismatches vs allowlist.
-      if (!isAllowedEdiMimeType(head.contentType)) {
-        await this.safeDeleteObject(objectKey);
+    try {
+      assertEdiOriginalFilename(params.originalFilename);
+      if (!isAllowedEdiMimeType(params.mimeType)) {
         throw new BadRequestException(
-          'Stored file MIME type does not match an allowed EDI type.',
+          `Unsupported MIME type "${params.mimeType}". Allowed: application/EDI-X12, text/plain, application/octet-stream.`,
         );
       }
-    }
+      const max = this.config.get<number>('EDI_MAX_BYTES', 10_485_760);
+      if (params.sizeBytes > max) {
+        throw new BadRequestException(`EDI file exceeds max size of ${max} bytes`);
+      }
 
-    let buffer: Buffer;
-    try {
-      buffer = await this.storage.getObject(objectKey);
-    } catch (err) {
-      this.logger.warn(`Failed to read uploaded object ${objectKey}: ${String(err)}`);
-      throw new BadRequestException('Uploaded file was not found in storage.');
-    }
+      const objectKey = assertEdiObjectKeyBelongsToActor(
+        params.objectKey,
+        actor.keyTenantId,
+        actor.userId,
+      );
 
-    try {
-      const { parsed, ediValidation } = this.validateAndParseBuffer(buffer, buffer.byteLength);
-      const storedName = ediFilenameFromObjectKey(objectKey);
-      const batch = await this.prisma.batchFile.create({
-        data: {
-          filename: storedName,
-          originalFilename: params.originalFilename,
-          filePath: objectKey,
-          fileSize: buffer.byteLength,
-          uploadedById: actor.userId,
+      const head = await this.storage.headObject(objectKey);
+      if (!head.exists) {
+        throw new BadRequestException('Uploaded file was not found in storage.');
+      }
+      if (
+        typeof head.contentLength === 'number' &&
+        head.contentLength > max
+      ) {
+        await this.safeDeleteObject(objectKey);
+        throw new BadRequestException(`EDI file exceeds max size of ${max} bytes`);
+      }
+      if (
+        typeof head.contentLength === 'number' &&
+        head.contentLength !== params.sizeBytes
+      ) {
+        await this.safeDeleteObject(objectKey);
+        throw new BadRequestException(
+          'Stored file size does not match the declared size.',
+        );
+      }
+      if (
+        head.contentType &&
+        normalizeEdiMimeType(head.contentType) !== normalizeEdiMimeType(params.mimeType)
+      ) {
+        // MinIO may omit or normalize Content-Type; only reject clear mismatches vs allowlist.
+        if (!isAllowedEdiMimeType(head.contentType)) {
+          await this.safeDeleteObject(objectKey);
+          throw new BadRequestException(
+            'Stored file MIME type does not match an allowed EDI type.',
+          );
+        }
+      }
+
+      let buffer: Buffer;
+      try {
+        buffer = await this.storage.getObject(objectKey);
+      } catch (err) {
+        this.logger.warn(`Failed to read uploaded object ${objectKey}: ${String(err)}`);
+        throw new BadRequestException('Uploaded file was not found in storage.');
+      }
+
+      try {
+        const { parsed, ediValidation } = this.validateAndParseBuffer(buffer, buffer.byteLength);
+        const storedName = ediFilenameFromObjectKey(objectKey);
+        const batch = await this.prisma.batchFile.create({
+          data: {
+            filename: storedName,
+            originalFilename: params.originalFilename,
+            filePath: objectKey,
+            fileSize: buffer.byteLength,
+            uploadedById: actor.userId,
+            tenantId: actor.dbTenantId,
+            status: 'processing',
+            ...envelopeFromParsed(parsed),
+            ediValidationErrors: ediValidation.issues.length ? ediValidation : undefined,
+          },
+        });
+        this.audit.record({
+          category: AuditCategoryCode.BatchUploadSucceeded,
+          action: 'succeeded',
+          actorUserId: actor.userId,
           tenantId: actor.dbTenantId,
-          status: 'processing',
-          ...envelopeFromParsed(parsed),
-          ediValidationErrors: ediValidation.issues.length ? ediValidation : undefined,
-        },
-      });
-      this.audit.record({
-        category: AuditCategoryCode.BatchUploadSucceeded,
-        action: 'succeeded',
-        actorUserId: actor.userId,
-        tenantId: actor.dbTenantId,
-        resourceType: 'batch',
-        resourceId: batch.id,
-        metadata: {
-          original_filename: params.originalFilename,
-          file_size: buffer.byteLength,
-        },
-      });
-      return this.storeParsedData(batch.id, parsed, ediValidation);
+          resourceType: 'batch',
+          resourceId: batch.id,
+          metadata: {
+            original_filename: params.originalFilename,
+            file_size: buffer.byteLength,
+          },
+        });
+        return await this.storeParsedData(batch.id, parsed, ediValidation);
+      } catch (err) {
+        await this.safeDeleteObject(objectKey);
+        throw err;
+      }
     } catch (err) {
-      await this.safeDeleteObject(objectKey);
+      await this.uploadLogs?.recordFromError(err, logContext);
       throw err;
     }
   }
@@ -215,6 +234,27 @@ export class BatchIngestService {
     file: { originalname: string; buffer: Buffer; size: number },
     uploadedById: number | null,
     tenantId: number | null = null,
+  ) {
+    try {
+      return await this.ingestUploadBody(file, uploadedById, tenantId);
+    } catch (err) {
+      if (uploadedById != null) {
+        await this.uploadLogs?.recordFromError(err, {
+          userId: uploadedById,
+          tenantId,
+          originalFilename: file.originalname,
+          fileSize: file.size,
+          source: 'api',
+        });
+      }
+      throw err;
+    }
+  }
+
+  private async ingestUploadBody(
+    file: { originalname: string; buffer: Buffer; size: number },
+    uploadedById: number | null,
+    tenantId: number | null,
   ) {
     const { parsed, ediValidation } = this.validateAndParseBuffer(file.buffer, file.size);
 

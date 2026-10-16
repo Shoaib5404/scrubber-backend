@@ -1,8 +1,60 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { isStaffRole } from '../auth/auth.constants';
 import type { AuthPrincipal } from '../auth/auth.types';
+
+const INVALID_FORMAT_MESSAGE = 'EDI file is not in a correct format.';
+const INVALID_FILE_MESSAGE = 'The uploaded file was rejected before it could be saved.';
+const STORAGE_MESSAGE = 'The uploaded file could not be read from storage.';
+const UNEXPECTED_MESSAGE = 'The upload could not be completed.';
+
+export type UploadLogSource = 'web' | 'api' | 'cli';
+
+export type RecordUploadFailureInput = {
+  userId: number;
+  tenantId: number | null;
+  batchFileId?: number | null;
+  originalFilename?: string | null;
+  fileSize?: number | null;
+  source: UploadLogSource;
+  errorType: string;
+  errorMessage: string;
+};
+
+/**
+ * Map an ingest exception to a short, non-PHI log row.
+ * Structural issue lists stay on the upload response and are not stored.
+ * Auth failures (401/403) are not upload problems and return null.
+ */
+export function classifyUploadFailure(
+  err: unknown,
+): { errorType: string; errorMessage: string } | null {
+  if (err instanceof HttpException) {
+    const status = err.getStatus();
+    if (status === 422) {
+      return { errorType: 'invalid_format', errorMessage: INVALID_FORMAT_MESSAGE };
+    }
+    if (status === 400) {
+      const payload = err.getResponse();
+      const raw =
+        typeof payload === 'string'
+          ? payload
+          : typeof payload === 'object' &&
+              payload !== null &&
+              'message' in payload &&
+              typeof (payload as { message?: unknown }).message === 'string'
+            ? (payload as { message: string }).message
+            : '';
+      if (/storage|not found/i.test(raw)) {
+        return { errorType: 'storage', errorMessage: STORAGE_MESSAGE };
+      }
+      return { errorType: 'invalid_file', errorMessage: INVALID_FILE_MESSAGE };
+    }
+    return null;
+  }
+  return { errorType: 'unexpected', errorMessage: UNEXPECTED_MESSAGE };
+}
 
 export type ListUploadLogsQuery = {
   page?: number;
@@ -14,7 +66,45 @@ export type ListUploadLogsQuery = {
 
 @Injectable()
 export class UploadLogsService {
+  private readonly logger = new Logger(UploadLogsService.name);
+
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Persist a failed upload that did not become a reviewable batch.
+   * Never throws — a logging failure must not change the upload response.
+   */
+  async recordFailure(input: RecordUploadFailureInput): Promise<void> {
+    if (!Number.isInteger(input.userId) || input.userId <= 0) return;
+    try {
+      await this.prisma.ediUploadErrorLog.create({
+        data: {
+          userId: input.userId,
+          tenantId: input.tenantId,
+          batchFileId: input.batchFileId ?? null,
+          originalFilename: input.originalFilename ?? null,
+          fileSize: input.fileSize ?? null,
+          source: input.source,
+          status: 'failed',
+          errorType: input.errorType,
+          errorMessage: input.errorMessage.slice(0, 2000),
+        },
+      });
+    } catch (err) {
+      this.logger.warn(
+        `Failed to write upload error log (${input.errorType}): ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  async recordFromError(
+    err: unknown,
+    context: Omit<RecordUploadFailureInput, 'errorType' | 'errorMessage'>,
+  ): Promise<void> {
+    const classified = classifyUploadFailure(err);
+    if (!classified) return;
+    await this.recordFailure({ ...context, ...classified });
+  }
 
   async list(auth: AuthPrincipal, query: ListUploadLogsQuery) {
     const page = query.page ?? 1;
