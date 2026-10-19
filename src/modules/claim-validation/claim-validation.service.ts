@@ -58,6 +58,7 @@ import {
 import { validateMuePractitioner } from './rules/mue-practitioner.rules';
 import { buildServiceLineStatusUpdates } from './support/service-line-status.updater';
 import { ClaimRuleLookupService } from './support/claim-rule-lookup.service';
+import { BusinessRulesService } from '../business-rules/business-rules.service';
 import {
   extractStateFromFullAddress,
   extractZipDigitsFromAddress,
@@ -185,7 +186,13 @@ export class ClaimValidationService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly lookups: ClaimRuleLookupService,
+    private readonly businessRules: BusinessRulesService,
   ) {}
+
+  private dropDisabled(issues: ClaimIssue[], disabled: ReadonlySet<string>): ClaimIssue[] {
+    if (disabled.size === 0) return issues;
+    return issues.filter((issue) => !issue.rule || !disabled.has(issue.rule));
+  }
 
   async validateClaim(claimId: number): Promise<ClaimValidationResult> {
     const claim = await this.prisma.claim.findUnique({
@@ -197,6 +204,8 @@ export class ClaimValidationService {
       },
     });
     if (!claim) throw new NotFoundException('Claim not found.');
+
+    const disabled = await this.businessRules.disabledKeys(claim.batchFile?.uploadedById ?? null);
 
     let errors: ClaimIssue[] = [];
     let warnings: ClaimIssue[] = [];
@@ -370,6 +379,8 @@ export class ClaimValidationService {
       labCodeModifiersByHcpcs: await this.lookups.labCodeModifiersByHcpcs(payerEdiProcCodes),
     };
     pushSplit(validatePayerAndEdiSpecific(payerEdiClaim, payerEdiLookups));
+    errors = this.dropDisabled(errors, disabled);
+    warnings = this.dropDisabled(warnings, disabled);
 
     const haltAfterDosFutureGate = errors.some((e) => e.rule === 'DOS-FUT-001');
 
@@ -429,6 +440,10 @@ export class ClaimValidationService {
           mueCodeSet: await this.lookups.mueUhcOxfordCodeSet(allCodes),
           ageRulesByCode: await this.lookups.ageRulesByCode(allCodes),
           genderRulesByCode: await this.lookups.genderRulesByCode(allCodes),
+        },
+        {
+          req007Enabled: !disabled.has('REQ-007'),
+          cpt001Enabled: !disabled.has('CPT-001'),
         },
       );
       errors = errors.concat(cptCore.cptErrors);
@@ -854,6 +869,9 @@ export class ClaimValidationService {
     }
 
     // ── PHASE 4: status updater ──
+    errors = this.dropDisabled(errors, disabled);
+    warnings = this.dropDisabled(warnings, disabled);
+    const keptInfos = this.dropDisabled(infos, disabled);
     const lineUpdates = buildServiceLineStatusUpdates(
       claim.serviceLines.map((l) => ({ id: l.id, lineNumber: l.lineNumber })),
       errors,
@@ -874,7 +892,7 @@ export class ClaimValidationService {
       where: { id: claim.id },
       data: {
         status,
-        validationErrors: [...errors, ...warnings, ...infos],
+        validationErrors: [...errors, ...warnings, ...keptInfos],
       },
     });
 
@@ -883,10 +901,10 @@ export class ClaimValidationService {
       status,
       errors,
       warnings,
-      infos,
+      infos: keptInfos,
       error_count: errors.length,
       warning_count: warnings.length,
-      info_count: infos.length,
+      info_count: keptInfos.length,
     };
   }
 

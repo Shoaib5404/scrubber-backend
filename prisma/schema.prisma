@@ -112,6 +112,9 @@ model User {
   auditEventsAsActor  AuditEvent[]         @relation("AuditEventActor")
   supportTicketsRequested SupportTicket[]  @relation("SupportTicketRequester")
   supportMessages         SupportMessage[] @relation("SupportMessageAuthor")
+  businessRuleSettingsUpdated BusinessRuleSetting[] @relation("BusinessRuleSettingUpdater")
+  businessRuleGrantsReceived  BusinessRuleGrant[]   @relation("BusinessRuleGrantSubject")
+  businessRuleGrantsGiven     BusinessRuleGrant[]   @relation("BusinessRuleGrantGrantor")
 
   @@index([role])
   @@index([isActive])
@@ -1899,5 +1902,59 @@ model SupportMessage {
 
   @@index([ticketId, createdAt])
   @@map("support_messages")
+}
+
+/// Executable business-rule catalog. Rows are seeded from code. Users do not edit this table.
+model BusinessRule {
+  id             Int      @id @default(autoincrement())
+  ruleKey        String   @unique @map("rule_key") @db.VarChar(64)
+  name           String   @db.VarChar(64)
+  description    String   @db.Text
+  category       String   @db.VarChar(64)
+  severity       String   @db.VarChar(16)
+  defaultEnabled Boolean  @default(true) @map("default_enabled")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  settings BusinessRuleSetting[]
+
+  @@index([category])
+  @@map("business_rules")
+}
+
+/// On/off override. scope_id 0 is the platform default. A user id is that person's switch.
+model BusinessRuleSetting {
+  id          Int      @id @default(autoincrement())
+  ruleId      Int      @map("rule_id")
+  scopeType   String   @map("scope_type") @db.VarChar(16)
+  scopeId     Int      @default(0) @map("scope_id")
+  enabled     Boolean
+  version     Int      @default(1)
+  updatedById Int?     @map("updated_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  rule      BusinessRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  updatedBy User?        @relation("BusinessRuleSettingUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@unique([ruleId, scopeType, scopeId])
+  @@index([scopeType, scopeId])
+  @@map("business_rule_settings")
+}
+
+/// One active row lets that user change their own business-rule switches.
+model BusinessRuleGrant {
+  id          Int       @id @default(autoincrement())
+  userId      Int       @map("user_id")
+  grantedById Int       @map("granted_by")
+  revokedAt   DateTime? @map("revoked_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  user      User @relation("BusinessRuleGrantSubject", fields: [userId], references: [id], onDelete: Cascade)
+  grantedBy User @relation("BusinessRuleGrantGrantor", fields: [grantedById], references: [id], onDelete: Restrict)
+
+  @@index([userId, revokedAt])
+  @@map("business_rule_grants")
 }
 

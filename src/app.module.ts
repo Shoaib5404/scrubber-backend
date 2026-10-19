@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './modules/auth/auth.module';
 import { BatchesModule } from './modules/batches/batches.module';
+import { BusinessRulesModule } from './modules/business-rules/business-rules.module';
 import { ClaimsModule } from './modules/claims/claims.module';
 import { ClaimValidationModule } from './modules/claim-validation/claim-validation.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
@@ -54,6 +55,7 @@ import { loadEnvFrom } from './config';
     EdiStructuralValidationModule,
     EdiParserModule,
     ClaimValidationModule,
+    BusinessRulesModule,
     QueueModule,
     BatchesModule,
     DashboardModule,

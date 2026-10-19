@@ -102,11 +102,19 @@ export type ValidateCoreCptRulesResult = {
   genderErrors: ClaimIssue[];
 };
 
+export type CptRuleGate = {
+  /** When false, a line with no procedure code still continues and REQ-007 is not emitted. */
+  req007Enabled?: boolean;
+  /** When false, an unknown procedure still continues and CPT-001 is not emitted. */
+  cpt001Enabled?: boolean;
+};
+
 /** Laravel CptRules::validateCoreCptRules */
 export function validateCoreCptRules(
   claim: CptClaimInput,
   serviceLines: readonly CptServiceLineInput[],
   lookups: ValidateCoreCptRulesLookups,
+  gate: CptRuleGate = {},
 ): ValidateCoreCptRulesResult {
   const validLines: CptServiceLineInput[] = [];
   const cptErrors = validateBillingProviderTaxonomy(claim, lookups.activeTaxonomyCodes);
@@ -116,6 +124,10 @@ export function validateCoreCptRules(
 
   for (const line of serviceLines) {
     if (!String(line.procedureCode ?? '').trim()) {
+      if (gate.req007Enabled === false) {
+        validLines.push(line);
+        continue;
+      }
       cptErrors.push({
         rule: 'REQ-007',
         field: `service_lines.${line.lineNumber}.procedure_code`,
@@ -135,7 +147,14 @@ export function validateCoreCptRules(
   ];
 
   if (isApplicableMueUhcOxford({ payerId: claim.payerId ?? null })) {
-    return validateCoreCptRulesForUhcOxford(claim, linesWithCode, uniqueCodes, cptErrors, lookups);
+    return validateCoreCptRulesForUhcOxford(
+      claim,
+      linesWithCode,
+      uniqueCodes,
+      cptErrors,
+      lookups,
+      gate,
+    );
   }
 
   const patientDob = claim.patientDob ?? claim.subscriberDob;
@@ -147,6 +166,10 @@ export function validateCoreCptRules(
     const ruleRow = lookups.cptRuleRowsByCode[normalized];
 
     if (!ruleRow) {
+      if (gate.cpt001Enabled === false) {
+        validLines.push(line);
+        continue;
+      }
       const codeType = typeLabelForCptError(code);
       cptErrors.push({
         rule: 'CPT-001',
@@ -192,6 +215,7 @@ function validateCoreCptRulesForUhcOxford(
   _uniqueCodes: string[],
   cptErrors: ClaimIssue[],
   lookups: ValidateCoreCptRulesLookups,
+  gate: CptRuleGate = {},
 ): ValidateCoreCptRulesResult {
   const validLines: CptServiceLineInput[] = [];
   const ageErrors: ClaimIssue[] = [];
@@ -207,6 +231,10 @@ function validateCoreCptRulesForUhcOxford(
     const normalized = code.toUpperCase();
 
     if (!mueCodeSet[normalized]) {
+      if (gate.cpt001Enabled === false) {
+        validLines.push(line);
+        continue;
+      }
       const codeType = typeLabelForCptError(code);
       cptErrors.push({
         rule: 'CPT-001',

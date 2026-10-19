@@ -38,6 +38,11 @@ export const AuditCategoryCode = {
   SettingsIntegrations: 'settings.integrations',
   AdminServiceClient: 'admin.service_client',
   AdminApiClient: 'admin.api_client',
+
+  BusinessRuleGlobalUpdate: 'business_rule.global_update',
+  BusinessRulePersonalUpdate: 'business_rule.personal_update',
+  BusinessRuleGrant: 'business_rule.grant',
+  BusinessRuleRevoke: 'business_rule.revoke',
 } as const;
 
 /** Removed from product; rows may still exist historically. Never write these. */
@@ -287,6 +292,34 @@ export const AUDIT_CATEGORY_CATALOG: AuditCategoryMeta[] = [
     group: 'Credentials',
     enabledByDefault: true,
   },
+  {
+    code: AuditCategoryCode.BusinessRuleGlobalUpdate,
+    label: 'Business rule platform default',
+    description: 'A super admin turned a business rule on or off for everyone without a personal switch.',
+    group: 'Business rules',
+    enabledByDefault: true,
+  },
+  {
+    code: AuditCategoryCode.BusinessRulePersonalUpdate,
+    label: 'Business rule personal switch',
+    description: 'A user turned a business rule on or off for their own uploads.',
+    group: 'Business rules',
+    enabledByDefault: true,
+  },
+  {
+    code: AuditCategoryCode.BusinessRuleGrant,
+    label: 'Business rule access granted',
+    description: 'A super admin allowed a user to change their own business rule switches.',
+    group: 'Business rules',
+    enabledByDefault: true,
+  },
+  {
+    code: AuditCategoryCode.BusinessRuleRevoke,
+    label: 'Business rule access revoked',
+    description: 'A super admin removed a user\'s ability to change business rule switches.',
+    group: 'Business rules',
+    enabledByDefault: true,
+  },
 ];
 
 export const ALL_AUDIT_CATEGORY_CODES: AuditCategoryCodeValue[] =
@@ -304,4 +337,7 @@ export const PLATFORM_ONLY_AUDIT_CATEGORIES: ReadonlySet<string> = new Set([
   AuditCategoryCode.ReferenceImport,
   AuditCategoryCode.StaffTenantBatchAccess,
   AuditCategoryCode.StaffTenantClaimAccess,
+  AuditCategoryCode.BusinessRuleGlobalUpdate,
+  AuditCategoryCode.BusinessRuleGrant,
+  AuditCategoryCode.BusinessRuleRevoke,
 ]);
