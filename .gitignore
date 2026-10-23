@@ -3,6 +3,10 @@ dist
 coverage
 .env
 .env.local
+*.dump
+scrubber.dump
+# Local/VPS cutover runbook (nginx/systemd scripts) — keep off GitHub
+deploy/
 *.log
 full-test-output.log
 tmp/

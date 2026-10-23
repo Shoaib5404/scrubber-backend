@@ -24,6 +24,10 @@ Serves the Next.js UI and API clients: authentication, EDI ingestion, structural
 - Docker Desktop (or compatible) for local Postgres, Redis, and MinIO
 - Optional: mail provider keys (SendGrid or Resend) for invites / password reset / verification
 
+## Production deploy (VPS)
+
+Production infra (Postgres / Redis / MinIO, localhost-bound) is defined in [`docker-compose.prod.yml`](docker-compose.prod.yml). Nest/Next run via systemd behind Nginx on the host; see comments in that compose file for `up -d` usage.
+
 ## Quick start
 
 ```bash

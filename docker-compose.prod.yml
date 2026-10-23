@@ -1,0 +1,72 @@
+# Production infra only — bind to localhost (Nest/Next run via systemd on the host).
+# Usage (from scrubber-backend on the server):
+#   docker compose -f docker-compose.prod.yml --env-file .env up -d
+#
+# Do not publish Postgres/Redis/MinIO on 0.0.0.0.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: scrubber-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-scrubber}
+      POSTGRES_USER: ${POSTGRES_USER:-scrubber}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    ports:
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: scrubber-redis
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    # Official minio/minio is no longer pullable from Docker Hub on many hosts.
+    # cleanstart/minio is an S3-compatible MinIO server image that still pulls.
+    image: cleanstart/minio:latest
+    container_name: scrubber-minio
+    restart: unless-stopped
+    # Image defaults to uid 65532; named volumes are root-owned — run as root for /data writes.
+    user: '0:0'
+    command: ['server', '/data', '--console-address', ':9001']
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in .env}
+      MINIO_API_CORS_ALLOW_ORIGIN: ${MINIO_API_CORS_ALLOW_ORIGIN:-*}
+    ports:
+      - '127.0.0.1:9000:9000'
+      - '127.0.0.1:9001:9001'
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'wget -q -O /dev/null http://127.0.0.1:9000/minio/health/live || exit 1',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
