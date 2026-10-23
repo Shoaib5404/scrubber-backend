@@ -26,7 +26,9 @@ Serves the Next.js UI and API clients: authentication, EDI ingestion, structural
 
 ## Production deploy (VPS)
 
-Production infra (Postgres / Redis / MinIO, localhost-bound) is defined in [`docker-compose.prod.yml`](docker-compose.prod.yml). Nest/Next run via systemd behind Nginx on the host; see comments in that compose file for `up -d` usage.
+Full production runbook (architecture, paths, Nginx, systemd, deploy commands, cutover notes): [`docs/PRODUCTION.md`](docs/PRODUCTION.md).
+
+Infra compose (Postgres / Redis / MinIO, localhost-bound): [`docker-compose.prod.yml`](docker-compose.prod.yml). Nest/Next run via systemd behind Nginx on the host.
 
 ## Quick start
 
