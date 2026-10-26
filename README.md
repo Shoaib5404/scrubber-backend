@@ -120,7 +120,7 @@ Do not commit real EDI samples containing PHI. Use synthetic test files only.
 | --- | --- | --- |
 | API | `npm run start:dev` | HTTP API |
 | Worker | `npm run start:worker:dev` | BullMQ consumer (`QueueWorkerHost`) |
-| Scheduler | `npm run start:scheduler:dev` | Stalled-queue detection; optional NPI daily sync when `NPI_SYNC_SCHEDULE_ENABLED=true` |
+| Scheduler | `npm run start:scheduler:dev` | Stalled-queue detection; optional NPI sync at 00:00 and 12:00 America/New_York when `NPI_SYNC_SCHEDULE_ENABLED=true` |
 
 - Queue driver: BullMQ on Redis (`REDIS_URL`, logical DB 0).
 - Local default keeps validation on the API process (`USE_QUEUE=false`). Enable the queue and run the worker when testing async validation.

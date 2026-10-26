@@ -124,7 +124,7 @@ export const envSchema = z.object({
     .positive()
     .default(2),
   /**
-   * When true, SchedulerHost runs `npi-ordering-referrings:sync` daily at 06:00 America/New_York.
+   * When true, SchedulerHost runs `npi-ordering-referrings:sync` at 00:00 and 12:00 America/New_York.
    * Requires `npm run start:scheduler` (or Compose scheduler service).
    */
   NPI_SYNC_SCHEDULE_ENABLED: booleanFromString.default(false),

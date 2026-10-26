@@ -9,7 +9,7 @@ async function bootstrap() {
   const host = app.get(SchedulerHost);
   host.start();
   logger.log(
-    'Scheduler process ready (detect-stalled-queues; optional NPI daily sync via NPI_SYNC_SCHEDULE_ENABLED)',
+    'Scheduler process ready (detect-stalled-queues; optional NPI sync at 00:00/12:00 NY via NPI_SYNC_SCHEDULE_ENABLED)',
   );
 }
 

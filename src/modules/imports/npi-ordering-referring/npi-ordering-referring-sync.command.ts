@@ -8,7 +8,7 @@ import {
 /**
  * Laravel App\Console\Commands\SyncNpiOrderingReferrings (npi-ordering-referrings:sync).
  *
- * Also invoked by SchedulerHost when `NPI_SYNC_SCHEDULE_ENABLED=true` (daily 06:00 America/New_York).
+ * Also invoked by SchedulerHost when `NPI_SYNC_SCHEDULE_ENABLED=true` (00:00 and 12:00 America/New_York).
  */
 @Command({
   name: 'npi-ordering-referrings:sync',

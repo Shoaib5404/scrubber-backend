@@ -21,6 +21,7 @@ export const SCHEDULER_INTERVAL_MS = 5 * 60_000;
 
 /** Laravel withoutOverlapping for npi-ordering-referrings:sync (long import). */
 export const NPI_SYNC_LOCK_KEY = 'scrubber:scheduler:npi-sync';
+/** Value is a slot key, e.g. `2026-10-26T00` or `2026-10-26T12`. */
 export const NPI_SYNC_LAST_RUN_KEY = 'scrubber:scheduler:npi-sync:last-run-date';
 /** 4h — large CMS CSV download + import may take a while. */
 export const NPI_SYNC_LOCK_TTL_MS = 4 * 60 * 60_000;
