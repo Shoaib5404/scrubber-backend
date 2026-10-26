@@ -2,13 +2,14 @@ import {
   BadRequestException,
   Controller,
   Get,
-  NotFoundException,
+  HttpCode,
+  HttpStatus,
   Param,
   Post,
   Body,
   Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ApiScope } from '../../auth/auth.constants';
 import { RequireScopes } from '../../auth/auth.types';
 import {
@@ -76,23 +77,67 @@ export class CodingReferenceController {
     return { success: true, data: item };
   }
 
-  @Post('validate')
+  @Get('npi/search')
   @RequireScopes(ApiScope.ReferenceRead)
+  @ApiOperation({
+    summary: 'Search CMS Order & Referring NPIs',
+    description:
+      'Returns active rows from npi_ordering_referrings (CMS Order and Referring list), not full NPPES. Query by NPI digit prefix or last-name prefix (min 3 letters).',
+  })
+  @ApiQuery({ name: 'q', required: true })
+  @ApiQuery({ name: 'limit', required: false })
+  async searchNpi(@Query('q') q?: string, @Query('limit') limitRaw?: string) {
+    const query = this.requireQuery(q);
+    const limit = this.parseLimit(limitRaw);
+    const items = await this.coding.searchNpis(query, limit);
+    return { success: true, data: { items, limit } };
+  }
+
+  @Get('npi/:npi')
+  @RequireScopes(ApiScope.ReferenceRead)
+  @ApiOperation({
+    summary: 'Lookup CMS Order & Referring NPI',
+    description:
+      'Returns an active Order & Referring registry row. Not found / inactive → 404. formatValid is CMS NPI Luhn.',
+  })
+  async showNpi(@Param('npi') npi: string) {
+    const item = requireFound(await this.coding.findNpi(npi), 'NPI not found.');
+    return { success: true, data: item };
+  }
+
+  @Post('validate')
+  @HttpCode(HttpStatus.OK)
+  @RequireScopes(ApiScope.ReferenceRead)
+  @ApiOperation({
+    summary: 'Batch-validate coding references and NPIs',
+    description:
+      'ICD10/CPT/modifiers: valid = found in reference DB. NPI: valid = active CMS Order & Referring row; formatValid = Luhn. Not full NPPES.',
+  })
   async validate(
     @Body()
     body: {
       icd10?: string[];
       cpt?: string[];
       modifiers?: string[];
+      npi?: string[];
     },
   ) {
-    for (const key of ['icd10', 'cpt', 'modifiers'] as const) {
-      const list = body?.[key];
+    const payload = body ?? {};
+    for (const key of ['icd10', 'cpt', 'modifiers', 'npi'] as const) {
+      const list = payload[key];
       if (list != null && list.length > 50) {
         throw new BadRequestException(`${key} may not contain more than 50 items.`);
       }
     }
-    const data = await this.coding.validateBatch(body ?? {});
+    const hasAny =
+      (payload.icd10?.length ?? 0) > 0 ||
+      (payload.cpt?.length ?? 0) > 0 ||
+      (payload.modifiers?.length ?? 0) > 0 ||
+      (payload.npi?.length ?? 0) > 0;
+    if (!hasAny) {
+      throw new BadRequestException('Provide at least one of icd10, cpt, modifiers, or npi.');
+    }
+    const data = await this.coding.validateBatch(payload);
     return { success: true, data };
   }
 

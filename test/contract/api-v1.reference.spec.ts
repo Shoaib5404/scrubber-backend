@@ -60,6 +60,28 @@ describe('api-v1 reference / cpt explorer contract', () => {
       update: { shortDescription: 'Significant, separately identifiable E/M', termDt: null },
     });
 
+    // CMS Order & Referring fixtures (Luhn-valid; 99988* prefix avoids colliding with real CMS data).
+    await prisma.npiOrderingReferring.upsert({
+      where: { npi: '9998800129' },
+      create: {
+        npi: '9998800129',
+        firstName: 'JANE',
+        lastName: 'ZZZREFAPI',
+        active: true,
+      },
+      update: { firstName: 'JANE', lastName: 'ZZZREFAPI', active: true },
+    });
+    await prisma.npiOrderingReferring.upsert({
+      where: { npi: '9998800137' },
+      create: {
+        npi: '9998800137',
+        firstName: 'INACTIVE',
+        lastName: 'ZZZREFAPI',
+        active: false,
+      },
+      update: { firstName: 'INACTIVE', lastName: 'ZZZREFAPI', active: false },
+    });
+
     const login = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
       .send({ email: admin.email, password: 'Password123!' });
@@ -67,6 +89,9 @@ describe('api-v1 reference / cpt explorer contract', () => {
   });
 
   afterAll(async () => {
+    await prisma.npiOrderingReferring.deleteMany({
+      where: { npi: { in: ['9998800129', '9998800137'] } },
+    });
     await prisma.refreshToken.deleteMany({
       where: { user: { email: { contains: `ref-admin-${stamp}@` } } },
     });
@@ -77,11 +102,11 @@ describe('api-v1 reference / cpt explorer contract', () => {
 
   it('CPT coding-reference search/lookup', async () => {
     const search = await request(app.getHttpServer())
-      .get('/api/v1/reference/cpt/search?q=975')
+      .get('/api/v1/reference/cpt/search?q=97597')
       .set('Authorization', `Bearer ${adminToken}`);
     expect(search.status).toBe(200);
     expect(search.body.success).toBe(true);
-    expect(search.body.data.items[0].code).toBe('97597');
+    expect(search.body.data.items.some((i: { code: string }) => i.code === '97597')).toBe(true);
 
     const show = await request(app.getHttpServer())
       .get('/api/v1/reference/cpt/97597')
@@ -115,6 +140,114 @@ describe('api-v1 reference / cpt explorer contract', () => {
     const res = await request(app.getHttpServer())
       .get('/api/v1/reference/cpt/search?q=')
       .set('Authorization', `Bearer ${adminToken}`);
+    expect(res.status).toBe(400);
+  });
+
+  it(
+    'NPI coding-reference search/lookup',
+    async () => {
+      const searchByNpi = await request(app.getHttpServer())
+        .get('/api/v1/reference/npi/search?q=9998800129')
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect(searchByNpi.status).toBe(200);
+      expect(searchByNpi.body.success).toBe(true);
+      expect(searchByNpi.body.data.items.some((i: { code: string }) => i.code === '9998800129')).toBe(
+        true,
+      );
+
+      const searchByName = await request(app.getHttpServer())
+        .get('/api/v1/reference/npi/search?q=ZZZREFAPI')
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect(searchByName.status).toBe(200);
+      expect(
+        searchByName.body.data.items.some(
+          (i: { code: string; lastName: string }) =>
+            i.code === '9998800129' && i.lastName === 'ZZZREFAPI',
+        ),
+      ).toBe(true);
+
+      const show = await request(app.getHttpServer())
+        .get('/api/v1/reference/npi/9998800129')
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect(show.status).toBe(200);
+      expect(show.body.data.description).toBe('ZZZREFAPI, JANE');
+      expect(show.body.data.formatValid).toBe(true);
+      expect(show.body.data.active).toBe(true);
+
+      const inactive = await request(app.getHttpServer())
+        .get('/api/v1/reference/npi/9998800137')
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect(inactive.status).toBe(404);
+
+      const missing = await request(app.getHttpServer())
+        .get('/api/v1/reference/npi/9998800145')
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect(missing.status).toBe(404);
+    },
+    30_000,
+  );
+
+  it('batch validate NPI: hit, miss, format fail, dedupe, mixed', async () => {
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/reference/validate')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        cpt: ['97597'],
+        npi: ['9998800129', '9998800145', '9998800129', '123', '9998800137'],
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.cpt[0]).toMatchObject({ code: '97597', valid: true });
+
+    const npis = res.body.data.npi as Array<{
+      code: string;
+      valid: boolean;
+      formatValid: boolean;
+      description: string | null;
+    }>;
+    expect(npis.map((n) => n.code)).toEqual([
+      '9998800129',
+      '9998800145',
+      '123',
+      '9998800137',
+    ]);
+
+    expect(npis[0]).toMatchObject({
+      code: '9998800129',
+      valid: true,
+      formatValid: true,
+      description: 'ZZZREFAPI, JANE',
+      active: true,
+    });
+    expect(npis[1]).toMatchObject({
+      code: '9998800145',
+      valid: false,
+      formatValid: true,
+      description: null,
+      active: null,
+    });
+    expect(npis[2]).toMatchObject({
+      code: '123',
+      valid: false,
+      formatValid: false,
+      description: null,
+      active: null,
+    });
+    // Inactive registry row → not valid for reference API
+    expect(npis[3]).toMatchObject({
+      code: '9998800137',
+      valid: false,
+      formatValid: true,
+      description: null,
+      active: null,
+    });
+  });
+
+  it('rejects empty validate body', async () => {
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/reference/validate')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({});
     expect(res.status).toBe(400);
   });
 });
