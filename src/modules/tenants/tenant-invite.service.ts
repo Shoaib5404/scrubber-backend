@@ -143,9 +143,9 @@ export class TenantInviteService {
       this.logger.error(`Failed to send invite to ${email}`, err instanceof Error ? err.stack : err);
 
       // Non-prod: keep invite usable via invite_url so local testing is not blocked by
-      // Resend/SendGrid sandbox recipient limits.
+      // provider sandbox / SMTP recipient limits.
       if (!isProd) {
-        payload.email_warning = `${detail} Open invite_url to accept, or configure SendGrid / a verified Resend domain.`;
+        payload.email_warning = `${detail} Open invite_url to accept, or configure SendGrid, SMTP, or a verified Resend domain.`;
         return payload;
       }
 

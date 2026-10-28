@@ -141,12 +141,19 @@ export const envSchema = z.object({
   PASSWORD_CONFIRM_TTL_SECONDS: z.coerce.number().int().positive().default(900),
 
   /**
-   * Email providers for invites (priority: SendGrid → Resend).
-   * Optional in non-production — invite URL is logged when neither is set.
+   * Email providers for invites (priority: SendGrid → SMTP → Resend).
+   * Optional in non-production — invite URL is logged when none are set.
    */
   SENDGRID_API_KEY: z.string().optional(),
   SENDGRID_FROM_EMAIL: z.string().optional(),
   SENDGRID_FROM_NAME: z.string().optional(),
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().positive().default(587),
+  SMTP_SECURE: booleanFromString.default(false),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM_EMAIL: z.string().optional(),
+  SMTP_FROM_NAME: z.string().optional(),
   RESEND_API_KEY: z.string().optional(),
   RESEND_FROM_EMAIL: z.string().optional(),
   RESEND_FROM_NAME: z.string().optional(),

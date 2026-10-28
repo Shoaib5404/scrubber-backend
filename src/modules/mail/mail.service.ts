@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { readFileSync } from 'node:fs';
+import nodemailer from 'nodemailer';
 import { brandAssetPath } from '../../brand/assets';
 import {
   EMAIL_LOGO_CID,
@@ -56,7 +57,7 @@ export type InquiryReplyEmailPayload = {
 
 export type SendEmailResult = {
   sent: true;
-  provider: 'sendgrid' | 'resend';
+  provider: 'sendgrid' | 'smtp' | 'resend';
 };
 
 type InlineAttachment = {
@@ -75,7 +76,7 @@ type OutboundEmail = {
   inlineAttachments?: InlineAttachment[];
 };
 
-type MailProvider = 'sendgrid' | 'resend';
+type MailProvider = 'sendgrid' | 'smtp' | 'resend';
 
 @Injectable()
 export class MailService {
@@ -84,13 +85,14 @@ export class MailService {
   constructor(private readonly config: ConfigService) {}
 
   isConfigured(): boolean {
-    return this.hasSendGrid() || this.hasResend();
+    return this.hasSendGrid() || this.hasSmtp() || this.hasResend();
   }
 
   /** Exposed for diagnostics / tests. Order matches send preference. */
   activeProviders(): MailProvider[] {
     const providers: MailProvider[] = [];
     if (this.hasSendGrid()) providers.push('sendgrid');
+    if (this.hasSmtp()) providers.push('smtp');
     if (this.hasResend()) providers.push('resend');
     return providers;
   }
@@ -354,8 +356,8 @@ export class MailService {
   }
 
   /**
-   * Provider order: SendGrid (if credentials in env) → Resend (if credentials in env).
-   * Throws with a clear "Email not sent due to …" message when neither works.
+   * Provider order: SendGrid → SMTP → Resend (each if credentials in env).
+   * Throws with a clear "Email not sent due to …" message when none work.
    */
   private async sendEmail(
     email: Omit<OutboundEmail, 'inlineAttachments'> & {
@@ -383,7 +385,22 @@ export class MailService {
         const message = err instanceof Error ? err.message : String(err);
         errors.push(`sendgrid: ${message}`);
         this.logger.warn(
-          `SendGrid send failed for ${outbound.to}; falling back if Resend is configured. ${message}`,
+          `SendGrid send failed for ${outbound.to}; falling back if SMTP/Resend is configured. ${message}`,
+        );
+      }
+    }
+
+    if (this.hasSmtp()) {
+      tried.push('smtp');
+      try {
+        await this.sendViaSmtp(outbound);
+        this.logger.log(`Email sent via smtp to ${outbound.to}`);
+        return { sent: true, provider: 'smtp' };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        errors.push(`smtp: ${message}`);
+        this.logger.warn(
+          `SMTP send failed for ${outbound.to}; falling back if Resend is configured. ${message}`,
         );
       }
     }
@@ -403,7 +420,7 @@ export class MailService {
     if (errors.length === 0) {
       throw new Error(
         'Email not sent due to no email provider configured. ' +
-          'Set SENDGRID_API_KEY and SENDGRID_FROM_EMAIL, or RESEND_API_KEY and RESEND_FROM_EMAIL.',
+          'Set SENDGRID_API_KEY and SENDGRID_FROM_EMAIL, or SMTP_HOST/SMTP_USER/SMTP_PASS, or RESEND_API_KEY and RESEND_FROM_EMAIL.',
       );
     }
 
@@ -415,6 +432,14 @@ export class MailService {
 
   private hasSendGrid(): boolean {
     return Boolean(this.envValue('SENDGRID_API_KEY') && this.envValue('SENDGRID_FROM_EMAIL'));
+  }
+
+  private hasSmtp(): boolean {
+    return Boolean(
+      this.envValue('SMTP_HOST') &&
+        this.envValue('SMTP_USER') &&
+        this.envValue('SMTP_PASS'),
+    );
   }
 
   private hasResend(): boolean {
@@ -469,6 +494,44 @@ export class MailService {
       const body = await safeReadBody(response);
       throw new Error(`HTTP ${response.status}${body ? `: ${body}` : ''}`);
     }
+  }
+
+  private async sendViaSmtp(email: OutboundEmail): Promise<void> {
+    const host = this.envValue('SMTP_HOST')!;
+    const user = this.envValue('SMTP_USER')!;
+    const pass = this.envValue('SMTP_PASS')!;
+    const port = this.config.get<number>('SMTP_PORT') ?? 587;
+    const secure = Boolean(this.config.get<boolean>('SMTP_SECURE'));
+    const fromEmail =
+      this.envValue('SMTP_FROM_EMAIL') || user;
+    const fromName =
+      this.envValue('SMTP_FROM_NAME') ||
+      this.envValue('MAIL_FROM_NAME') ||
+      'Scrubber';
+
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure,
+      auth: { user, pass },
+    });
+
+    const attachments = (email.inlineAttachments ?? []).map((a) => ({
+      filename: a.filename,
+      content: a.content,
+      contentType: a.contentType,
+      cid: a.contentId,
+      contentDisposition: 'inline' as const,
+    }));
+
+    await transporter.sendMail({
+      from: `${fromName} <${fromEmail}>`,
+      to: email.to,
+      subject: email.subject,
+      text: email.text,
+      html: email.html,
+      ...(attachments.length > 0 ? { attachments } : {}),
+    });
   }
 
   private async sendViaResend(email: OutboundEmail): Promise<void> {
