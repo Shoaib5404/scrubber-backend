@@ -175,16 +175,31 @@ export type ParsedClaim = {
   segments: EdiSegment[];
 };
 
+/**
+ * Claim-level 2300+2400 scope: from each CLM until the next HL (new hierarchy)
+ * or next CLM. Stopping on HL prevents the next billing-provider / subscriber
+ * loop from being swallowed into the previous claim's last service line.
+ */
 export function extractClaims(bodySegments: EdiSegment[]): ParsedClaim[] {
   const claims: ParsedClaim[] = [];
   let buffer: EdiSegment[] = [];
   let inClaim = false;
 
+  const flush = () => {
+    if (inClaim && buffer.length > 0) {
+      claims.push({ index: claims.length, clm: buffer[0]!, segments: buffer });
+    }
+    buffer = [];
+    inClaim = false;
+  };
+
   for (const seg of bodySegments) {
+    if (seg.id === 'HL') {
+      flush();
+      continue;
+    }
     if (seg.id === 'CLM') {
-      if (inClaim && buffer.length > 0) {
-        claims.push({ index: claims.length, clm: buffer[0]!, segments: buffer });
-      }
+      flush();
       buffer = [seg];
       inClaim = true;
       continue;
@@ -194,10 +209,7 @@ export function extractClaims(bodySegments: EdiSegment[]): ParsedClaim[] {
     }
   }
 
-  if (inClaim && buffer.length > 0) {
-    claims.push({ index: claims.length, clm: buffer[0]!, segments: buffer });
-  }
-
+  flush();
   return claims;
 }
 
@@ -457,14 +469,10 @@ export function extractClaimCobBlocks(doc: EdiDocument): ClaimCobBlocks[] {
         }
         if (!capturing) continue;
         if (seg.id === 'LX') {
-          // Laravel extractCobBlocks: on LX it pushes the current block then
-          // breaks without clearing $inBlock/$buffer, so the post-loop flush
-          // duplicates the last 2320 block (drives SBR01 uniqueness + N4 dups).
+          // End COB capture at the first service line. Do not duplicate the
+          // last 2320 block — that Laravel quirk invented false SBR01 uniqueness
+          // and N4 required errors against X222A1 / Stedi.
           flushBlock();
-          if (blocks.length > 0) {
-            const last = blocks[blocks.length - 1]!;
-            blocks.push({ sbr: last.sbr, segments: [...last.segments] });
-          }
           capturing = false;
           continue;
         }

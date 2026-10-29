@@ -95,10 +95,12 @@ export function validateProcedureComposite(
     }
   });
 
-  if (parsed.extra.length > 0) {
+  // X222A1 / Stedi: SV101-7 may carry a procedure description. Warn only when
+  // components exist beyond that single description slot.
+  if (parsed.extra.length > 1) {
     issues.push({
       message:
-        'SV101 composite contains non-standard trailing data (e.g. procedure description); only qualifier, code, and up to 4 modifiers belong in SV101',
+        'SV101 composite contains unexpected components beyond qualifier, code, up to 4 modifiers, and optional description (SV101-7)',
       field: 'SV101',
       severity: 'warning',
     });

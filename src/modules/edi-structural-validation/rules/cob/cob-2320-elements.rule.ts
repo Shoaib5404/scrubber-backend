@@ -36,7 +36,8 @@ const LOOP_SEGMENTS: Record<string, string[]> = {
 
 const HEADER_TYPES = ['SBR', 'CAS', 'AMT', 'OI', 'MOA'];
 const REQUIRED_CHILD_LOOPS = ['loop_2330A', 'loop_2330B'];
-const N4_REQUIRED_LOOPS = ['loop_2330A', 'loop_2330B'];
+/** X222A1/Stedi: 2330A/B N4 is optional; require only when N3 address is present. */
+const N4_WHEN_N3_PRESENT_LOOPS = ['loop_2330A', 'loop_2330B'];
 const REF_REQUIRED_LOOPS = [
   'loop_2330C',
   'loop_2330D',
@@ -369,15 +370,21 @@ function validateChildLoop(
     );
   }
 
-  if (N4_REQUIRED_LOOPS.includes(loopKey) && !present.N4) {
+  if (N4_WHEN_N3_PRESENT_LOOPS.includes(loopKey) && present.N3 && !present.N4) {
     issues.push(
-      issue(RULE_ID, 'error', `N4 is required in ${loopKey} when the loop is used`, GROUP, {
-        segment: 'NM1',
-        segment_index: nm1.index,
-        functional_group_index: fg,
-        transaction_set_index: tx,
-        field: 'N4',
-      }),
+      issue(
+        RULE_ID,
+        'error',
+        `N4 is required in ${loopKey} when N3 is present`,
+        GROUP,
+        {
+          segment: 'NM1',
+          segment_index: nm1.index,
+          functional_group_index: fg,
+          transaction_set_index: tx,
+          field: 'N4',
+        },
+      ),
     );
   }
 

@@ -102,6 +102,21 @@ describe('Chunk 1 envelope / header / HL parity', () => {
     ).toBe(true);
   });
 
+  it('HL-HIER allows a second billing-provider root with empty HL02', () => {
+    const withSecondRoot = fixture.replace(
+      /SE\*/,
+      'HL*3**20*1~NM1*85*2*OTHER PROV*****XX*1098765432~N3*9 OAK~N4*TOWN*TX*75002~HL*4*3*22*0~SBR*P*18*******CI~NM1*IL*1*SMITH*ANN****MI*9~N3*8 OAK~N4*TOWN*TX*75002~DMG*D8*19900101*F~NM1*PR*2*PAYER*****PI*6400~CLM*ZZ*1***11:B:1*Y*A*Y*Y~HI*ABK:J069~LX*1~SV1*HC:99213*1*UN*1***1~DTP*472*D8*20240102~SE*',
+    );
+    const result = svc.validate(withSecondRoot);
+    expect(
+      result.issues.filter(
+        (i) =>
+          i.rule === 'HL-HIER' &&
+          i.message.includes('HL02 must reference a valid parent'),
+      ),
+    ).toHaveLength(0);
+  });
+
   it('HL-2000B-ELEMENTS requires SBR', () => {
     // Remove SBR after HL*22 — minimal fixture has patient-is-subscriber
     const withoutSbr = fixture.replace(/SBR\*[^\n~]*~/, '');

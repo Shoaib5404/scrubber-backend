@@ -495,6 +495,9 @@ function hlHierRule(): Edi837ValidationRule {
         }
         if (/^\d+$/.test(hlId)) expectedSequentialId++;
 
+        // 837P allows multiple billing-provider HL roots (HL03=20) in one ST;
+        // each has empty HL02. Subscriber/patient HL must still point at a parent.
+        const isBillingProviderRoot = hl.levelCode === '20';
         if (position === 0) {
           if (hl.parentId !== null) {
             issues.push(
@@ -502,6 +505,24 @@ function hlHierRule(): Edi837ValidationRule {
                 'HL-HIER',
                 'error',
                 'First HL segment must not have HL02 (parent ID)',
+                'hierarchy',
+                {
+                  segment: 'HL',
+                  segment_index: hl.segment.index,
+                  functional_group_index: tx.functionalGroupIndex,
+                  transaction_set_index: tx.transactionSetIndex,
+                  field: 'HL02',
+                },
+              ),
+            );
+          }
+        } else if (isBillingProviderRoot) {
+          if (hl.parentId !== null) {
+            issues.push(
+              issue(
+                'HL-HIER',
+                'error',
+                'Billing provider HL (HL03=20) must not have HL02 (parent ID)',
                 'hierarchy',
                 {
                   segment: 'HL',

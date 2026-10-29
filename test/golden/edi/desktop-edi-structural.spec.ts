@@ -3,7 +3,7 @@ import { Test } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
 import { Edi837ValidationService } from '../../../src/modules/edi-structural-validation/edi837-validation.service';
 
-describe('Desktop EDI structural (Laravel COB-2320 parity)', () => {
+describe('Desktop EDI structural (X222A1 / Stedi)', () => {
   let svc: Edi837ValidationService;
 
   beforeAll(async () => {
@@ -22,32 +22,23 @@ describe('Desktop EDI structural (Laravel COB-2320 parity)', () => {
   });
 
   for (const name of ['EDI - 19 claims.txt', 'Latest 19 claims.txt'] as const) {
-    it(`rejects ${name} with COB-2320-ELEMENTS (Laravel parity)`, () => {
+    it(`does not invent false SBR01 uniqueness / blanket 2330B N4 errors on ${name}`, () => {
       const result = svc.validate(
         readFileSync(`C:/Users/abdul.waheed/Desktop/${name}`, 'utf8'),
       );
-      expect(result.passed).toBe(false);
       const cob = result.issues.filter((i) => i.rule === 'COB-2320-ELEMENTS');
-      expect(cob.length).toBeGreaterThan(0);
-      expect(
-        cob.some((i) => i.message.includes('SBR01') || i.message.includes('N4 is required')),
-      ).toBe(true);
+      expect(cob.some((i) => i.message.includes("SBR01 'S'"))).toBe(false);
+      expect(cob.some((i) => i.message.includes("SBR01 'P'"))).toBe(false);
+      expect(cob.some((i) => i.message.includes('N4 is required in loop_2330B when the loop is used'))).toBe(
+        false,
+      );
     });
   }
 
-  it('Latest 19 claims.txt matches Laravel COB/SVC issue counts', () => {
+  it('Latest 19 claims.txt: SV101-7 description is allowed (no trailing-data warning)', () => {
     const result = svc.validate(
       readFileSync('C:/Users/abdul.waheed/Desktop/Latest 19 claims.txt', 'utf8'),
     );
-    expect(result.passed).toBe(false);
-    expect(result.error_count).toBe(10);
-    expect(result.warning_count).toBe(1);
-
-    const cob = result.issues.filter((i) => i.rule === 'COB-2320-ELEMENTS');
-    const byMsg = (needle: string) => cob.filter((i) => i.message.includes(needle)).length;
-    expect(byMsg('N4 is required')).toBe(7);
-    expect(byMsg("SBR01 'S'")).toBe(2);
-    expect(byMsg("SBR01 'P'")).toBe(1);
 
     const svcWarn = result.issues.filter(
       (i) =>
@@ -55,6 +46,14 @@ describe('Desktop EDI structural (Laravel COB-2320 parity)', () => {
         i.severity === 'warning' &&
         i.message.includes('non-standard trailing data'),
     );
-    expect(svcWarn.length).toBe(1);
+    expect(svcWarn.length).toBe(0);
+
+    const beyondDesc = result.issues.filter(
+      (i) =>
+        i.rule === 'SVC-STRUCT' &&
+        i.severity === 'warning' &&
+        i.message.includes('unexpected components beyond'),
+    );
+    expect(beyondDesc.length).toBe(0);
   });
 });

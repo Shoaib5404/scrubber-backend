@@ -819,7 +819,8 @@
             },
             "N4": {
                 "name": "Other Subscriber City, State, ZIP Code",
-                "required": true,
+                "required": false,
+                "conditional": "Required when the other subscriber address is available and the submitter intends for the claim to be printed on paper at the next EDI location. If N3 is sent, N4 must also be sent. If not required by this implementation guide, do not send.",
                 "repeatable": false,
                 "syntax_rules": [
                     {
@@ -1098,7 +1099,8 @@
             },
             "N4": {
                 "name": "Other Payer City, State, ZIP Code",
-                "required": true,
+                "required": false,
+                "conditional": "Required when the payer address is available and the submitter intends for the claim to be printed on paper at the next EDI location. If N3 is sent, N4 must also be sent. If not required by this implementation guide, do not send.",
                 "repeatable": false,
                 "syntax_rules": [
                     {

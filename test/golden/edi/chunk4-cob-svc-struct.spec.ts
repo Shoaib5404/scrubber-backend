@@ -29,7 +29,7 @@ describe('Chunk 4 COB / service / remaining structure', () => {
     expect(ids[ids.length - 1]).toBe('COB-STRUCT');
   });
 
-  it('Nest≡Laravel on Desktop EDI files after Chunk 4', () => {
+  it('Desktop EDI files follow X222A1 (no Laravel false SBR01/N4/SV101-7 noise)', () => {
     const two = svc.validate(
       readFileSync('C:/Users/abdul.waheed/Desktop/2 claims.txt', 'utf8'),
     );
@@ -40,12 +40,18 @@ describe('Chunk 4 COB / service / remaining structure', () => {
     const nineteen = svc.validate(
       readFileSync('C:/Users/abdul.waheed/Desktop/EDI - 19 claims.txt', 'utf8'),
     );
-    expect(nineteen.passed).toBe(false);
-    expect(nineteen.error_count).toBe(10);
-    expect(nineteen.warning_count).toBe(1);
-    expect(nineteen.issues.filter((i) => i.rule === 'COB-2320-ELEMENTS')).toHaveLength(10);
+    const cob = nineteen.issues.filter((i) => i.rule === 'COB-2320-ELEMENTS');
+    expect(cob.some((i) => i.message.includes('SBR01'))).toBe(false);
     expect(
-      nineteen.issues.filter((i) => i.rule === 'SVC-STRUCT' && i.severity === 'warning'),
-    ).toHaveLength(1);
+      cob.some((i) => i.message.includes('N4 is required in loop_2330B when the loop is used')),
+    ).toBe(false);
+    expect(
+      nineteen.issues.filter(
+        (i) =>
+          i.rule === 'SVC-STRUCT' &&
+          i.severity === 'warning' &&
+          i.message.includes('non-standard trailing data'),
+      ),
+    ).toHaveLength(0);
   });
 });

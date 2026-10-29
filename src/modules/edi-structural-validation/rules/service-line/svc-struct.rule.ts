@@ -168,29 +168,101 @@ export function svcStructRule(): Edi837ValidationRule {
 
             const dateValue = el(dtp, 3);
             const format = el(dtp, 2);
-            if (format !== 'D8' || !FieldFormatValidator.isValidD8(dateValue)) {
+            let serviceDateFrom: Date | null = null;
+            let serviceDateTo: Date | null = null;
+
+            if (format === 'D8') {
+              if (!FieldFormatValidator.isValidD8(dateValue)) {
+                issues.push(
+                  issue(
+                    RULE_ID,
+                    'error',
+                    'DTP*472 must use D8 format with a valid CCYYMMDD date',
+                    GROUP,
+                    {
+                      segment: 'DTP',
+                      segment_index: dtp.index,
+                      functional_group_index: fg,
+                      transaction_set_index: ti,
+                      field: 'DTP03',
+                    },
+                  ),
+                );
+                continue;
+              }
+              serviceDateFrom = PatientBirthDateResolver.parseD8(dateValue);
+              serviceDateTo = serviceDateFrom;
+            } else if (format === 'RD8') {
+              const [from, to] = FieldFormatValidator.parseRd8(dateValue);
+              if (
+                !from ||
+                !to ||
+                !FieldFormatValidator.isValidD8(from) ||
+                !FieldFormatValidator.isValidD8(to)
+              ) {
+                issues.push(
+                  issue(
+                    RULE_ID,
+                    'error',
+                    'DTP*472 must use RD8 format with a valid CCYYMMDD-CCYYMMDD date range',
+                    GROUP,
+                    {
+                      segment: 'DTP',
+                      segment_index: dtp.index,
+                      functional_group_index: fg,
+                      transaction_set_index: ti,
+                      field: 'DTP03',
+                    },
+                  ),
+                );
+                continue;
+              }
+              serviceDateFrom = PatientBirthDateResolver.parseD8(from);
+              serviceDateTo = PatientBirthDateResolver.parseD8(to);
+              if (
+                serviceDateFrom &&
+                serviceDateTo &&
+                serviceDateFrom.getTime() > serviceDateTo.getTime()
+              ) {
+                issues.push(
+                  issue(
+                    RULE_ID,
+                    'error',
+                    'DTP*472 RD8 date range start must be on or before the end date',
+                    GROUP,
+                    {
+                      segment: 'DTP',
+                      segment_index: dtp.index,
+                      functional_group_index: fg,
+                      transaction_set_index: ti,
+                      field: 'DTP03',
+                    },
+                  ),
+                );
+                continue;
+              }
+            } else {
               issues.push(
                 issue(
                   RULE_ID,
                   'error',
-                  'DTP*472 must use D8 format with a valid CCYYMMDD date',
+                  'DTP*472 must use D8 or RD8 format with a valid service date',
                   GROUP,
                   {
                     segment: 'DTP',
                     segment_index: dtp.index,
                     functional_group_index: fg,
                     transaction_set_index: ti,
-                    field: 'DTP03',
+                    field: 'DTP02',
                   },
                 ),
               );
               continue;
             }
 
-            const serviceDate = PatientBirthDateResolver.parseD8(dateValue);
-            if (!serviceDate) continue;
+            if (!serviceDateFrom || !serviceDateTo) continue;
 
-            if (serviceDate.getTime() > today.getTime()) {
+            if (serviceDateTo.getTime() > today.getTime()) {
               issues.push(
                 issue(
                   RULE_ID,
@@ -208,7 +280,7 @@ export function svcStructRule(): Edi837ValidationRule {
               );
             }
 
-            if (birthDate && serviceDate.getTime() < birthDate.getTime()) {
+            if (birthDate && serviceDateFrom.getTime() < birthDate.getTime()) {
               issues.push(
                 issue(
                   RULE_ID,
